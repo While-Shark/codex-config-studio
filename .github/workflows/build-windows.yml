@@ -1,28 +1,55 @@
 name: build-windows
 
 on:
+  push:
+    branches:
+      - master
+    tags:
+      - "v*"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v7
+
       - uses: actions/setup-node@v6
         with:
           node-version: lts/*
+          cache: npm
+
       - uses: dtolnay/rust-toolchain@stable
+
       - uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: "./src-tauri -> target"
+
       - name: Install frontend dependencies
         run: npm install
+
       - name: Build Windows installer
         uses: tauri-apps/tauri-action@v1
         with:
           args: --bundles nsis
-      - name: Upload installer
+
+      - name: Upload Windows installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: codex-config-studio-windows
           path: src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = Get-ChildItem "src-tauri\target\release\bundle\nsis\*-setup.exe"
+          gh release create "${{ github.ref_name }}" $files.FullName --title "Codex Config Studio ${{ github.ref_name }}" --generate-notes
