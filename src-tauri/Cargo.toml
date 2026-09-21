@@ -1,6 +1,6 @@
 [package]
 name = "codex-config-studio"
-version = "0.1.0"
+version = "0.2.0"
 description = "Manage Codex global and project model profiles safely"
 authors = ["Codex Config Studio"]
 edition = "2021"
