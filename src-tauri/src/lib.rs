@@ -3,6 +3,8 @@ use std::{
     fs::{self, File},
     io::Write,
     path::{Path, PathBuf},
+    any::Any,
+    panic::{catch_unwind, AssertUnwindSafe},
     sync::{atomic::{AtomicU64, Ordering}, Mutex, MutexGuard},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -65,10 +67,45 @@ struct HistoryRestoreResult {
     snapshot: ConfigSnapshot,
 }
 
-fn file_lock() -> Result<MutexGuard<'static, ()>, String> {
-    CONFIG_WRITE_LOCK
-        .lock()
-        .map_err(|_| "配置写入锁已损坏，请重启 Codex Config Studio 后重试".to_string())
+fn recoverable_file_lock() -> MutexGuard<'static, ()> {
+    match CONFIG_WRITE_LOCK.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => {
+            eprintln!("configuration lock was poisoned by a previous panic; recovering safely");
+            poisoned.into_inner()
+        }
+    }
+}
+
+fn panic_message(payload: Box<dyn Any + Send>) -> String {
+    if let Some(message) = payload.downcast_ref::<&str>() {
+        (*message).to_string()
+    } else if let Some(message) = payload.downcast_ref::<String>() {
+        message.clone()
+    } else {
+        "未知内部异常".to_string()
+    }
+}
+
+fn with_config_lock<T>(
+    operation: &str,
+    task: impl FnOnce() -> Result<T, String>,
+) -> Result<T, String> {
+    // Keep the guard outside catch_unwind. If a native operation panics, the panic is
+    // caught before the guard is dropped, so the mutex itself is not poisoned.
+    // If an older code path already poisoned the mutex, recover the inner guard and
+    // continue instead of permanently bricking all subsequent reads/writes.
+    let _guard = recoverable_file_lock();
+    match catch_unwind(AssertUnwindSafe(task)) {
+        Ok(result) => result,
+        Err(payload) => {
+            let detail = panic_message(payload);
+            eprintln!("{operation} panicked and was safely aborted: {detail}");
+            Err(format!(
+                "{operation}发生内部异常，操作已安全中止。请重试；如果持续发生，请提交日志。详情: {detail}"
+            ))
+        }
+    }
 }
 
 fn now_millis() -> Result<u64, String> {
@@ -397,7 +434,6 @@ fn apply_config_inner(
     values: ManagedConfig,
     source: Option<String>,
 ) -> Result<ConfigSnapshot, String> {
-    let _guard = file_lock()?;
     let path = resolve_scope(&scope)?;
     ensure_parent(&path)?;
     ensure_original_backup(&path)?;
@@ -411,7 +447,6 @@ fn apply_config_inner(
 }
 
 fn clear_managed_inner(scope: ScopeRequest) -> Result<ConfigSnapshot, String> {
-    let _guard = file_lock()?;
     let path = resolve_scope(&scope)?;
     ensure_parent(&path)?;
     ensure_original_backup(&path)?;
@@ -425,7 +460,6 @@ fn clear_managed_inner(scope: ScopeRequest) -> Result<ConfigSnapshot, String> {
 }
 
 fn restore_original_inner(scope: ScopeRequest) -> Result<ConfigSnapshot, String> {
-    let _guard = file_lock()?;
     let path = resolve_scope(&scope)?;
     let dir = backup_dir(&path)?;
     let original = dir.join("config.original.toml");
@@ -455,9 +489,10 @@ fn restore_original_inner(scope: ScopeRequest) -> Result<ConfigSnapshot, String>
 #[tauri::command]
 async fn read_config(scope: ScopeRequest) -> Result<ConfigSnapshot, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let _guard = file_lock()?;
-        let path = resolve_scope(&scope)?;
-        snapshot_for_path(&path)
+        with_config_lock("读取配置", || {
+            let path = resolve_scope(&scope)?;
+            snapshot_for_path(&path)
+        })
     })
     .await
     .map_err(|e| format!("读取任务异常终止: {e}"))?
@@ -469,21 +504,27 @@ async fn apply_config(
     values: ManagedConfig,
     source: Option<String>,
 ) -> Result<ConfigSnapshot, String> {
-    tauri::async_runtime::spawn_blocking(move || apply_config_inner(scope, values, source))
+    tauri::async_runtime::spawn_blocking(move || {
+        with_config_lock("应用配置", || apply_config_inner(scope, values, source))
+    })
         .await
         .map_err(|e| format!("写入任务异常终止: {e}"))?
 }
 
 #[tauri::command]
 async fn clear_managed_config(scope: ScopeRequest) -> Result<ConfigSnapshot, String> {
-    tauri::async_runtime::spawn_blocking(move || clear_managed_inner(scope))
+    tauri::async_runtime::spawn_blocking(move || {
+        with_config_lock("清理配置", || clear_managed_inner(scope))
+    })
         .await
         .map_err(|e| format!("清理任务异常终止: {e}"))?
 }
 
 #[tauri::command]
 async fn restore_original(scope: ScopeRequest) -> Result<ConfigSnapshot, String> {
-    tauri::async_runtime::spawn_blocking(move || restore_original_inner(scope))
+    tauri::async_runtime::spawn_blocking(move || {
+        with_config_lock("恢复原始配置", || restore_original_inner(scope))
+    })
         .await
         .map_err(|e| format!("恢复任务异常终止: {e}"))?
 }
@@ -491,10 +532,11 @@ async fn restore_original(scope: ScopeRequest) -> Result<ConfigSnapshot, String>
 #[tauri::command]
 async fn list_history(limit: Option<usize>) -> Result<Vec<HistoryEntry>, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let _guard = file_lock()?;
-        let mut entries = read_history_store()?.entries;
-        entries.truncate(limit.unwrap_or(100).clamp(1, 300));
-        Ok(entries)
+        with_config_lock("读取历史记录", || {
+            let mut entries = read_history_store()?.entries;
+            entries.truncate(limit.unwrap_or(100).clamp(1, 300));
+            Ok(entries)
+        })
     })
     .await
     .map_err(|e| format!("读取历史记录任务异常终止: {e}"))?
@@ -503,7 +545,7 @@ async fn list_history(limit: Option<usize>) -> Result<Vec<HistoryEntry>, String>
 #[tauri::command]
 async fn restore_history_entry(id: String) -> Result<HistoryRestoreResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        let _guard = file_lock()?;
+        with_config_lock("恢复历史记录", || {
         let store = read_history_store()?;
         let entry = store
             .entries
@@ -531,6 +573,7 @@ async fn restore_history_entry(id: String) -> Result<HistoryRestoreResult, Strin
             Some("history_restore".to_string()),
         )?;
         Ok(HistoryRestoreResult { scope, snapshot })
+        })
     })
     .await
     .map_err(|e| format!("恢复历史记录任务异常终止: {e}"))?
@@ -550,4 +593,21 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Codex Config Studio");
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn guarded_operation_catches_panic_without_poisoning_lock() {
+        let first = with_config_lock("测试操作", || -> Result<(), String> {
+            panic!("intentional test panic");
+        });
+        assert!(first.is_err());
+
+        let second = with_config_lock("后续操作", || Ok::<_, String>(42));
+        assert_eq!(second.expect("lock should remain usable after caught panic"), 42);
+    }
 }
