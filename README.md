@@ -1,6 +1,6 @@
 # Codex Config Studio
 
-一个面向 Codex Desktop / CLI 的 Tauri v2 配置管理器，用来在多套模型方案之间快速切换，并安全管理全局与项目级 `.codex/config.toml`。
+一个面向 Codex Desktop / CLI 的跨平台 Tauri v2 配置管理器，支持 Windows、Linux、macOS，用来在多套模型方案之间快速切换，并安全管理全局与项目级 `.codex/config.toml`。
 
 ## 功能
 
@@ -52,7 +52,7 @@ Codex 的优先级从高到低为：
 
 项目目录里只会创建/修改真正的 `<project>/.codex/config.toml`。
 
-## Windows 本地运行
+## 支持平台\n\n- Windows：NSIS 安装包（`.exe`）\n- Linux：AppImage + Debian 包（`.AppImage` / `.deb`）\n- macOS：Universal App + DMG（同时支持 Apple Silicon 与 Intel）\n\n> macOS 的 CI 构建默认未做 Apple Developer 签名与公证，适合测试；正式公开分发建议配置签名与 notarization。\n\n## Windows 本地运行
 
 前置环境：
 
@@ -84,7 +84,7 @@ npm install
 npm run tauri:dev
 ```
 
-## 构建 Windows 安装包
+## Linux / macOS 本地运行\n\n```bash\nbash ./run-dev.sh\n```\n\nLinux 需要先安装 WebKitGTK 等 Tauri 系统依赖；macOS 需要 Xcode Command Line Tools。\n\n## 构建 Windows 安装包
 
 ```powershell
 ./build-windows.ps1
@@ -96,7 +96,7 @@ NSIS 安装包会输出到：
 src-tauri\target\release\bundle\nsis\
 ```
 
-也可以把项目推到 GitHub，然后手动运行 Actions 中的 `build-windows`。它会在 `windows-latest` 构建并上传安装包 Artifact。
+Linux / macOS 可以运行：\n\n```bash\nbash ./build-unix.sh\n```\n\nGitHub Actions 会在每次 push 到 `master` 时并行构建 Windows、Linux、macOS 三端 Artifact。打 `v*` 标签时，会把 `.exe`、`.AppImage`、`.deb`、`.dmg` 一起发布到同一个 GitHub Release。
 
 ## 安全设计
 
