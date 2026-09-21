@@ -1,6 +1,18 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { getLocale, localeOptions, setLocale, t, type Locale } from './i18n';
+import {
+  commonTaskModels,
+  loadActiveTaskMode,
+  loadTaskPreferences,
+  reasoningLevels,
+  resetTaskPreference,
+  saveActiveTaskMode,
+  saveTaskPreference,
+  taskModeIds,
+  type TaskModeId,
+  type TaskPreference,
+} from './task-modes';
 import './styles.css';
 
 type ScopeKind = 'global' | 'project';
@@ -16,6 +28,7 @@ type ManagedConfig = {
 type ConfigSnapshot = { path: string; exists: boolean; values: ManagedConfig; originalBackupExists: boolean };
 type Preset = { id: string; values: ManagedConfig };
 type Field = keyof ManagedConfig;
+type TaskBaseline = { model: string | null; reasoning: string | null };
 
 type StatusKey = 'status.unread' | 'status.selectProject' | 'status.reading' | 'status.read' | 'status.missing' | 'status.readFailed';
 
@@ -38,6 +51,8 @@ let values = structuredClone(presets[2].values);
 let overrides = new Set<Field>(fields);
 let lastSnapshot: ConfigSnapshot | null = null;
 let currentStatus: { key: StatusKey; ok: boolean } = { key: 'status.unread', ok: false };
+let activeTaskMode: TaskModeId = loadActiveTaskMode();
+let taskPreferences = loadTaskPreferences();
 
 const $ = <T extends Element>(s:string) => document.querySelector<T>(s)!;
 const esc = (v:string) => v.replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]!));
@@ -45,6 +60,10 @@ const app = $('#app');
 
 function presetText(id:string, part:'name'|'badge'|'description'|'usage'): string {
   return t(`preset.${id}.${part}` as Parameters<typeof t>[0]);
+}
+
+function taskText(id:TaskModeId, part:'name'|'description'): string {
+  return t(`task.${id}.${part}` as Parameters<typeof t>[0]);
 }
 
 function field(id:Field,title:string,help:string,control:string){
@@ -59,6 +78,7 @@ function renderApp(): void {
 <main class="content">
 <section class="scope-panel card"><div class="section-heading"><div><span class="eyebrow">${t('section.scope.eyebrow')}</span><h2>${t('section.scope.title')}</h2></div><div class="segmented"><button class="scope-tab active" data-scope="global">${t('scope.global')}</button><button class="scope-tab" data-scope="project">${t('scope.project')}</button></div></div><div class="scope-body"><div><div class="scope-title" id="scopeTitle">${t('scope.globalConfig')}</div><div class="path" id="configPath">~/.codex/config.toml</div></div><div id="projectPicker" class="project-picker hidden"><input id="projectPath" placeholder="${t('scope.projectPlaceholder')}" value="${esc(projectPath)}"><button id="chooseProject" class="button secondary">${t('scope.chooseFolder')}</button></div></div><div id="projectNotice" class="notice hidden">${t('scope.notice')}</div></section>
 <section class="presets-section"><div class="section-heading compact"><div><span class="eyebrow">${t('section.preset.eyebrow')}</span><h2>${t('section.preset.title')}</h2></div><span class="muted">${t('section.preset.hint')}</span></div><div id="presetGrid" class="preset-grid"></div></section>
+<section class="task-section card"><div class="section-heading compact"><div><span class="eyebrow">${t('section.task.eyebrow')}</span><h2>${t('section.task.title')}</h2></div><span class="muted">${t('section.task.hint')}</span></div><div id="taskGrid" class="task-grid"></div><div class="task-controls"><div class="task-select-grid"><label><span>${t('task.model')}</span><select id="taskModelSelect"></select></label><label id="taskCustomModelWrap" class="hidden"><span>${t('task.customModel')}</span><input id="taskCustomModel" placeholder="${t('task.customPlaceholder')}"></label><label><span>${t('task.reasoning')}</span><select id="taskReasoningSelect">${reasoningLevels.map(level=>`<option value="${level}">${level}</option>`).join('')}</select></label></div><div class="task-actions"><button id="applyTaskBtn" class="button primary">${t('task.apply')}</button><button id="resetTaskBtn" class="button secondary">${t('task.reset')}</button><button id="restoreTaskBtn" class="button ghost">${t('task.restore')}</button></div><div class="task-footnotes"><span>${t('task.remember')}</span><span>${t('task.modelSupport')}</span><span>${t('task.note')}</span></div></div></section>
 <section class="editor-grid"><div class="card config-card"><div class="section-heading compact"><div><span class="eyebrow">${t('section.custom.eyebrow')}</span><h2>${t('section.custom.title')}</h2></div><button id="resetPresetBtn" class="text-button">${t('action.resetPreset')}</button></div><div class="form-grid">
 ${field('model',t('field.model'),t('field.model.help'),`<input id="model" list="modelList"><datalist id="modelList">${models.map(x=>`<option value="${x}">`).join('')}</datalist>`)}
 ${field('modelReasoningEffort',t('field.reasoning'),t('field.reasoning.help'),inputList('modelReasoningEffort','effortList'))}
@@ -72,12 +92,18 @@ ${field('maxConcurrentThreadsPerSession',t('field.maxConcurrent'),t('field.maxCo
 </main><datalist id="effortList">${efforts.map(x=>`<option value="${x}">`).join('')}</datalist><div id="toast" class="toast"></div></div>`;
   bindEvents();
   renderPresets();
+  renderTaskModes();
   sync();
   setStatus(currentStatus.key, currentStatus.ok);
   if (lastSnapshot) $('#backupBadge').textContent = lastSnapshot.originalBackupExists ? t('backup.exists') : t('backup.missing');
 }
 
 function requestScope(){return {kind:scope,projectPath:scope==='project'?(projectPath||null):null};}
+function scopeIdentity(): string { return scope==='global' ? 'global' : `project:${projectPath}`; }
+function taskBaselineKey(): string { return `codex-config-studio.task-baseline.v1:${encodeURIComponent(scopeIdentity())}`; }
+function loadTaskBaseline(): TaskBaseline | null { try { const raw=localStorage.getItem(taskBaselineKey()); return raw?JSON.parse(raw) as TaskBaseline:null; } catch { return null; } }
+function saveTaskBaseline(baseline:TaskBaseline): void { try { localStorage.setItem(taskBaselineKey(),JSON.stringify(baseline)); } catch { /* current task still works */ } }
+function clearTaskBaseline(): void { try { localStorage.removeItem(taskBaselineKey()); } catch { /* ignore */ } }
 function projectConfigDisplayPath(){
   if(!projectPath) return t('scope.selectProject');
   const clean=projectPath.replace(/[\\/]+$/,'');
@@ -95,6 +121,34 @@ function renderPresets(){
   const g=$<HTMLDivElement>('#presetGrid');
   g.innerHTML=presets.map(p=>`<button class="preset-card ${activePreset===p.id?'selected':''}" data-preset="${p.id}"><div class="preset-top"><strong>${presetText(p.id,'name')}</strong><span>${presetText(p.id,'badge')}</span></div><p>${presetText(p.id,'description')}</p><small>${presetText(p.id,'usage')}</small></button>`).join('');
   g.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach(b=>b.onclick=()=>{const p=presets.find(x=>x.id===b.dataset.preset)!;activePreset=p.id;values=structuredClone(p.values);overrides=new Set(scope==='project'?fields.filter(f=>p.values[f]!==null):fields);sync();renderPresets();});
+}
+function renderTaskModes(){
+  const g=$<HTMLDivElement>('#taskGrid');
+  g.innerHTML=taskModeIds.map(id=>{const pref=taskPreferences[id];return `<button class="task-card ${activeTaskMode===id?'selected':''}" data-task-mode="${id}"><strong>${taskText(id,'name')}</strong><p>${taskText(id,'description')}</p><small>${esc(pref.model || t('task.customModel'))} · ${esc(pref.reasoning)}</small></button>`;}).join('');
+  g.querySelectorAll<HTMLButtonElement>('[data-task-mode]').forEach(b=>b.onclick=()=>{activeTaskMode=b.dataset.taskMode as TaskModeId;saveActiveTaskMode(activeTaskMode);renderTaskModes();syncTaskControls();});
+  syncTaskControls();
+}
+function syncTaskControls(){
+  const pref=taskPreferences[activeTaskMode];
+  const modelSelect=$<HTMLSelectElement>('#taskModelSelect');
+  const common=commonTaskModels.includes(pref.model as (typeof commonTaskModels)[number]);
+  modelSelect.innerHTML=[...commonTaskModels.map(model=>`<option value="${model}">${model}</option>`),`<option value="__custom__">${t('task.customModel')}</option>`].join('');
+  modelSelect.value=common?pref.model:'__custom__';
+  const customWrap=$<HTMLElement>('#taskCustomModelWrap');
+  customWrap.classList.toggle('hidden',common);
+  $<HTMLInputElement>('#taskCustomModel').value=common?'':pref.model;
+  $<HTMLSelectElement>('#taskReasoningSelect').value=pref.reasoning;
+  $<HTMLButtonElement>('#restoreTaskBtn').disabled=!loadTaskBaseline();
+}
+function updateTaskPreferenceFromControls(): TaskPreference {
+  const modelSelect=$<HTMLSelectElement>('#taskModelSelect');
+  const custom=$<HTMLInputElement>('#taskCustomModel').value.trim();
+  const model=modelSelect.value==='__custom__'?custom:modelSelect.value;
+  const reasoning=$<HTMLSelectElement>('#taskReasoningSelect').value;
+  const pref={model,reasoning};
+  taskPreferences[activeTaskMode]=pref;
+  saveTaskPreference(activeTaskMode,pref);
+  return pref;
 }
 function sync(){
   fields.forEach(f=>{const input=$<HTMLInputElement|HTMLSelectElement>(`#${f}`);const enabled=scope!=='project'||overrides.has(f);input.disabled=!enabled;const v=values[f];input.value=v===null?'':String(v);const toggle=document.querySelector<HTMLInputElement>(`[data-override="${f}"]`);if(toggle)toggle.checked=enabled;});
@@ -140,6 +194,29 @@ async function apply(){
   try{applySnapshot(await invoke<ConfigSnapshot>('apply_config',{scope:requestScope(),values}));toast(t('toast.applied'));}
   catch(e){toast(String(e),true);}
 }
+async function applyTaskOverride(){
+  if(scope==='project'&&!projectPath){toast(t('status.selectProject'),true);return;}
+  const pref=updateTaskPreferenceFromControls();
+  if(!pref.model.trim()){toast(t('toast.taskModelRequired'),true);return;}
+  try{
+    const current=await invoke<ConfigSnapshot>('read_config',{scope:requestScope()});
+    if(!loadTaskBaseline()) saveTaskBaseline({model:current.values.model,reasoning:current.values.modelReasoningEffort});
+    const next=structuredClone(current.values);next.model=pref.model.trim();next.modelReasoningEffort=pref.reasoning;
+    applySnapshot(await invoke<ConfigSnapshot>('apply_config',{scope:requestScope(),values:next}));
+    syncTaskControls();
+    toast(t('toast.taskApplied',{name:taskText(activeTaskMode,'name'),model:pref.model,reasoning:pref.reasoning}));
+  }catch(e){toast(String(e),true);}
+}
+async function restoreTaskBaseline(){
+  const baseline=loadTaskBaseline();
+  if(!baseline){toast(t('toast.taskNoBaseline'),true);return;}
+  try{
+    const current=await invoke<ConfigSnapshot>('read_config',{scope:requestScope()});
+    const next=structuredClone(current.values);next.model=baseline.model;next.modelReasoningEffort=baseline.reasoning;
+    applySnapshot(await invoke<ConfigSnapshot>('apply_config',{scope:requestScope(),values:next}));
+    clearTaskBaseline();syncTaskControls();toast(t('toast.taskRestored'));
+  }catch(e){toast(String(e),true);}
+}
 async function clearManaged(){
   if(!confirm(scope==='project'?t('confirm.clearProject'):t('confirm.clearGlobal')))return;
   try{applySnapshot(await invoke<ConfigSnapshot>('clear_managed_config',{scope:requestScope()}));toast(t('toast.cleared'));}
@@ -158,10 +235,16 @@ function bindEvents(): void {
     document.documentElement.lang=getLocale();
     renderApp();
   });
-  document.querySelectorAll<HTMLButtonElement>('.scope-tab').forEach(b=>b.onclick=async()=>{scope=b.dataset.scope as ScopeKind;sync();if(scope==='global'||projectPath)await load();});
-  $('#chooseProject').addEventListener('click',async()=>{const p=await open({directory:true,multiple:false,title:t('scope.dialogTitle')});if(typeof p==='string'){projectPath=p;$<HTMLInputElement>('#projectPath').value=p;sync();await load();}});
-  $<HTMLInputElement>('#projectPath').onchange=async e=>{projectPath=(e.currentTarget as HTMLInputElement).value.trim();sync();if(projectPath)await load();};
+  document.querySelectorAll<HTMLButtonElement>('.scope-tab').forEach(b=>b.onclick=async()=>{scope=b.dataset.scope as ScopeKind;sync();syncTaskControls();if(scope==='global'||projectPath)await load();});
+  $('#chooseProject').addEventListener('click',async()=>{const p=await open({directory:true,multiple:false,title:t('scope.dialogTitle')});if(typeof p==='string'){projectPath=p;$<HTMLInputElement>('#projectPath').value=p;sync();syncTaskControls();await load();}});
+  $<HTMLInputElement>('#projectPath').onchange=async e=>{projectPath=(e.currentTarget as HTMLInputElement).value.trim();sync();syncTaskControls();if(projectPath)await load();};
   fields.forEach(f=>{$<HTMLInputElement|HTMLSelectElement>(`#${f}`).addEventListener('input',()=>{readForm();renderPreview();});document.querySelector<HTMLInputElement>(`[data-override="${f}"]`)?.addEventListener('change',e=>{const toggle=e.currentTarget as HTMLInputElement;toggle.checked?overrides.add(f):overrides.delete(f);sync();});});
+  $<HTMLSelectElement>('#taskModelSelect').addEventListener('change',()=>{const select=$<HTMLSelectElement>('#taskModelSelect');if(select.value==='__custom__'){$<HTMLElement>('#taskCustomModelWrap').classList.remove('hidden');$<HTMLInputElement>('#taskCustomModel').focus();return;}$<HTMLInputElement>('#taskCustomModel').value='';taskPreferences[activeTaskMode]={...taskPreferences[activeTaskMode],model:select.value};saveTaskPreference(activeTaskMode,taskPreferences[activeTaskMode]);renderTaskModes();});
+  $<HTMLInputElement>('#taskCustomModel').addEventListener('input',()=>{const pref=updateTaskPreferenceFromControls();taskPreferences[activeTaskMode]=pref;renderTaskModes();});
+  $<HTMLSelectElement>('#taskReasoningSelect').addEventListener('change',()=>{const pref=updateTaskPreferenceFromControls();taskPreferences[activeTaskMode]=pref;renderTaskModes();});
+  $('#applyTaskBtn').addEventListener('click',applyTaskOverride);
+  $('#resetTaskBtn').addEventListener('click',()=>{taskPreferences[activeTaskMode]=resetTaskPreference(activeTaskMode);renderTaskModes();toast(t('toast.taskReset',{name:taskText(activeTaskMode,'name')}));});
+  $('#restoreTaskBtn').addEventListener('click',restoreTaskBaseline);
   $('#resetPresetBtn').addEventListener('click',()=>{const p=presets.find(x=>x.id===activePreset)??presets[2];activePreset=p.id;values=structuredClone(p.values);overrides=new Set(scope==='project'?fields.filter(f=>p.values[f]!==null):fields);sync();toast(t('toast.resetPreset',{name:presetText(p.id,'name')}));});
   $('#reloadBtn').addEventListener('click',load);
   $('#applyBtn').addEventListener('click',apply);
