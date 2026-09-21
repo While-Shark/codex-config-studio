@@ -40,6 +40,11 @@ jobs:
           npm ci
           npm run build
 
+      - name: Generate platform icons for Tauri context
+        run: |
+          npm run tauri icon src-tauri/icons/icon.svg
+          npm run verify:icons
+
       - name: Rust compile check
         run: cargo check --manifest-path src-tauri/Cargo.toml
 
