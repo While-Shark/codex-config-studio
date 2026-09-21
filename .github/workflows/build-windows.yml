@@ -16,7 +16,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check:
+    name: frontend-preflight
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Type-check and build frontend
+        run: npm run build
+
   build:
+    needs: check
     name: build-${{ matrix.name }}
     strategy:
       fail-fast: false
