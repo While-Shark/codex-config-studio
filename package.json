@@ -5,14 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run test:preview && npm run test:history && tsc && vite build",
+    "build": "npm run test:preview && npm run test:history && npm run test:models && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "verify:icons": "node scripts/verify-icons.mjs",
     "test:preview": "node --test scripts/test-preview.mjs",
-    "test:history": "node --test scripts/test-history.mjs"
+    "test:history": "node --test scripts/test-history.mjs",
+    "test:models": "node --test scripts/test-model-picker.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",

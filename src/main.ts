@@ -19,6 +19,8 @@ import './styles.css';
 import './config-preview.css';
 import { historyText, filterHistoryEntries, renderHistoryEntries } from './history-tab';
 import './history-tab.css';
+import { renderModelPicker, bindModelPickers, validateModelPickers } from './model-picker';
+import './model-picker.css';
 
 type ScopeKind = 'global' | 'project';
 type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'history';
@@ -59,7 +61,6 @@ type ConfirmSpec = {
 type StatusKey = 'status.unread' | 'status.selectProject' | 'status.reading' | 'status.read' | 'status.missing' | 'status.readFailed';
 
 const fields: Field[] = ['model','modelReasoningEffort','planModeReasoningEffort','agentsEnabled','defaultSubagentModel','defaultSubagentReasoningEffort','maxConcurrentThreadsPerSession'];
-const models = ['gpt-6-astra','gpt-5.6-sol','gpt-5.6-terra','gpt-5.6-luna'];
 const efforts = ['low','medium','high','xhigh','ultra','persistent','max'];
 const presets: Preset[] = [
   { id:'token-save', values:{model:'gpt-5.6-luna',modelReasoningEffort:'low',planModeReasoningEffort:'medium',agentsEnabled:false,defaultSubagentModel:null,defaultSubagentReasoningEffort:null,maxConcurrentThreadsPerSession:null}},
@@ -228,11 +229,12 @@ function renderTask(host:HTMLElement):void {
   $('#resetTask').addEventListener('click',()=>{taskPreferences[activeTaskMode]=resetTaskPreference(activeTaskMode);renderTask(host);toast(t('toast.taskReset',{name:taskText(activeTaskMode,'name')}));});
 }
 function renderAdvanced(host:HTMLElement):void {
-  host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.custom.eyebrow')}</span><h2>${t('section.custom.title')}</h2><p>${t('advanced.help')}</p></div><button id="resetPresetBtn" class="text-button">${t('action.resetPreset')}</button></div><div class="form-grid">${advancedField('model',t('field.model'),t('field.model.help'),`<input id="model" list="modelList" value="${esc(values.model??'')}"><datalist id="modelList">${models.map(m=>`<option value="${m}"></option>`).join('')}</datalist>`)}${advancedField('modelReasoningEffort',t('field.reasoning'),t('field.reasoning.help'),selectHtml('modelReasoningEffort',values.modelReasoningEffort,efforts,true))}${advancedField('planModeReasoningEffort',t('field.planReasoning'),t('field.planReasoning.help'),selectHtml('planModeReasoningEffort',values.planModeReasoningEffort,efforts,true))}${advancedField('agentsEnabled',t('field.agents'),t('field.agents.help'),`<select id="agentsEnabled"><option value="">${t('option.inherit')}</option><option value="true" ${values.agentsEnabled===true?'selected':''}>${t('option.enabled')}</option><option value="false" ${values.agentsEnabled===false?'selected':''}>${t('option.disabled')}</option></select>`)}${advancedField('defaultSubagentModel',t('field.subagentModel'),t('field.subagentModel.help'),`<input id="defaultSubagentModel" list="modelList" value="${esc(values.defaultSubagentModel??'')}" placeholder="${t('option.inherit')}">`)}${advancedField('defaultSubagentReasoningEffort',t('field.subagentReasoning'),t('field.subagentReasoning.help'),selectHtml('defaultSubagentReasoningEffort',values.defaultSubagentReasoningEffort,efforts,true))}${advancedField('maxConcurrentThreadsPerSession',t('field.maxConcurrent'),t('field.maxConcurrent.help'),`<input id="maxConcurrentThreadsPerSession" type="number" min="1" max="16" value="${values.maxConcurrentThreadsPerSession??''}" placeholder="${t('option.inherit')}">`)}</div></section>`;
+  host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.custom.eyebrow')}</span><h2>${t('section.custom.title')}</h2><p>${t('advanced.help')}</p></div><button id="resetPresetBtn" class="text-button">${t('action.resetPreset')}</button></div><div class="form-grid">${advancedField('model',t('field.model'),t('field.model.help'),renderModelPicker('model',values.model,commonTaskModels,t('field.model'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('modelReasoningEffort',t('field.reasoning'),t('field.reasoning.help'),selectHtml('modelReasoningEffort',values.modelReasoningEffort,efforts,true))}${advancedField('planModeReasoningEffort',t('field.planReasoning'),t('field.planReasoning.help'),selectHtml('planModeReasoningEffort',values.planModeReasoningEffort,efforts,true))}${advancedField('agentsEnabled',t('field.agents'),t('field.agents.help'),`<select id="agentsEnabled"><option value="">${t('option.inherit')}</option><option value="true" ${values.agentsEnabled===true?'selected':''}>${t('option.enabled')}</option><option value="false" ${values.agentsEnabled===false?'selected':''}>${t('option.disabled')}</option></select>`)}${advancedField('defaultSubagentModel',t('field.subagentModel'),t('field.subagentModel.help'),renderModelPicker('defaultSubagentModel',values.defaultSubagentModel,commonTaskModels,t('field.subagentModel'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('defaultSubagentReasoningEffort',t('field.subagentReasoning'),t('field.subagentReasoning.help'),selectHtml('defaultSubagentReasoningEffort',values.defaultSubagentReasoningEffort,efforts,true))}${advancedField('maxConcurrentThreadsPerSession',t('field.maxConcurrent'),t('field.maxConcurrent.help'),`<input id="maxConcurrentThreadsPerSession" type="number" min="1" max="16" value="${values.maxConcurrentThreadsPerSession??''}" placeholder="${t('option.inherit')}">`)}</div></section>`;
+  bindModelPickers(host);
   fields.forEach(field=>{const el=document.querySelector<HTMLInputElement|HTMLSelectElement>(`#${field}`);if(el)el.addEventListener('input',()=>{readAdvanced();activePreset='';renderRightRail();});});
   $('#resetPresetBtn').addEventListener('click',()=>{const p=presets.find(x=>x.id===activePreset)??presets[2];values=clone(p.values);renderAdvanced(host);renderRightRail();toast(t('toast.resetPreset',{name:presetText(p.id,'name')}));});
 }
-function advancedField(id:Field,title:string,help:string,control:string):string { return `<label class="field"><div><strong>${title}</strong><small>${help}</small></div><div>${control}</div></label>`; }
+function advancedField(id:Field,title:string,help:string,control:string):string { const target=(id==='model'||id==='defaultSubagentModel')?`${id}Select`:id; return `<div class="field"><div><label class="field-label" for="${target}"><strong>${title}</strong></label><small>${help}</small></div><div>${control}</div></div>`; }
 function selectHtml(id:string,value:string|null,options:string[],inherit=false):string { return `<select id="${id}">${inherit?`<option value="">${t('option.inherit')}</option>`:''}${options.map(o=>`<option value="${o}" ${value===o?'selected':''}>${o}</option>`).join('')}</select>`; }
 function readAdvanced():void {
   const v=(id:Field)=>document.querySelector<HTMLInputElement|HTMLSelectElement>(`#${id}`)?.value??'';
@@ -346,6 +348,7 @@ async function applyChanges():Promise<void> {
   if(busy||!lastSnapshot)return;
   const n=values.maxConcurrentThreadsPerSession;if(n!==null&&(n<1||n>16)){toast(t('toast.concurrentRange'),true);return;}
   const changes=getChanges();if(changes.length===0)return;
+  if(!validateModelPickers(document))return;
   const ok=await askConfirm({title:t('confirm.apply.title'),message:t('confirm.apply.message'),detail:lastSnapshot.exists?lastSnapshot.path:`${t('status.missing')}\n${lastSnapshot.path}`,confirmText:t('action.apply'),changes:changes.map(c=>({label:fieldLabel(c.field),from:c.from,to:c.to}))});if(!ok)return;
   setBusy(true);
   try{const snap=await safeInvoke<ConfigSnapshot>('apply_config',{scope:requestScope(),values,source:'manual'});applySnapshot(snap);setStatus('status.read',true);await loadHistoryAfterWrite();toast(t('toast.applied'));}

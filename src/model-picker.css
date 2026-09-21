@@ -1,0 +1,7 @@
+/* Native full-list selectors use the existing light/dark and accent tokens. */
+.model-picker { display: grid; gap: 8px; min-width: 0; }
+.model-picker-custom { display: grid; gap: 5px; min-width: 0; }
+.model-picker-custom[hidden] { display: none; }
+.model-picker-custom label { color: var(--muted); font-size: 10px; }
+.model-picker-custom input[aria-invalid="true"] { border-color: var(--danger); }
+.field .field-label { display: block; }
