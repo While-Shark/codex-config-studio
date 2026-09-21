@@ -105,6 +105,9 @@ jobs:
       - name: Generate platform icons
         run: npm run tauri icon src-tauri/icons/icon.svg
 
+      - name: Validate generated icons
+        run: npm run verify:icons
+
       - name: Build desktop bundle
         uses: tauri-apps/tauri-action@v1
         with:
