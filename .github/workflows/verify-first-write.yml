@@ -69,6 +69,26 @@ jobs:
         run: |
           git restore -- src-tauri/src/lib.rs
           python3 /tmp/patch_first_write.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('src-tauri/src/lib.rs')
+          text = path.read_text(encoding='utf-8')
+          old = 'Some(v) if !v.trim().is_empty() => { doc.as_table_mut().insert(key, value(v.trim())); },'
+          new = '''Some(v) if !v.trim().is_empty() => {
+                      let mut replacement = value(v.trim());
+                      if let Some(existing) = doc.get_mut(key) {
+                          // Mutate the value, not the table key: retain comments and spacing.
+                          if let (Some(old), Some(new)) = (existing.as_value(), replacement.as_value_mut()) {
+                              *new.decor_mut() = old.decor().clone();
+                          }
+                          *existing = replacement;
+                      } else {
+                          doc.as_table_mut().insert(key, replacement);
+                      }
+                  },'''
+          assert text.count(old) == 1, 'Unexpected root setter; refusing a partial patch'
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
           cargo fmt --manifest-path src-tauri/Cargo.toml
           git diff --check
       - name: Run real configuration regression tests
