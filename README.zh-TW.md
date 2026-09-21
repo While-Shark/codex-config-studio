@@ -1,0 +1,165 @@
+<div align="center">
+
+<img src="./src-tauri/icons/icon.svg" width="96" alt="Codex Config Studio">
+
+# Codex Config Studio
+
+**跨平台 Codex 設定管理器：一鍵切換 Astra / Sol / Terra / Luna 方案。**
+
+全域設定 · 專案設定 · Reasoning · 子 Agent · 安全備份 · 自動發佈
+
+[![Build Desktop](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml/badge.svg)](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml)
+[![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio?include_prereleases)](https://github.com/While-Shark/codex-config-studio/releases)
+![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue)
+![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB)
+![Languages](https://img.shields.io/badge/languages-5-purple)
+
+[简体中文](./README.md) · **繁體中文** · [English](./README.en.md) · [日本語](./README.ja.md) · [한국어](./README.ko.md)
+
+[簡介](#簡介) · [功能](#功能) · [方案](#內建方案) · [下載](#下載) · [開發](#本機開發) · [自動發佈](#自動發佈) · [安全](#安全設計)
+
+</div>
+
+---
+
+## 簡介
+
+Codex Config Studio 是基於 **Tauri v2** 的桌面設定管理器，用於安全管理 Codex Desktop / CLI 的全域與專案級 `.codex/config.toml`。
+
+它適合經常在 Astra、Sol、Terra、Luna 之間切換，或希望把規劃模型、執行模型、Reasoning、子 Agent 與並行數做成可視化方案的人。
+
+## 功能
+
+| 能力 | 說明 |
+| --- | --- |
+| 🌍 全域設定 | 管理 `~/.codex/config.toml` |
+| 📁 專案設定 | 管理 `<project>/.codex/config.toml` |
+| ⚡ 一鍵切換方案 | Token 節省、經濟、日常、均衡、Astra 總指揮、最高品質 |
+| 🧠 Reasoning | 分別調整主模型、Plan Mode、子 Agent 思考等級 |
+| 🤖 子 Agent | 開關、預設模型、Reasoning、最大並行 |
+| 🧬 欄位繼承 | 專案欄位可逐項取消覆寫並繼承下層設定 |
+| 🛡️ 安全備份 | 首次修改保存原始副本，每次寫入前保存歷史備份 |
+| ↩️ 原始還原 | 可恢復至本應用第一次接管前的設定 |
+| 🌐 多語言 | 簡中、繁中、英語、日語、韓語 |
+| 📦 多端建置 | Windows / Linux / macOS |
+| 🚀 自動發佈 | 自動版本、Tag、Release 說明、安裝檔與 SHA256 |
+
+## 內建方案
+
+| 方案 | 主模型 | 適用情境 |
+| --- | --- | --- |
+| Token 節省 | Luna / low | 小修改、批次替換、明確任務 |
+| 經濟 | Luna / medium | CRUD、前端修改、一般 API |
+| 日常 | Terra + Luna | 多數日常開發 |
+| 均衡 | Sol + Luna | 跨檔案功能、重構、聯調 |
+| Astra 總指揮 | Astra + Luna | Astra 規劃/Review，Luna 執行 |
+| 最高品質 | Astra xhigh + Luna high | 疑難 Bug、大型重構、上線前 Review |
+
+所有方案都可以在介面裡繼續單獨修改。
+
+## 多語言
+
+Built in:
+
+- 简体中文
+- 繁體中文
+- English
+- 日本語
+- 한국어
+
+首次啟動會依系統/瀏覽器語言自動選擇；也可在頂部手動切換，選擇會儲存在本機。
+
+## 下載
+
+前往 **[GitHub Releases](https://github.com/While-Shark/codex-config-studio/releases)** 下載。
+
+| 平台 | 產物 |
+| --- | --- |
+| Windows x64 | NSIS `.exe` |
+| Linux x64 | `.AppImage` + `.deb` |
+| macOS Universal | `.dmg`，同時支援 Apple Silicon 與 Intel |
+
+> macOS CI 目前未設定 Apple Developer 簽名與 notarization；測試建置可正常產生，正式公開發佈建議加入簽名與公證。
+
+## 本機開發
+
+Windows:
+
+```powershell
+./run-dev.ps1
+```
+
+Linux / macOS:
+
+```bash
+bash ./run-dev.sh
+```
+
+Or use standard Tauri commands:
+
+```bash
+npm ci
+npm run tauri:dev
+```
+
+## 本機建置
+
+Windows:
+
+```powershell
+./build-windows.ps1
+```
+
+Linux / macOS:
+
+```bash
+bash ./build-unix.sh
+```
+
+## CI / Nightly
+
+每次 push 到 `master` 後會自動執行前端預檢、三端平行建置、快取還原、Artifact 上傳與 `nightly` Release 更新。
+
+只修改 README / docs / screenshots 時不會啟動完整三端建置。
+
+## 自動發佈
+
+Open:
+
+```text
+GitHub → Actions → release-desktop → Run workflow
+```
+
+選擇 `patch` / `minor` / `major` 後，工作流程會自動同步 npm / Cargo / Tauri 版本、完成三端建置，全部成功後才建立 `vX.Y.Z` Tag，生成 SHA256 與五國語言 Release 說明，並上傳所有安裝檔。
+
+手動 push `v*` Tag 也支援，但 Tag 版本必須與專案版本一致。
+
+## Codex 設定優先順序
+
+由高到低：
+
+1. CLI flags / `--config`
+2. 專案 `.codex/config.toml`
+3. `--profile` 設定
+4. 全域 `~/.codex/config.toml`
+5. 系統 / 內建預設
+
+> Codex 只會載入受信任專案中的專案級 `.codex/config.toml`，本應用不會自動修改 project trust。
+
+## 安全設計
+
+Codex Config Studio 不向前端開放通用檔案系統或 Shell 權限。
+
+- 專案目錄透過 Tauri Dialog 選擇
+- 設定讀寫由有限的 Rust commands 完成
+- 只修改本工具管理的模型 / Agent 設定鍵
+- plugins、MCP、hooks、marketplaces、project trust 保持不變
+- 專案備份放在使用者級 `~/.codex/.config-studio-backups/`
+
+---
+
+<div align="center">
+
+[Releases](https://github.com/While-Shark/codex-config-studio/releases) · [Actions](https://github.com/While-Shark/codex-config-studio/actions) · [Release Notes](./RELEASE_NOTES.md)
+
+</div>
