@@ -32,7 +32,7 @@ Ensure-Cargo
 npm install
 Assert-LastExitCode "npm install"
 
-npm run tauri:build -- --bundles nsis
+npm run tauri icon .\\src-tauri\\icons\\icon.svg\nAssert-LastExitCode "Generate icons"\n\nnpm run tauri:build -- --bundles nsis
 Assert-LastExitCode "Tauri build"
 
 Write-Host ""
