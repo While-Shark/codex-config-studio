@@ -20,62 +20,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lockfiles:
-    name: dependency-lockfiles
-    runs-on: ubuntu-latest
-    outputs:
-      needed: ${{ steps.lock-status.outputs.needed }}
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Check dependency lock files
-        id: lock-status
-        shell: bash
-        run: |
-          if [ -f package-lock.json ] && [ -f src-tauri/Cargo.lock ]; then
-            echo "needed=false" >> "$GITHUB_OUTPUT"
-            echo "Dependency lock files already exist."
-          else
-            echo "needed=true" >> "$GITHUB_OUTPUT"
-            echo "Dependency lock files need to be generated."
-          fi
-
-      - uses: actions/setup-node@v6
-        if: steps.lock-status.outputs.needed == 'true'
-        with:
-          node-version: 22
-
-      - uses: dtolnay/rust-toolchain@stable
-        if: steps.lock-status.outputs.needed == 'true'
-
-      - name: Generate dependency lock files
-        if: steps.lock-status.outputs.needed == 'true'
-        shell: bash
-        run: |
-          npm install --package-lock-only --ignore-scripts
-          cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
-
-      - name: Commit dependency lock files
-        if: steps.lock-status.outputs.needed == 'true' && github.ref == 'refs/heads/master'
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json src-tauri/Cargo.lock
-          if git diff --cached --quiet; then
-            echo "No lock file changes to commit."
-            exit 0
-          fi
-          git commit -m "Add dependency lock files"
-          git push origin HEAD:master
-
   check:
     name: frontend-preflight
-    needs: lockfiles
-    if: needs.lockfiles.outputs.needed != 'true'
     runs-on: ubuntu-latest
 
     steps:
