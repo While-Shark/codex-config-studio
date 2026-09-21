@@ -347,3 +347,116 @@ fn invalid_concurrency_is_rejected_without_creating_config() {
     assert!(apply(&scope, &config).is_err());
     assert!(!resolve_scope(&scope).unwrap().exists());
 }
+
+fn delete_history(id: &str) -> Result<Vec<HistoryEntry>, String> {
+    with_config_lock("regression delete history", || {
+        delete_history_entry_inner(id)
+    })
+}
+
+fn files_except_history(root: &Path) -> std::collections::BTreeMap<PathBuf, Vec<u8>> {
+    fn visit(root: &Path, dir: &Path, files: &mut std::collections::BTreeMap<PathBuf, Vec<u8>>) {
+        for entry in fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                visit(root, &path, files);
+            } else if path.file_name().unwrap() != "history.json" {
+                files.insert(
+                    path.strip_prefix(root).unwrap().to_owned(),
+                    fs::read(path).unwrap(),
+                );
+            }
+        }
+    }
+    let mut files = std::collections::BTreeMap::new();
+    visit(root, root, &mut files);
+    files
+}
+
+#[test]
+fn history_delete_one_record_keeps_all_config_and_backup_bytes() {
+    let sandbox = Sandbox::new();
+    let a = sandbox.project("history-project-a");
+    let b = sandbox.project("history-project-b");
+    apply(&a, &daily()).unwrap();
+    apply(&b, &daily()).unwrap();
+    let mut changed = daily();
+    changed.model = Some("other-model".into());
+    apply(&a, &changed).unwrap();
+    let before = files_except_history(&sandbox.root);
+    let entries = read_history_store().unwrap().entries;
+    assert_eq!(entries.len(), 3);
+    let target = &entries[1].id;
+    let after = delete_history(target).unwrap();
+    assert_eq!(
+        after.iter().map(|item| &item.id).collect::<Vec<_>>(),
+        vec![&entries[0].id, &entries[2].id]
+    );
+    assert_eq!(files_except_history(&sandbox.root), before);
+    let stored = read_history_store().unwrap().entries;
+    assert_eq!(stored.len(), 2);
+    assert!(stored.iter().all(|entry| &entry.id != target));
+}
+
+#[test]
+fn history_delete_last_record_keeps_valid_store_and_configuration() {
+    let sandbox = Sandbox::new();
+    let scope = sandbox.project("history-last");
+    apply(&scope, &daily()).unwrap();
+    let entries = read_history_store().unwrap().entries;
+    let before = files_except_history(&sandbox.root);
+    assert!(delete_history(&entries[0].id).unwrap().is_empty());
+    let store: HistoryStore =
+        serde_json::from_slice(&fs::read(history_file_path().unwrap()).unwrap()).unwrap();
+    assert!(store.entries.is_empty());
+    assert_eq!(files_except_history(&sandbox.root), before);
+}
+
+#[test]
+fn history_delete_retry_and_unknown_id_do_not_rewrite_store() {
+    let sandbox = Sandbox::new();
+    let scope = sandbox.project("history-retry");
+    apply(&scope, &daily()).unwrap();
+    let id = read_history_store().unwrap().entries[0].id.clone();
+    delete_history(&id).unwrap();
+    let path = history_file_path().unwrap();
+    let before = fs::read(&path).unwrap();
+    assert!(delete_history(&id).unwrap().is_empty());
+    assert!(delete_history("missing-id").unwrap().is_empty());
+    assert_eq!(fs::read(path).unwrap(), before);
+}
+
+#[test]
+fn history_delete_invalid_ids_do_not_modify_files() {
+    let sandbox = Sandbox::new();
+    let scope = sandbox.project("history-id-validation");
+    apply(&scope, &daily()).unwrap();
+    let path = history_file_path().unwrap();
+    let before = fs::read(&path).unwrap();
+    for id in ["", "../config.toml", "bad id", "a/b", &"x".repeat(257)] {
+        assert!(delete_history(id).is_err());
+        assert_eq!(fs::read(&path).unwrap(), before);
+    }
+}
+
+#[test]
+fn history_delete_corrupt_store_is_rejected_without_quarantine() {
+    let sandbox = Sandbox::new();
+    let scope = sandbox.project("history-corrupt");
+    apply(&scope, &daily()).unwrap();
+    let path = history_file_path().unwrap();
+    fs::write(&path, b"{broken-json").unwrap();
+    let before = files_except_history(&sandbox.root);
+    assert!(delete_history("some-id").is_err());
+    assert_eq!(fs::read(path).unwrap(), b"{broken-json");
+    assert_eq!(files_except_history(&sandbox.root), before);
+}
+
+#[test]
+fn history_delete_missing_store_does_not_create_files() {
+    let sandbox = Sandbox::new();
+    let before = files_except_history(&sandbox.root);
+    assert!(delete_history("missing-id").unwrap().is_empty());
+    assert!(!history_file_path().unwrap().exists());
+    assert_eq!(files_except_history(&sandbox.root), before);
+}

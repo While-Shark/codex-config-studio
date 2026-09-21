@@ -1,0 +1,20 @@
+/* History belongs to the left workspace, not the narrow application rail. */
+.tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.history-workspace .section-heading { align-items: flex-start; }
+.history-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+.history-toolbar input { width: 100%; min-width: 0; height: 38px; padding: 0 12px; border: 1px solid var(--border); border-radius: 9px; color: var(--text); background: var(--panel3); }
+.history-toolbar input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.history-result-count { white-space: nowrap; color: var(--muted); font-size: 12px; }
+.history-workspace .history-list { grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); }
+.history-workspace .history-item { padding: 14px; min-width: 0; }
+.history-workspace .history-main strong { font-size: 13px; overflow-wrap: anywhere; }
+.history-workspace .history-main span { font-size: 11px; }
+.history-workspace .history-model { margin-top: 10px; font-size: 12px; color: var(--text); overflow-wrap: anywhere; }
+.history-workspace .history-path { white-space: normal; overflow-wrap: anywhere; font-size: 11px; line-height: 1.5; margin: 8px 0 12px; }
+.history-scope { flex-shrink: 0; color: var(--muted); }
+.history-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.history-actions .button { font-size: 12px; }
+.history-workspace .empty-state { grid-column: 1 / -1; }
+.history-load-state { margin-bottom: 10px; font-size: 12px; color: var(--muted); }
+.history-load-state.error { color: var(--danger); }
+@media(max-width:820px) { .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

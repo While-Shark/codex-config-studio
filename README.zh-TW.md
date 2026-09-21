@@ -6,7 +6,7 @@
 
 **跨平台 Codex 設定管理器：一鍵切換 Astra / Sol / Terra / Luna 方案。**
 
-全域設定 · 專案設定 · Reasoning · 子 Agent · 安全備份 · 自動發佈
+全域設定 · 專案設定 · Reasoning · 子 Agent · 安全備份
 
 [![Build Desktop](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml/badge.svg)](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml)
 [![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio?include_prereleases)](https://github.com/While-Shark/codex-config-studio/releases)
@@ -16,7 +16,7 @@
 
 [简体中文](./README.md) · **繁體中文** · [English](./README.en.md) · [日本語](./README.ja.md) · [한국어](./README.ko.md)
 
-[簡介](#簡介) · [功能](#功能) · [方案](#內建方案) · [下載](#下載) · [開發](#本機開發) · [自動發佈](#自動發佈) · [安全](#安全設計)
+[簡介](#簡介) · [功能](#功能) · [方案](#內建方案) · [下載](#下載) · [開發](#本機開發) · [安全](#安全設計)
 
 </div>
 
@@ -42,7 +42,6 @@ Codex Config Studio 是基於 **Tauri v2** 的桌面設定管理器，用於安�
 | ↩️ 原始還原 | 可恢復至本應用第一次接管前的設定 |
 | 🌐 多語言 | 簡中、繁中、英語、日語、韓語 |
 | 📦 多端建置 | Windows / Linux / macOS |
-| 🚀 自動發佈 | 自動版本、Tag、Release 說明、安裝檔與 SHA256 |
 
 ## 內建方案
 
@@ -116,24 +115,6 @@ Linux / macOS:
 bash ./build-unix.sh
 ```
 
-## CI / Nightly
-
-每次 push 到 `master` 後會自動執行前端預檢、三端平行建置、快取還原、Artifact 上傳與 `nightly` Release 更新。
-
-只修改 README / docs / screenshots 時不會啟動完整三端建置。
-
-## 自動發佈
-
-Open:
-
-```text
-GitHub → Actions → release-desktop → Run workflow
-```
-
-選擇 `patch` / `minor` / `major` 後，工作流程會自動同步 npm / Cargo / Tauri 版本、完成三端建置，全部成功後才建立 `vX.Y.Z` Tag，生成 SHA256 與五國語言 Release 說明，並上傳所有安裝檔。
-
-手動 push `v*` Tag 也支援，但 Tag 版本必須與專案版本一致。
-
 ## Codex 設定優先順序
 
 由高到低：
@@ -160,6 +141,6 @@ Codex Config Studio 不向前端開放通用檔案系統或 Shell 權限。
 
 <div align="center">
 
-[Releases](https://github.com/While-Shark/codex-config-studio/releases) · [Actions](https://github.com/While-Shark/codex-config-studio/actions) · [Release Notes](./RELEASE_NOTES.md)
+[Releases](https://github.com/While-Shark/codex-config-studio/releases) · [Release Notes](./RELEASE_NOTES.md)
 
 </div>

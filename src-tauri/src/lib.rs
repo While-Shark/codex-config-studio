@@ -598,6 +598,40 @@ async fn restore_original(scope: ScopeRequest) -> Result<ConfigSnapshot, String>
     .map_err(|e| format!("恢复任务异常终止: {e}"))?
 }
 
+// Delete history metadata only. The caller must hold CONFIG_WRITE_LOCK.
+fn delete_history_entry_inner(id: &str) -> Result<Vec<HistoryEntry>, String> {
+    if id.is_empty()
+        || id.len() > 256
+        || !id.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-')
+    {
+        return Err("Invalid history entry ID".into());
+    }
+    let path = history_file_path()?;
+    let text = match fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(format!("Could not read history: {e}")),
+    };
+    // Do not quarantine or overwrite malformed history during deletion.
+    let mut store: HistoryStore = serde_json::from_str(&text)
+        .map_err(|e| format!("Invalid history file; left unchanged: {e}"))?;
+    let Some(index) = store.entries.iter().position(|entry| entry.id == id) else {
+        return Ok(store.entries); // Idempotent retry; no extra disk write.
+    };
+    store.entries.remove(index);
+    write_history_store(&store)?;
+    Ok(store.entries)
+}
+
+#[tauri::command]
+async fn delete_history_entry(id: String) -> Result<Vec<HistoryEntry>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_config_lock("Delete history entry", || delete_history_entry_inner(&id))
+    })
+    .await
+    .map_err(|e| format!("History deletion task failed: {e}"))?
+}
+
 #[tauri::command]
 async fn list_history(limit: Option<usize>) -> Result<Vec<HistoryEntry>, String> {
     tauri::async_runtime::spawn_blocking(move || {
@@ -658,6 +692,7 @@ pub fn run() {
             clear_managed_config,
             restore_original,
             list_history,
+            delete_history_entry,
             restore_history_entry
         ])
         .run(tauri::generate_context!())

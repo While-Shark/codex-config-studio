@@ -6,7 +6,7 @@
 
 **A cross-platform Codex configuration manager for switching Astra / Sol / Terra / Luna profiles with one click.**
 
-Global scope · Project scope · Reasoning · Sub-agents · Safe backups · Automated releases
+Global scope · Project scope · Reasoning · Sub-agents · Safe backups
 
 [![Build Desktop](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml/badge.svg)](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml)
 [![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio?include_prereleases)](https://github.com/While-Shark/codex-config-studio/releases)
@@ -16,7 +16,7 @@ Global scope · Project scope · Reasoning · Sub-agents · Safe backups · Auto
 
 [简体中文](./README.md) · [繁體中文](./README.zh-TW.md) · **English** · [日本語](./README.ja.md) · [한국어](./README.ko.md)
 
-[Overview](#overview) · [Features](#features) · [Profiles](#built-in-profiles) · [Download](#download) · [Development](#local-development) · [Release](#automated-releases) · [Security](#security)
+[Overview](#overview) · [Features](#features) · [Profiles](#built-in-profiles) · [Download](#download) · [Development](#local-development) · [Security](#security)
 
 </div>
 
@@ -42,7 +42,6 @@ It is designed for people who frequently switch between Astra, Sol, Terra, and L
 | ↩️ Restore | Restore the configuration from before this app first touched it |
 | 🌐 Multilingual | Simplified Chinese, Traditional Chinese, English, Japanese, Korean |
 | 📦 Cross-platform builds | Windows / Linux / macOS |
-| 🚀 Automated releases | Version bump, Tag, release notes, installers and SHA256 |
 
 ## Built-in profiles
 
@@ -116,47 +115,6 @@ Linux / macOS:
 bash ./build-unix.sh
 ```
 
-## CI / Nightly
-
-Every push to `master` automatically:
-
-1. Runs TypeScript + Vite preflight checks
-2. Builds Windows / Linux / macOS in parallel
-3. Uses npm, Rust and Linux Tauri bundler caches
-4. Uploads Actions artifacts
-5. Updates the `nightly` prerelease
-
-README/docs/screenshots-only changes do not trigger full desktop builds.
-
-## Automated releases
-
-Open:
-
-```text
-GitHub → Actions → release-desktop → Run workflow
-```
-
-Choose:
-
-| Option | Example |
-| --- | --- |
-| `patch` | 0.1.0 → 0.1.1 |
-| `minor` | 0.1.0 → 0.2.0 |
-| `major` | 0.1.0 → 1.0.0 |
-
-The release workflow automatically:
-
-1. Synchronizes npm / Cargo / Tauri versions
-2. Runs frontend compilation and Cargo metadata checks
-3. Commits the release version
-4. Builds all desktop targets
-5. Creates the `vX.Y.Z` Tag **only after every build succeeds**
-6. Generates `SHA256SUMS.txt`
-7. Creates five-language release notes from [RELEASE_NOTES.md](./RELEASE_NOTES.md)
-8. Uploads `.exe`, `.AppImage`, `.deb`, `.dmg`, and checksums
-
-Manually pushed `v*` tags are also supported, but the tag version must match the project version.
-
 ## Codex configuration precedence
 
 Highest to lowest:
@@ -183,6 +141,6 @@ Codex Config Studio does not expose broad filesystem or shell access to the fron
 
 <div align="center">
 
-[Releases](https://github.com/While-Shark/codex-config-studio/releases) · [Actions](https://github.com/While-Shark/codex-config-studio/actions) · [Release Notes](./RELEASE_NOTES.md)
+[Releases](https://github.com/While-Shark/codex-config-studio/releases) · [Release Notes](./RELEASE_NOTES.md)
 
 </div>

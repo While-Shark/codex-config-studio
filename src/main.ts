@@ -17,9 +17,11 @@ import { createPreviewRows, renderPreviewRows } from './config-preview';
 import { previewText } from './i18n/preview';
 import './styles.css';
 import './config-preview.css';
+import { historyText, filterHistoryEntries, renderHistoryEntries } from './history-tab';
+import './history-tab.css';
 
 type ScopeKind = 'global' | 'project';
-type WorkspaceTab = 'presets' | 'task' | 'advanced';
+type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'history';
 type ThemeMode = 'system' | 'dark' | 'light';
 type Accent = 'violet' | 'blue' | 'emerald' | 'amber' | 'rose';
 type ManagedConfig = {
@@ -78,6 +80,10 @@ let currentStatus: { key: StatusKey; ok: boolean } = { key: 'status.unread', ok:
 let activeTaskMode: TaskModeId = loadActiveTaskMode();
 let taskPreferences = loadTaskPreferences();
 let historyEntries: HistoryEntry[] = [];
+let historySearch = '';
+let historyLoading = false;
+let historyLoadError = false;
+let historyReadId = 0;
 let busy = false;
 let confirmResolver: ((value: boolean) => void) | null = null;
 let themeMode = (safeGet('codex-config-studio.theme.mode') as ThemeMode | null) ?? 'system';
@@ -141,6 +147,7 @@ function setBusy(next:boolean):void {
   document.querySelectorAll<HTMLButtonElement>('[data-write-action]').forEach(btn=>btn.disabled=next);
   const indicator=document.querySelector<HTMLElement>('#busyIndicator');
   if(indicator){indicator.classList.toggle('hidden',!next);indicator.textContent=next?t('status.applying'):'';}
+  renderChanges();renderHistory();
 }
 function toast(text:string,error=false):void {
   const e=$<HTMLDivElement>('#toast');
@@ -168,7 +175,7 @@ function renderApp():void {
 <main class="workspace">
   <section class="left-pane">
     <div class="intro-card card"><div><span class="eyebrow">${t('guide.eyebrow')}</span><h2>${t('guide.title')}</h2><p>${t('guide.description')}</p></div><div class="guide-steps"><span>1 ${t('guide.scope')}</span><span>2 ${t('guide.choose')}</span><span>3 ${t('guide.review')}</span><span>4 ${t('guide.apply')}</span></div></div>
-    <div class="tabs card"><button data-tab="presets">${t('tab.presets')}</button><button data-tab="task">${t('tab.task')}</button><button data-tab="advanced">${t('tab.advanced')}</button></div>
+    <div class="tabs card"><button data-tab="presets">${t('tab.presets')}</button><button data-tab="task">${t('tab.task')}</button><button data-tab="advanced">${t('tab.advanced')}</button><button data-tab="history">${historyText(getLocale()).tab}</button></div>
     <section id="leftContent" class="left-content"></section>
   </section>
   <aside class="right-pane">
@@ -187,11 +194,6 @@ function renderApp():void {
       <button id="applyBtn" data-write-action class="button primary wide">${t('action.apply')}</button>
       <div class="rail-secondary"><button id="reloadBtn" class="button secondary">${t('action.reload')}</button><button id="clearBtn" data-write-action class="button secondary">${t('action.clear')}</button><button id="restoreBtn" data-write-action class="button danger-ghost">${t('action.restore')}</button></div>
     </section>
-    <section class="card history-card">
-      <div class="rail-title"><div><span class="eyebrow">${t('history.eyebrow')}</span><h3>${t('history.title')}</h3></div><button id="refreshHistory" class="text-button">${t('history.refresh')}</button></div>
-      <p class="rail-help">${t('history.help')}</p>
-      <div id="historyList" class="history-list"></div>
-    </section>
   </aside>
 </main>
 <div id="confirmModal" class="modal-backdrop hidden"><div class="modal"><div class="modal-head"><span class="eyebrow">${t('confirm.eyebrow')}</span><h3 id="confirmTitle"></h3></div><p id="confirmMessage"></p><div id="confirmDetail" class="modal-detail hidden"></div><div id="confirmChanges" class="modal-changes"></div><label class="confirm-check"><input id="confirmCheckbox" type="checkbox"><span>${t('confirm.checkbox')}</span></label><div class="modal-actions"><button id="confirmCancel" class="button secondary">${t('confirm.cancel')}</button><button id="confirmOk" class="button primary" disabled></button></div></div></div>
@@ -209,6 +211,7 @@ function renderWorkspace():void {
   const host=$<HTMLElement>('#leftContent');
   if(activeTab==='presets') renderPresets(host);
   else if(activeTab==='task') renderTask(host);
+  else if(activeTab==='history') renderHistoryPage(host);
   else renderAdvanced(host);
 }
 function renderPresets(host:HTMLElement):void {
@@ -269,42 +272,98 @@ function renderChanges():void {
   // Show every field here; getChanges() remains the source of the confirmation diff.
   list.innerHTML=notice+renderPreviewRows(rows,copy);
 }
-function renderHistory():void {
-  const host=document.querySelector<HTMLElement>('#historyList'); if(!host)return;
-  if(historyEntries.length===0){host.innerHTML=`<div class="empty-state">${t('history.empty')}</div>`;return;}
-  host.innerHTML=historyEntries.slice(0,10).map(entry=>`<article class="history-item"><div class="history-main"><div><strong>${esc(projectName(entry.projectPath))}</strong><span>${formatTime(entry.timestampMs)} · ${esc(normalizeSource(entry.source??entry.action))}</span></div><small>${esc(entry.values.model??'—')} · ${esc(entry.values.modelReasoningEffort??'—')}</small></div><div class="history-path">${esc(entry.configPath)}</div><button class="text-button" data-history-id="${esc(entry.id)}">${t('history.restore')}</button></article>`).join('');
-  host.querySelectorAll<HTMLButtonElement>('[data-history-id]').forEach(btn=>btn.onclick=()=>restoreHistory(btn.dataset.historyId!));
-}
 
+function renderHistoryPage(host:HTMLElement):void {
+  const copy=historyText(getLocale());
+  host.innerHTML=`<section class="card pane-card history-workspace">
+    <div class="section-heading"><div><h2>${t('history.title')}</h2><p>${t('history.help')}</p></div><button id="refreshHistory" class="button secondary">${t('history.refresh')}</button></div>
+    <div class="history-toolbar"><input id="historySearch" type="search" value="${esc(historySearch)}" placeholder="${esc(copy.search)}" aria-label="${esc(copy.search)}"><span id="historyCount" class="history-result-count"></span></div>
+    <p id="historyLoadState" class="history-load-state" role="status"></p>
+    <div id="historyList" class="history-list"></div>
+  </section>`;
+  $('#refreshHistory').addEventListener('click',()=>{ if(!busy)void loadHistory(); });
+  $<HTMLInputElement>('#historySearch').addEventListener('input',e=>{historySearch=(e.currentTarget as HTMLInputElement).value;renderHistory();});
+  renderHistory();
+}
+function renderHistory():void {
+  const host=document.querySelector<HTMLElement>('#historyList');if(!host)return;
+  const copy=historyText(getLocale());
+  const entries=filterHistoryEntries(historyEntries,historySearch);
+  const count=document.querySelector<HTMLElement>('#historyCount');if(count)count.textContent=`${entries.length} / ${historyEntries.length}`;
+  const notice=document.querySelector<HTMLElement>('#historyLoadState');
+  if(notice){notice.textContent=historyLoadError?copy.loadFailed:historyLoading?t('status.reading'):'';notice.classList.toggle('error',historyLoadError);}
+  const refresh=document.querySelector<HTMLButtonElement>('#refreshHistory');if(refresh)refresh.disabled=busy||historyLoading;
+  if(entries.length===0){
+    host.innerHTML=historyLoading||historyLoadError?'':`<div class="empty-state">${esc(historySearch.trim()?copy.noMatches:t('history.empty'))}</div>`;
+    return;
+  }
+  host.innerHTML=renderHistoryEntries(entries,copy,{restore:t('history.restore'),global:t('scope.global'),project:t('scope.project')},{projectName,time:formatTime,source:normalizeSource},busy||historyLoading||historyLoadError);
+  host.querySelectorAll<HTMLButtonElement>('[data-history-id]').forEach(btn=>btn.onclick=()=>restoreHistory(btn.dataset.historyId!));
+  host.querySelectorAll<HTMLButtonElement>('[data-delete-history-id]').forEach(btn=>btn.onclick=()=>deleteHistory(btn.dataset.deleteHistoryId!));
+}
 async function loadConfig():Promise<void> {
   if(scope==='project'&&!projectPath){lastSnapshot=null;setStatus('status.selectProject',false);renderRightRail();return;}
   try{setStatus('status.reading',true);const snap=await safeInvoke<ConfigSnapshot>('read_config',{scope:requestScope()});applySnapshot(snap);setStatus(snap.exists?'status.read':'status.missing',true);}catch(e){lastSnapshot=null;setStatus('status.readFailed',false);toast(String(e),true);}finally{renderRightRail();}
 }
 function applySnapshot(snapshot:ConfigSnapshot):void { lastSnapshot=snapshot;values=clone(snapshot.values);const match=presets.find(p=>fields.every(f=>p.values[f]===snapshot.values[f]));activePreset=match?.id??'';if(activeTab==='advanced')renderWorkspace(); }
-async function loadHistory():Promise<void> { try{historyEntries=await safeInvoke<HistoryEntry[]>('list_history',{limit:100},6000);}catch(e){console.warn('history',e);historyEntries=[];}renderHistory(); }
 
+async function loadHistoryAfterWrite():Promise<void> {
+  const request=++historyReadId;
+  historyLoading=true;historyLoadError=false;renderHistory();
+  try{const entries=await safeInvoke<HistoryEntry[]>('list_history',{limit:300},6000);if(request===historyReadId)historyEntries=entries;}
+  catch(e){if(request===historyReadId){console.warn('history',e);historyLoadError=true;}}
+  finally{if(request===historyReadId){historyLoading=false;renderHistory();}}
+}
+async function loadHistory():Promise<void> {
+  if(historyLoading||busy)return;
+  const request=++historyReadId;
+  historyLoading=true;historyLoadError=false;renderHistory();
+  try{
+    const entries=await safeInvoke<HistoryEntry[]>('list_history',{limit:300},6000);
+    if(request===historyReadId)historyEntries=entries;
+  }catch(e){if(request===historyReadId){console.warn('history',e);historyLoadError=true;}}
+  finally{if(request===historyReadId){historyLoading=false;renderHistory();}}
+}
+
+async function deleteHistory(id:string):Promise<void> {
+  if(busy||confirmResolver||historyLoading||historyLoadError)return;
+  const entry=historyEntries.find(item=>item.id===id);if(!entry)return;
+  const copy=historyText(getLocale());
+  const detail=[entry.scopeKind==='global'?t('scope.globalConfig'):t('scope.projectConfig'),projectName(entry.projectPath),formatTime(entry.timestampMs),entry.configPath,`${entry.values.model??'\u2014'} / ${entry.values.modelReasoningEffort??'\u2014'}`].join('\n');
+  const ok=await askConfirm({title:copy.confirmTitle,message:copy.confirmBody,detail,confirmText:copy.remove,danger:true});
+  if(!ok||busy)return;
+  setBusy(true);++historyReadId;renderHistory();
+  try{
+    // Await the native result. A timeout would not cancel the file operation.
+    // This narrow command accepts only a record ID, never a path to delete.
+    historyEntries=await invoke<HistoryEntry[]>('delete_history_entry',{id:entry.id});
+    historyLoadError=false;
+    toast(copy.deleted);
+  }catch(e){toast(`${copy.remove}: ${String(e)}`,true);}
+  finally{setBusy(false);renderRightRail();}
+}
 async function applyChanges():Promise<void> {
   if(busy||!lastSnapshot)return;
   const n=values.maxConcurrentThreadsPerSession;if(n!==null&&(n<1||n>16)){toast(t('toast.concurrentRange'),true);return;}
   const changes=getChanges();if(changes.length===0)return;
   const ok=await askConfirm({title:t('confirm.apply.title'),message:t('confirm.apply.message'),detail:lastSnapshot.exists?lastSnapshot.path:`${t('status.missing')}\n${lastSnapshot.path}`,confirmText:t('action.apply'),changes:changes.map(c=>({label:fieldLabel(c.field),from:c.from,to:c.to}))});if(!ok)return;
   setBusy(true);
-  try{const snap=await safeInvoke<ConfigSnapshot>('apply_config',{scope:requestScope(),values,source:'manual'});applySnapshot(snap);setStatus('status.read',true);await loadHistory();toast(t('toast.applied'));}
+  try{const snap=await safeInvoke<ConfigSnapshot>('apply_config',{scope:requestScope(),values,source:'manual'});applySnapshot(snap);setStatus('status.read',true);await loadHistoryAfterWrite();toast(t('toast.applied'));}
   catch(e){toast(t('error.applyFailed',{error:String(e)}),true);}
   finally{setBusy(false);renderWorkspace();renderRightRail();}
 }
 async function clearManaged():Promise<void> {
   if(busy||!hasScope())return;const ok=await askConfirm({title:t('confirm.clear.title'),message:t('confirm.clear.message'),detail:scope==='global'?'~/.codex/config.toml':projectConfigDisplayPath(),confirmText:t('action.clear'),danger:true});if(!ok)return;
-  setBusy(true);try{const snap=await safeInvoke<ConfigSnapshot>('clear_managed_config',{scope:requestScope()});applySnapshot(snap);await loadHistory();toast(t('toast.cleared'));}catch(e){toast(String(e),true);}finally{setBusy(false);renderWorkspace();renderRightRail();}
+  setBusy(true);try{const snap=await safeInvoke<ConfigSnapshot>('clear_managed_config',{scope:requestScope()});applySnapshot(snap);await loadHistoryAfterWrite();toast(t('toast.cleared'));}catch(e){toast(String(e),true);}finally{setBusy(false);renderWorkspace();renderRightRail();}
 }
 async function restoreOriginal():Promise<void> {
   if(busy||!hasScope())return;const ok=await askConfirm({title:t('confirm.restore.title'),message:t('confirm.restore.message'),detail:t('confirm.restore.detail'),confirmText:t('action.restore'),danger:true});if(!ok)return;
-  setBusy(true);try{const snap=await safeInvoke<ConfigSnapshot>('restore_original',{scope:requestScope()});applySnapshot(snap);await loadHistory();toast(t('toast.restored'));}catch(e){toast(String(e),true);}finally{setBusy(false);renderWorkspace();renderRightRail();}
+  setBusy(true);try{const snap=await safeInvoke<ConfigSnapshot>('restore_original',{scope:requestScope()});applySnapshot(snap);await loadHistoryAfterWrite();toast(t('toast.restored'));}catch(e){toast(String(e),true);}finally{setBusy(false);renderWorkspace();renderRightRail();}
 }
 async function restoreHistory(id:string):Promise<void> {
   const entry=historyEntries.find(x=>x.id===id);if(!entry||busy)return;
   const ok=await askConfirm({title:t('confirm.history.title'),message:t('confirm.history.message',{name:projectName(entry.projectPath)}),detail:entry.configPath,confirmText:t('history.restore'),danger:true,changes:[{label:t('preview.model'),from:lastSnapshot?.values.model??'—',to:entry.values.model??'—'},{label:t('preview.reasoning'),from:lastSnapshot?.values.modelReasoningEffort??'—',to:entry.values.modelReasoningEffort??'—'}]});if(!ok)return;
-  setBusy(true);try{const result=await safeInvoke<HistoryRestoreResult>('restore_history_entry',{id});scope=result.scope.kind;projectPath=result.scope.projectPath??'';applySnapshot(result.snapshot);await loadHistory();toast(t('toast.historyRestored'));renderApp();}catch(e){toast(String(e),true);}finally{setBusy(false);}
+  setBusy(true);try{const result=await safeInvoke<HistoryRestoreResult>('restore_history_entry',{id});scope=result.scope.kind;projectPath=result.scope.projectPath??'';applySnapshot(result.snapshot);await loadHistoryAfterWrite();toast(t('toast.historyRestored'));renderApp();}catch(e){toast(String(e),true);}finally{setBusy(false);}
 }
 
 function askConfirm(spec:ConfirmSpec):Promise<boolean> {
@@ -324,11 +383,11 @@ function bindStaticEvents():void {
   $<HTMLSelectElement>('#themeMode').value=themeMode;
   $<HTMLSelectElement>('#themeMode').onchange=e=>{themeMode=(e.currentTarget as HTMLSelectElement).value as ThemeMode;safeSet('codex-config-studio.theme.mode',themeMode);applyTheme();};
   document.querySelectorAll<HTMLButtonElement>('[data-accent]').forEach(btn=>btn.onclick=()=>{accent=btn.dataset.accent as Accent;safeSet('codex-config-studio.theme.accent',accent);applyTheme();document.querySelectorAll('[data-accent]').forEach(x=>x.classList.toggle('active',(x as HTMLElement).dataset.accent===accent));});
-  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>btn.onclick=()=>{activeTab=btn.dataset.tab as WorkspaceTab;renderWorkspace();});
+  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>btn.onclick=()=>{activeTab=btn.dataset.tab as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();});
   document.querySelectorAll<HTMLButtonElement>('.scope-tab').forEach(btn=>btn.onclick=async()=>{scope=btn.dataset.scope as ScopeKind;renderRightRail();await loadConfig();});
   $('#chooseProject').addEventListener('click',async()=>{const p=await open({directory:true,multiple:false,title:t('scope.dialogTitle')});if(typeof p==='string'){projectPath=p;$<HTMLInputElement>('#projectPath').value=p;await loadConfig();}});
   $<HTMLInputElement>('#projectPath').onchange=async e=>{projectPath=(e.currentTarget as HTMLInputElement).value.trim();await loadConfig();};
-  $('#reloadBtn').addEventListener('click',loadConfig);$('#applyBtn').addEventListener('click',applyChanges);$('#clearBtn').addEventListener('click',clearManaged);$('#restoreBtn').addEventListener('click',restoreOriginal);$('#refreshHistory').addEventListener('click',loadHistory);
+  $('#reloadBtn').addEventListener('click',loadConfig);$('#applyBtn').addEventListener('click',applyChanges);$('#clearBtn').addEventListener('click',clearManaged);$('#restoreBtn').addEventListener('click',restoreOriginal);
   $<HTMLInputElement>('#confirmCheckbox').onchange=e=>$<HTMLButtonElement>('#confirmOk').disabled=!(e.currentTarget as HTMLInputElement).checked;
   $('#confirmCancel').addEventListener('click',()=>finishConfirm(false));$('#confirmOk').addEventListener('click',()=>finishConfirm(true));
   $('#confirmModal').addEventListener('click',e=>{if(e.target===e.currentTarget)finishConfirm(false);});

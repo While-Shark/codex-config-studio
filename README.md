@@ -6,7 +6,7 @@
 
 **跨平台 Codex 配置管理器：一键切换 Astra / Sol / Terra / Luna 方案。**
 
-全局配置 · 项目配置 · Reasoning · 子 Agent · 安全备份 · 自动发布
+全局配置 · 项目配置 · Reasoning · 子 Agent · 安全备份
 
 [![Build Desktop](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml/badge.svg)](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml)
 [![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio?include_prereleases)](https://github.com/While-Shark/codex-config-studio/releases)
@@ -16,7 +16,7 @@
 
 **简体中文** · [繁體中文](./README.zh-TW.md) · [English](./README.en.md) · [日本語](./README.ja.md) · [한국어](./README.ko.md)
 
-[简介](#简介) · [功能](#功能) · [方案](#内置方案) · [下载](#下载) · [开发](#本地开发) · [自动发布](#自动发布) · [安全](#安全设计)
+[简介](#简介) · [功能](#功能) · [方案](#内置方案) · [下载](#下载) · [开发](#本地开发) · [安全](#安全设计)
 
 </div>
 
@@ -34,17 +34,17 @@ Codex Config Studio 是一个基于 **Tauri v2** 的桌面配置管理器，用�
 | --- | --- |
 | 🌍 全局配置 | 管理 `~/.codex/config.toml` |
 | 📁 项目配置 | 管理 `<project>/.codex/config.toml` |
-| 🎯 当前任务快速切换 | 小修复 / 日常开发 / 复杂问题 / 架构设计；每类可独立选择模型与 Reasoning 并记住偏好 |\n| ⚡ 一键切换方案 | 极省 Token、经济、日常、均衡、Astra 总指挥、极致 |
+| 🎯 当前任务快速切换 | 小修复 / 日常开发 / 复杂问题 / 架构设计；每类可独立选择模型与 Reasoning 并记住偏好 |
+| ⚡ 一键切换方案 | 极省 Token、经济、日常、均衡、Astra 总指挥、极致 |
 | 🧠 Reasoning | 独立调整主模型、Plan Mode、子 Agent 思考等级 |
 | 🤖 子 Agent | 开关、默认模型、Reasoning、最大并发 |
 | 🧬 字段继承 | 项目级字段可逐项取消覆盖，继续继承下层配置 |
 | 🛡️ 安全备份 | 首次修改保存原始副本，每次写入前保留历史备份 |
 | ↩️ 原始恢复 | 可恢复到本应用第一次接管之前的配置 |
 | 🎨 主题与配色 | 深色 / 浅色 / 跟随系统，5 套主题色并本机记忆 |
-| 🕘 项目历史 | 记录 A / B / C 项目的每次应用，可二次确认后一键恢复 |
+| 🕘 项目历史 | 独立历史标签页，支持搜索、恢复和删除；删除需二次确认，不影响项目配置或备份 |
 | 🌐 多语言 | 简中、繁中、英语、日语、韩语；自动识别并记忆选择 |
 | 📦 多端构建 | Windows / Linux / macOS 自动构建 |
-| 🚀 自动发布 | 自动版本号、Tag、Release 描述、安装包与 SHA256 |
 
 ## 内置方案
 
@@ -89,7 +89,7 @@ Plan Mode、子 Agent、MCP、hooks 及其他配置保持不变。
 
 ## 新版工作区
 
-主界面改为左右两栏：左侧负责方案 / 当前任务 / 高级配置，右侧固定显示作用域、待应用差异、二次确认入口和项目历史。选择配置不会立即写文件，更适合第一次使用 Codex 配置的小白用户。
+主界面改为左右两栏：左侧负责方案 / 当前任务 / 高级配置 / 历史记录，右侧固定显示作用域、待应用差异、二次确认入口。选择配置不会立即写文件，更适合第一次使用 Codex 配置的小白用户。
 
 所有写入现在都有前端防重复提交、超时解锁、后端串行写锁和临时文件安全写入；历史记录保存在 `~/.codex/.config-studio/history.json`。
 
@@ -152,47 +152,6 @@ Linux / macOS：
 bash ./build-unix.sh
 ```
 
-## CI / Nightly
-
-每次 push 到 `master` 后，GitHub Actions 会自动：
-
-1. 运行 TypeScript + Vite 前端预检
-2. 并行构建 Windows / Linux / macOS
-3. 使用 npm / Rust / Linux Tauri bundler 缓存
-4. 上传 Actions Artifact
-5. 更新 `nightly` 预发布 Release
-
-仅修改 README / docs / screenshots 时不会启动三端构建。
-
-## 自动发布
-
-打开：
-
-```text
-GitHub → Actions → release-desktop → Run workflow
-```
-
-选择版本升级方式：
-
-| 选项 | 示例 |
-| --- | --- |
-| `patch` | 0.1.0 → 0.1.1 |
-| `minor` | 0.1.0 → 0.2.0 |
-| `major` | 0.1.0 → 1.0.0 |
-
-正式发布流水线会自动：
-
-1. 同步 npm / Cargo / Tauri 版本号
-2. 执行前端编译与 Cargo metadata 检查
-3. 提交 release version commit
-4. 三端并行构建
-5. **全部构建成功后**创建 `vX.Y.Z` Tag
-6. 生成 `SHA256SUMS.txt`
-7. 使用 [RELEASE_NOTES.md](./RELEASE_NOTES.md) 生成五国语言 Release 描述
-8. 上传 `.exe`、`.AppImage`、`.deb`、`.dmg` 与校验文件
-
-手工 push `v*` Tag 也会触发正式发布流水线，但 Tag 版本必须与项目版本一致。
-
 ## Codex 配置优先级
 
 从高到低：
@@ -219,6 +178,6 @@ Codex Config Studio 不向前端开放通用文件系统或 Shell 权限。
 
 <div align="center">
 
-[Releases](https://github.com/While-Shark/codex-config-studio/releases) · [Actions](https://github.com/While-Shark/codex-config-studio/actions) · [Release Notes](./RELEASE_NOTES.md)
+[Releases](https://github.com/While-Shark/codex-config-studio/releases) · [Release Notes](./RELEASE_NOTES.md)
 
 </div>

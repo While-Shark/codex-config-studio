@@ -6,7 +6,7 @@
 
 **Astra / Sol / Terra / Luna 프로필을 한 번에 전환하는 크로스플랫폼 Codex 설정 관리자.**
 
-전역 설정 · 프로젝트 설정 · Reasoning · 서브 Agent · 안전 백업 · 자동 릴리스
+전역 설정 · 프로젝트 설정 · Reasoning · 서브 Agent · 안전 백업
 
 [![Build Desktop](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml/badge.svg)](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml)
 [![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio?include_prereleases)](https://github.com/While-Shark/codex-config-studio/releases)
@@ -16,7 +16,7 @@
 
 [简体中文](./README.md) · [繁體中文](./README.zh-TW.md) · [English](./README.en.md) · [日本語](./README.ja.md) · **한국어**
 
-[소개](#소개) · [기능](#기능) · [프로필](#기본-프로필) · [다운로드](#다운로드) · [개발](#로컬-개발) · [자동-릴리스](#자동-릴리스) · [보안](#보안)
+[소개](#소개) · [기능](#기능) · [프로필](#기본-프로필) · [다운로드](#다운로드) · [개발](#로컬-개발) · [보안](#보안)
 
 </div>
 
@@ -42,7 +42,6 @@ Astra, Sol, Terra, Luna를 자주 전환하거나 계획 모델, 실행 모델, 
 | ↩️ 복원 | 앱이 처음 수정하기 전 설정으로 복원 |
 | 🌐 다국어 | 중국어 간체/번체, 영어, 일본어, 한국어 |
 | 📦 멀티플랫폼 | Windows / Linux / macOS |
-| 🚀 자동 릴리스 | 버전, Tag, Release 설명, 설치 파일, SHA256 |
 
 ## 기본 프로필
 
@@ -83,16 +82,6 @@ Linux / macOS:
 bash ./run-dev.sh
 ```
 
-## 자동 릴리스
-
-```text
-GitHub → Actions → release-desktop → Run workflow
-```
-
-`patch` / `minor` / `major`를 고르면 버전 갱신, 3개 플랫폼 빌드, Tag 생성, SHA256, 5개 언어 Release 설명, 산출물 업로드까지 자동으로 처리됩니다.
-
-Tag는 **모든 플랫폼 빌드가 성공한 뒤** 생성됩니다.
-
 ## Codex 설정 우선순위
 
 1. CLI flags / `--config`
@@ -113,6 +102,6 @@ Tag는 **모든 플랫폼 빌드가 성공한 뒤** 생성됩니다.
 
 <div align="center">
 
-[Releases](https://github.com/While-Shark/codex-config-studio/releases) · [Actions](https://github.com/While-Shark/codex-config-studio/actions) · [Release Notes](./RELEASE_NOTES.md)
+[Releases](https://github.com/While-Shark/codex-config-studio/releases) · [Release Notes](./RELEASE_NOTES.md)
 
 </div>
