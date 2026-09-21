@@ -13,7 +13,10 @@ import {
   type TaskModeId,
   type TaskPreference,
 } from './task-modes';
+import { createPreviewRows, renderPreviewRows } from './config-preview';
+import { previewText } from './i18n/preview';
 import './styles.css';
+import './config-preview.css';
 
 type ScopeKind = 'global' | 'project';
 type WorkspaceTab = 'presets' | 'task' | 'advanced';
@@ -177,7 +180,8 @@ function renderApp():void {
       <div id="scopeNotice" class="notice">${scope==='project'?t('scope.notice'):t('guide.globalNotice')}</div>
     </section>
     <section class="card review-card">
-      <div class="rail-title"><div><span class="eyebrow">${t('rail.review.eyebrow')}</span><h3>${t('rail.review.title')}</h3></div><span id="changeCount" class="count-badge">0</span></div>
+      <div class="rail-title"><div><span class="eyebrow">${t('rail.review.eyebrow')}</span><h3>${previewText(getLocale()).title}</h3></div><span id="changeCount" class="count-badge">0</span></div>
+      <p id="previewSummary" class="rail-help" aria-live="polite"></p>
       <div id="changeList" class="change-list"></div>
       <div class="safety-note"><strong>${t('rail.safety.title')}</strong><span>${t('rail.safety.body')}</span></div>
       <button id="applyBtn" data-write-action class="button primary wide">${t('action.apply')}</button>
@@ -241,13 +245,29 @@ function renderRightRail():void {
   renderChanges();renderHistory();
 }
 function renderChanges():void {
-  const changes=getChanges();
-  const count=document.querySelector<HTMLElement>('#changeCount'); if(count)count.textContent=String(changes.length);
+  const copy=previewText(getLocale());
+  const canCompare=lastSnapshot!==null&&hasScope();
+  const rows=createPreviewRows(fields,canCompare?lastSnapshot!.values:null,values,fieldLabel,displayValue);
+  const changedCount=rows.filter(row=>row.status==='changed').length;
+  const summaryText=(canCompare?copy.summary:copy.pending)
+    .replace('{total}',String(rows.length)).replace('{changed}',String(changedCount));
+  const count=document.querySelector<HTMLElement>('#changeCount');
+  if(count){count.textContent=canCompare?String(changedCount):'—';count.title=summaryText;}
+  const summary=document.querySelector<HTMLElement>('#previewSummary');
+  if(summary)summary.textContent=summaryText;
+  const apply=document.querySelector<HTMLButtonElement>('#applyBtn');
+  if(apply)apply.disabled=busy||!canCompare||changedCount===0;
   const list=document.querySelector<HTMLElement>('#changeList'); if(!list)return;
-  if(!lastSnapshot){list.innerHTML=`<div class="empty-state">${hasScope()?t('rail.review.loading'):t('status.selectProject')}</div>`;return;}
-  if(changes.length===0){list.innerHTML=`<div class="empty-state ok">${t('rail.review.noChanges')}</div>`;}
-  else {list.innerHTML=changes.map(c=>`<div class="change-row"><span>${fieldLabel(c.field)}</span><div><del>${esc(c.from)}</del><strong>${esc(c.to)}</strong></div></div>`).join('');}
-  const apply=document.querySelector<HTMLButtonElement>('#applyBtn'); if(apply)apply.disabled=busy||!hasScope()||changes.length===0;
+  let notice='';
+  if(!canCompare){
+    const message=!hasScope()?t('status.selectProject')
+      :currentStatus.key==='status.readFailed'?t('status.readFailed'):t('rail.review.loading');
+    notice=`<p class="rail-help preview-notice">${esc(message)}</p>`;
+  }else if(changedCount===0){
+    notice=`<p class="rail-help preview-notice">${esc(t('rail.review.noChanges'))}</p>`;
+  }
+  // Show every field here; getChanges() remains the source of the confirmation diff.
+  list.innerHTML=notice+renderPreviewRows(rows,copy);
 }
 function renderHistory():void {
   const host=document.querySelector<HTMLElement>('#historyList'); if(!host)return;

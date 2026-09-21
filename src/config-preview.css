@@ -1,0 +1,38 @@
+/* Compact, complete preview. Theme and accent colors follow the existing app tokens. */
+.config-preview-row {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel3);
+  min-width: 0;
+}
+.config-preview-row.changed {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel3));
+}
+.config-preview-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.config-preview-heading > span { overflow-wrap: anywhere; }
+.config-preview-state { flex-shrink: 0; font-size: 9px; }
+.config-preview-row.changed .config-preview-state { color: var(--accent); font-weight: 700; }
+.config-preview-values {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 3px;
+  font-size: 11px;
+}
+.config-preview-values del { color: var(--muted); overflow-wrap: anywhere; }
+.config-preview-values strong { color: var(--text); overflow-wrap: anywhere; min-width: 0; }
+.config-preview-row.changed strong { color: var(--accent); }
+.config-preview-arrow { color: var(--muted); }
+#previewSummary { margin-top: 7px; }
+.change-list > .preview-notice { margin: 0; }

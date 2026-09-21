@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run test:preview && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "verify:icons": "node scripts/verify-icons.mjs"
+    "verify:icons": "node scripts/verify-icons.mjs",
+    "test:preview": "node --test scripts/test-preview.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
