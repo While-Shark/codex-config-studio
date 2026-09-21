@@ -6,6 +6,10 @@ on:
       - master
     tags:
       - "v*"
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "screenshots/**"
   workflow_dispatch:
 
 permissions:
@@ -16,8 +20,62 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lockfiles:
+    name: dependency-lockfiles
+    runs-on: ubuntu-latest
+    outputs:
+      needed: ${{ steps.lock-status.outputs.needed }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check dependency lock files
+        id: lock-status
+        shell: bash
+        run: |
+          if [ -f package-lock.json ] && [ -f src-tauri/Cargo.lock ]; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "Dependency lock files already exist."
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            echo "Dependency lock files need to be generated."
+          fi
+
+      - uses: actions/setup-node@v6
+        if: steps.lock-status.outputs.needed == 'true'
+        with:
+          node-version: 22
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.lock-status.outputs.needed == 'true'
+
+      - name: Generate dependency lock files
+        if: steps.lock-status.outputs.needed == 'true'
+        shell: bash
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
+
+      - name: Commit dependency lock files
+        if: steps.lock-status.outputs.needed == 'true' && github.ref == 'refs/heads/master'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json src-tauri/Cargo.lock
+          if git diff --cached --quiet; then
+            echo "No lock file changes to commit."
+            exit 0
+          fi
+          git commit -m "Add dependency lock files"
+          git push origin HEAD:master
+
   check:
     name: frontend-preflight
+    needs: lockfiles
+    if: needs.lockfiles.outputs.needed != 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -26,9 +84,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - name: Type-check and build frontend
         run: npm run build
@@ -70,23 +130,24 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Cache Tauri Linux bundler tools
+        if: matrix.name == 'linux-x64'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/tauri
+          key: tauri-linux-bundler-v1-${{ runner.arch }}
+          restore-keys: |
+            tauri-linux-bundler-v1-
 
       - name: Install Linux system dependencies
         if: matrix.name == 'linux-x64'
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libxdo-dev \
-            libssl-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            libfuse2
+          sudo apt-get install -y             libwebkit2gtk-4.1-dev             build-essential             curl             wget             file             libxdo-dev             libssl-dev             libayatana-appindicator3-dev             librsvg2-dev             libfuse2
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -100,7 +161,7 @@ jobs:
           key: ${{ matrix.name }}
 
       - name: Install frontend dependencies
-        run: npm install
+        run: npm ci
 
       - name: Generate platform icons
         run: npm run tauri icon src-tauri/icons/icon.svg
@@ -135,12 +196,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p release-files
-          find release-artifacts -type f \( \
-            -name "*.exe" -o \
-            -name "*.AppImage" -o \
-            -name "*.deb" -o \
-            -name "*.dmg" \
-          \) -exec cp {} release-files/ \;
+          find release-artifacts -type f (             -name "*.exe" -o             -name "*.AppImage" -o             -name "*.deb" -o             -name "*.dmg"           ) -exec cp {} release-files/ ;
           count=$(find release-files -maxdepth 1 -type f | wc -l)
           if [ "$count" -eq 0 ]; then
             echo "No release files found."
@@ -155,10 +211,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" release-files/* \
-            --repo "${GITHUB_REPOSITORY}" \
-            --title "Codex Config Studio ${GITHUB_REF_NAME}" \
-            --generate-notes
+          gh release create "${GITHUB_REF_NAME}" release-files/*             --repo "${GITHUB_REPOSITORY}"             --title "Codex Config Studio ${GITHUB_REF_NAME}"             --generate-notes
 
       - name: Publish latest development release
         if: github.ref == 'refs/heads/master'
@@ -166,14 +219,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete nightly \
-            --repo "${GITHUB_REPOSITORY}" \
-            --yes \
-            --cleanup-tag || true
+          gh release delete nightly             --repo "${GITHUB_REPOSITORY}"             --yes             --cleanup-tag || true
 
-          gh release create nightly release-files/* \
-            --repo "${GITHUB_REPOSITORY}" \
-            --target "${GITHUB_SHA}" \
-            --title "Codex Config Studio - Latest Development Build" \
-            --notes "Automatically built from the latest successful master commit (${GITHUB_SHA})." \
-            --prerelease
+          gh release create nightly release-files/*             --repo "${GITHUB_REPOSITORY}"             --target "${GITHUB_SHA}"             --title "Codex Config Studio - Latest Development Build"             --notes "Automatically built from the latest successful master commit (${GITHUB_SHA})."             --prerelease
