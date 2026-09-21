@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::{
+    any::Any,
     fs::{self, File},
     io::Write,
-    path::{Path, PathBuf},
-    any::Any,
     panic::{catch_unwind, AssertUnwindSafe},
-    sync::{atomic::{AtomicU64, Ordering}, Mutex, MutexGuard},
+    path::{Path, PathBuf},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Mutex, MutexGuard,
+    },
     time::{SystemTime, UNIX_EPOCH},
 };
 use toml_edit::{value, DocumentMut, Item};
@@ -115,7 +118,18 @@ fn now_millis() -> Result<u64, String> {
         .map_err(|e| format!("读取系统时间失败: {e}"))
 }
 
+#[cfg(test)]
+thread_local! {
+    static TEST_CONFIG_HOME: std::cell::RefCell<Option<PathBuf>> = const {
+        std::cell::RefCell::new(None)
+    };
+}
+
 fn global_config_path() -> Result<PathBuf, String> {
+    #[cfg(test)]
+    if let Some(home) = TEST_CONFIG_HOME.with(|cell| cell.borrow().clone()) {
+        return Ok(home.join(".codex").join("config.toml"));
+    }
     let home = dirs::home_dir().ok_or_else(|| "无法确定当前用户主目录".to_string())?;
     Ok(home.join(".codex").join("config.toml"))
 }
@@ -226,12 +240,14 @@ fn read_document(config_path: &Path) -> Result<DocumentMut, String> {
 
 fn read_values(doc: &DocumentMut) -> ManagedConfig {
     let root_string = |key: &str| doc.get(key).and_then(Item::as_str).map(ToOwned::to_owned);
-    let agents = doc.get("agents").and_then(Item::as_table);
+    let agents = doc.get("agents").and_then(Item::as_table_like);
     ManagedConfig {
         model: root_string("model"),
         model_reasoning_effort: root_string("model_reasoning_effort"),
         plan_mode_reasoning_effort: root_string("plan_mode_reasoning_effort"),
-        agents_enabled: agents.and_then(|t| t.get("enabled")).and_then(Item::as_bool),
+        agents_enabled: agents
+            .and_then(|t| t.get("enabled"))
+            .and_then(Item::as_bool),
         default_subagent_model: agents
             .and_then(|t| t.get("default_subagent_model"))
             .and_then(Item::as_str)
@@ -248,21 +264,46 @@ fn read_values(doc: &DocumentMut) -> ManagedConfig {
 
 fn set_root_string(doc: &mut DocumentMut, key: &str, val: &Option<String>) {
     match val {
-        Some(v) if !v.trim().is_empty() => doc[key] = value(v.trim()),
+        Some(v) if !v.trim().is_empty() => {
+            let mut replacement = value(v.trim());
+            if let Some(existing) = doc.get_mut(key) {
+                // Mutate the value, not the table key: retain comments and spacing.
+                if let (Some(old), Some(new)) = (existing.as_value(), replacement.as_value_mut()) {
+                    *new.decor_mut() = old.decor().clone();
+                }
+                *existing = replacement;
+            } else {
+                doc.as_table_mut().insert(key, replacement);
+            }
+        }
         _ => {
             doc.remove(key);
         }
     }
 }
 
-fn ensure_agents_table(doc: &mut DocumentMut) {
-    if !doc["agents"].is_table() {
-        doc["agents"] = Item::Table(toml_edit::Table::new());
+fn validate_agents_shape(doc: &DocumentMut) -> Result<(), String> {
+    match doc.get("agents") {
+        None => Ok(()),
+        Some(item) if item.is_none() || item.as_table_like().is_some() => Ok(()),
+        Some(_) => Err("config.toml: 'agents' must be a table ([agents] or agents = {...}); existing value was left unchanged".into()),
     }
 }
 
+fn ensure_agents_table(doc: &mut DocumentMut) -> Result<&mut dyn toml_edit::TableLike, String> {
+    validate_agents_shape(doc)?;
+    // A read via doc["agents"] panics when the key is missing.
+    if doc.get("agents").is_none_or(Item::is_none) {
+        doc.as_table_mut()
+            .insert("agents", Item::Table(toml_edit::Table::new()));
+    }
+    doc.get_mut("agents")
+        .and_then(Item::as_table_like_mut)
+        .ok_or_else(|| "Unable to access the agents table".to_string())
+}
+
 fn remove_agent_key(doc: &mut DocumentMut, key: &str) {
-    if let Some(table) = doc.get_mut("agents").and_then(Item::as_table_mut) {
+    if let Some(table) = doc.get_mut("agents").and_then(Item::as_table_like_mut) {
         table.remove(key);
     }
 }
@@ -270,70 +311,95 @@ fn remove_agent_key(doc: &mut DocumentMut, key: &str) {
 fn cleanup_agents_table(doc: &mut DocumentMut) {
     let should_remove = doc
         .get("agents")
-        .and_then(Item::as_table)
-        .map(|t| t.is_empty())
+        .and_then(Item::as_table_like)
+        .map(|table| table.is_empty())
         .unwrap_or(false);
     if should_remove {
         doc.remove("agents");
     }
 }
 
-fn apply_values_to_doc(doc: &mut DocumentMut, values: &ManagedConfig) {
+fn apply_values_to_doc(doc: &mut DocumentMut, values: &ManagedConfig) -> Result<(), String> {
+    // Validate incompatible shapes before changing any field.
+    validate_agents_shape(doc)?;
+    if let Some(count) = values.max_concurrent_threads_per_session {
+        if !(1..=16).contains(&count) {
+            return Err("max_concurrent_threads_per_session must be between 1 and 16".into());
+        }
+    }
     set_root_string(doc, "model", &values.model);
-    set_root_string(doc, "model_reasoning_effort", &values.model_reasoning_effort);
-    set_root_string(doc, "plan_mode_reasoning_effort", &values.plan_mode_reasoning_effort);
+    set_root_string(
+        doc,
+        "model_reasoning_effort",
+        &values.model_reasoning_effort,
+    );
+    set_root_string(
+        doc,
+        "plan_mode_reasoning_effort",
+        &values.plan_mode_reasoning_effort,
+    );
 
     if let Some(enabled) = values.agents_enabled {
-        ensure_agents_table(doc);
-        doc["agents"]["enabled"] = value(enabled);
+        ensure_agents_table(doc)?.insert("enabled", value(enabled));
     } else {
         remove_agent_key(doc, "enabled");
     }
-
-    if let Some(model) = values.default_subagent_model.as_ref().filter(|v| !v.trim().is_empty()) {
-        ensure_agents_table(doc);
-        doc["agents"]["default_subagent_model"] = value(model.trim());
+    if let Some(model) = values
+        .default_subagent_model
+        .as_ref()
+        .filter(|v| !v.trim().is_empty())
+    {
+        ensure_agents_table(doc)?.insert("default_subagent_model", value(model.trim()));
     } else {
         remove_agent_key(doc, "default_subagent_model");
     }
-
     if let Some(reasoning) = values
         .default_subagent_reasoning_effort
         .as_ref()
         .filter(|v| !v.trim().is_empty())
     {
-        ensure_agents_table(doc);
-        doc["agents"]["default_subagent_reasoning_effort"] = value(reasoning.trim());
+        ensure_agents_table(doc)?
+            .insert("default_subagent_reasoning_effort", value(reasoning.trim()));
     } else {
         remove_agent_key(doc, "default_subagent_reasoning_effort");
     }
-
     if let Some(count) = values.max_concurrent_threads_per_session {
-        ensure_agents_table(doc);
-        doc["agents"]["max_concurrent_threads_per_session"] = value(count.clamp(1, 16));
+        ensure_agents_table(doc)?.insert("max_concurrent_threads_per_session", value(count));
     } else {
         remove_agent_key(doc, "max_concurrent_threads_per_session");
     }
     cleanup_agents_table(doc);
+    Ok(())
 }
 
 fn write_bytes_safely(path: &Path, bytes: &[u8]) -> Result<(), String> {
     ensure_parent(path)?;
-    let parent = path.parent().ok_or_else(|| "目标路径没有父目录".to_string())?;
-    let name = path.file_name().and_then(|v| v.to_str()).unwrap_or("config");
+    let parent = path
+        .parent()
+        .ok_or_else(|| "目标路径没有父目录".to_string())?;
+    let name = path
+        .file_name()
+        .and_then(|v| v.to_str())
+        .unwrap_or("config");
     let stamp = now_millis()?;
-    let tmp = parent.join(format!(".{name}.config-studio-{}-{stamp}.tmp", std::process::id()));
+    let tmp = parent.join(format!(
+        ".{name}.config-studio-{}-{stamp}.tmp",
+        std::process::id()
+    ));
 
     let mut file = File::create(&tmp).map_err(|e| format!("创建临时文件失败: {e}"))?;
-    file.write_all(bytes).map_err(|e| format!("写入临时文件失败: {e}"))?;
-    file.sync_all().map_err(|e| format!("同步临时文件失败: {e}"))?;
+    file.write_all(bytes)
+        .map_err(|e| format!("写入临时文件失败: {e}"))?;
+    file.sync_all()
+        .map_err(|e| format!("同步临时文件失败: {e}"))?;
     drop(file);
 
     match fs::rename(&tmp, path) {
         Ok(()) => Ok(()),
         Err(first) => {
             if path.exists() {
-                fs::remove_file(path).map_err(|e| format!("替换旧配置失败: {e}; 初始错误: {first}"))?;
+                fs::remove_file(path)
+                    .map_err(|e| format!("替换旧配置失败: {e}; 初始错误: {first}"))?;
                 fs::rename(&tmp, path).map_err(|e| format!("提交新配置失败: {e}"))?;
                 Ok(())
             } else {
@@ -402,10 +468,7 @@ fn record_history(
     let mut store = read_history_store()?;
     let config_path_text = config_path.to_string_lossy().to_string();
     if let Some(last) = store.entries.first() {
-        if last.config_path == config_path_text
-            && last.values == *values
-            && last.action == action
-        {
+        if last.config_path == config_path_text && last.values == *values && last.action == action {
             return Ok(());
         }
     }
@@ -435,11 +498,11 @@ fn apply_config_inner(
     source: Option<String>,
 ) -> Result<ConfigSnapshot, String> {
     let path = resolve_scope(&scope)?;
+    let mut doc = read_document(&path)?;
+    apply_values_to_doc(&mut doc, &values)?;
     ensure_parent(&path)?;
     ensure_original_backup(&path)?;
     history_backup(&path)?;
-    let mut doc = read_document(&path)?;
-    apply_values_to_doc(&mut doc, &values);
     write_document(&path, &doc)?;
     let snapshot = snapshot_for_path(&path)?;
     record_history(&scope, &path, &snapshot.values, "apply", source)?;
@@ -448,14 +511,20 @@ fn apply_config_inner(
 
 fn clear_managed_inner(scope: ScopeRequest) -> Result<ConfigSnapshot, String> {
     let path = resolve_scope(&scope)?;
+    let mut doc = read_document(&path)?;
+    apply_values_to_doc(&mut doc, &ManagedConfig::default())?;
     ensure_parent(&path)?;
     ensure_original_backup(&path)?;
     history_backup(&path)?;
-    let mut doc = read_document(&path)?;
-    apply_values_to_doc(&mut doc, &ManagedConfig::default());
     write_document(&path, &doc)?;
     let snapshot = snapshot_for_path(&path)?;
-    record_history(&scope, &path, &snapshot.values, "clear", Some("clear".to_string()))?;
+    record_history(
+        &scope,
+        &path,
+        &snapshot.values,
+        "clear",
+        Some("clear".to_string()),
+    )?;
     Ok(snapshot)
 }
 
@@ -507,8 +576,8 @@ async fn apply_config(
     tauri::async_runtime::spawn_blocking(move || {
         with_config_lock("应用配置", || apply_config_inner(scope, values, source))
     })
-        .await
-        .map_err(|e| format!("写入任务异常终止: {e}"))?
+    .await
+    .map_err(|e| format!("写入任务异常终止: {e}"))?
 }
 
 #[tauri::command]
@@ -516,8 +585,8 @@ async fn clear_managed_config(scope: ScopeRequest) -> Result<ConfigSnapshot, Str
     tauri::async_runtime::spawn_blocking(move || {
         with_config_lock("清理配置", || clear_managed_inner(scope))
     })
-        .await
-        .map_err(|e| format!("清理任务异常终止: {e}"))?
+    .await
+    .map_err(|e| format!("清理任务异常终止: {e}"))?
 }
 
 #[tauri::command]
@@ -525,8 +594,8 @@ async fn restore_original(scope: ScopeRequest) -> Result<ConfigSnapshot, String>
     tauri::async_runtime::spawn_blocking(move || {
         with_config_lock("恢复原始配置", || restore_original_inner(scope))
     })
-        .await
-        .map_err(|e| format!("恢复任务异常终止: {e}"))?
+    .await
+    .map_err(|e| format!("恢复任务异常终止: {e}"))?
 }
 
 #[tauri::command]
@@ -546,33 +615,33 @@ async fn list_history(limit: Option<usize>) -> Result<Vec<HistoryEntry>, String>
 async fn restore_history_entry(id: String) -> Result<HistoryRestoreResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
         with_config_lock("恢复历史记录", || {
-        let store = read_history_store()?;
-        let entry = store
-            .entries
-            .iter()
-            .find(|item| item.id == id)
-            .cloned()
-            .ok_or_else(|| "找不到这条历史记录，可能已被清理".to_string())?;
-        let scope = ScopeRequest {
-            kind: entry.scope_kind.clone(),
-            project_path: entry.project_path.clone(),
-        };
-        let path = resolve_scope(&scope)?;
-        ensure_parent(&path)?;
-        ensure_original_backup(&path)?;
-        history_backup(&path)?;
-        let mut doc = read_document(&path)?;
-        apply_values_to_doc(&mut doc, &entry.values);
-        write_document(&path, &doc)?;
-        let snapshot = snapshot_for_path(&path)?;
-        record_history(
-            &scope,
-            &path,
-            &snapshot.values,
-            "history_restore",
-            Some("history_restore".to_string()),
-        )?;
-        Ok(HistoryRestoreResult { scope, snapshot })
+            let store = read_history_store()?;
+            let entry = store
+                .entries
+                .iter()
+                .find(|item| item.id == id)
+                .cloned()
+                .ok_or_else(|| "找不到这条历史记录，可能已被清理".to_string())?;
+            let scope = ScopeRequest {
+                kind: entry.scope_kind.clone(),
+                project_path: entry.project_path.clone(),
+            };
+            let path = resolve_scope(&scope)?;
+            let mut doc = read_document(&path)?;
+            apply_values_to_doc(&mut doc, &entry.values)?;
+            ensure_parent(&path)?;
+            ensure_original_backup(&path)?;
+            history_backup(&path)?;
+            write_document(&path, &doc)?;
+            let snapshot = snapshot_for_path(&path)?;
+            record_history(
+                &scope,
+                &path,
+                &snapshot.values,
+                "history_restore",
+                Some("history_restore".to_string()),
+            )?;
+            Ok(HistoryRestoreResult { scope, snapshot })
         })
     })
     .await
@@ -595,7 +664,6 @@ pub fn run() {
         .expect("error while running Codex Config Studio");
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -608,6 +676,12 @@ mod tests {
         assert!(first.is_err());
 
         let second = with_config_lock("后续操作", || Ok::<_, String>(42));
-        assert_eq!(second.expect("lock should remain usable after caught panic"), 42);
+        assert_eq!(
+            second.expect("lock should remain usable after caught panic"),
+            42
+        );
     }
 }
+
+#[cfg(test)]
+mod config_tests;

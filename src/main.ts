@@ -173,7 +173,7 @@ function renderApp():void {
       <div class="rail-title"><div><span class="eyebrow">${t('rail.scope.eyebrow')}</span><h3>${t('rail.scope.title')}</h3></div><span id="busyIndicator" class="busy-indicator hidden"></span></div>
       <div class="segmented"><button class="scope-tab" data-scope="global">${t('scope.global')}</button><button class="scope-tab" data-scope="project">${t('scope.project')}</button></div>
       <div id="projectPicker" class="project-picker hidden"><input id="projectPath" placeholder="${t('scope.projectPlaceholder')}" value="${esc(projectPath)}"><button id="chooseProject" class="button secondary">${t('scope.chooseFolder')}</button></div>
-      <div class="path-block"><span>${scope==='global'?t('scope.globalConfig'):t('scope.projectConfig')}</span><code id="configPath">${scope==='global'?'~/.codex/config.toml':esc(projectConfigDisplayPath())}</code></div>
+      <div class="path-block"><span id="scopeLabel">${scope==='global'?t('scope.globalConfig'):t('scope.projectConfig')}</span><code id="configPath">${scope==='global'?'~/.codex/config.toml':esc(projectConfigDisplayPath())}</code></div>
       <div id="scopeNotice" class="notice">${scope==='project'?t('scope.notice'):t('guide.globalNotice')}</div>
     </section>
     <section class="card review-card">
@@ -235,6 +235,7 @@ function readAdvanced():void {
 function renderRightRail():void {
   document.querySelectorAll<HTMLButtonElement>('.scope-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.scope===scope));
   const picker=document.querySelector<HTMLElement>('#projectPicker'); if(picker)picker.classList.toggle('hidden',scope!=='project');
+  const label=document.querySelector<HTMLElement>('#scopeLabel'); if(label)label.textContent=scope==='global'?t('scope.globalConfig'):t('scope.projectConfig');
   const path=document.querySelector<HTMLElement>('#configPath'); if(path)path.textContent=scope==='global'?'~/.codex/config.toml':projectConfigDisplayPath();
   const notice=document.querySelector<HTMLElement>('#scopeNotice'); if(notice)notice.textContent=scope==='project'?t('scope.notice'):t('guide.globalNotice');
   renderChanges();renderHistory();
@@ -266,7 +267,7 @@ async function applyChanges():Promise<void> {
   if(busy||!lastSnapshot)return;
   const n=values.maxConcurrentThreadsPerSession;if(n!==null&&(n<1||n>16)){toast(t('toast.concurrentRange'),true);return;}
   const changes=getChanges();if(changes.length===0)return;
-  const ok=await askConfirm({title:t('confirm.apply.title'),message:t('confirm.apply.message'),detail:lastSnapshot.path,confirmText:t('action.apply'),changes:changes.map(c=>({label:fieldLabel(c.field),from:c.from,to:c.to}))});if(!ok)return;
+  const ok=await askConfirm({title:t('confirm.apply.title'),message:t('confirm.apply.message'),detail:lastSnapshot.exists?lastSnapshot.path:`${t('status.missing')}\n${lastSnapshot.path}`,confirmText:t('action.apply'),changes:changes.map(c=>({label:fieldLabel(c.field),from:c.from,to:c.to}))});if(!ok)return;
   setBusy(true);
   try{const snap=await safeInvoke<ConfigSnapshot>('apply_config',{scope:requestScope(),values,source:'manual'});applySnapshot(snap);setStatus('status.read',true);await loadHistory();toast(t('toast.applied'));}
   catch(e){toast(t('error.applyFailed',{error:String(e)}),true);}
