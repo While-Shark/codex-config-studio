@@ -2,6 +2,9 @@
 
 ## 简体中文
 
+- 🧭 **左右双栏工作区**：左侧专注配置选择，右侧固定作用域、差异预览、二次确认与应用操作，显著缩短页面。
+- 🎨 **主题与历史**：新增深/浅/系统主题、5 套强调色，以及跨 A/B/C 项目的配置历史与恢复。
+- 🧯 **修复应用卡死/崩溃**：写入移到后台阻塞线程，增加防重复提交、超时解锁、串行写锁与安全临时文件写入。
 - 🎯 **当前任务快速切换**：新增小修复 / 日常开发 / 复杂问题 / 架构设计 4 类任务模式。每类都可手动选择模型与 Reasoning、支持自定义模型 ID、本机记忆偏好，并可一键恢复进入任务模式前的模型设置。
 - 🌐 **多语言界面**：新增简体中文、繁體中文、English、日本語、한국어；首次启动自动跟随系统/浏览器语言，也可在界面中手动切换并记住选择。
 - 🚀 **一键正式发布**：Release 工作流可自动计算版本号、更新 Tauri / npm / Cargo 版本、构建三端、创建 Tag，并把安装包上传到 GitHub Release。
@@ -20,6 +23,9 @@
 
 ## English
 
+- 🧭 **Two-column workspace**: Configuration stays on the left while scope, diff review, confirmation, apply actions, and history stay visible on the right.
+- 🎨 **Themes and history**: Added system/dark/light themes, five accent colors, and cross-project A/B/C configuration history with restore.
+- 🧯 **Apply freeze/crash hardening**: Writes now run off the UI thread with duplicate-submit protection, timeout recovery, a serialized write lock, and safer temporary-file writes.
 - 🎯 **Current Task quick switching**: Added Quick Fix / Daily Development / Complex Problem / Architecture modes. Every mode supports manual model + reasoning selection, custom model IDs, locally remembered preferences, and one-click restoration of the pre-task model baseline.
 - 🌐 **Multilingual UI**: Added Simplified Chinese, Traditional Chinese, English, Japanese, and Korean. The app follows the system/browser language on first launch and remembers manual language changes.
 - 🚀 **One-click formal releases**: The Release workflow can calculate the next version, update Tauri/npm/Cargo versions, build all desktop targets, create the Git tag, and upload installers to GitHub Releases automatically.
