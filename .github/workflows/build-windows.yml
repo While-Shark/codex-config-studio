@@ -1,4 +1,4 @@
-name: build-windows
+name: build-desktop
 
 on:
   push:
@@ -13,42 +13,116 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    name: build-${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+            args: --bundles nsis
+            artifact: codex-config-studio-windows-x64
+            artifact_path: src-tauri/target/release/bundle/nsis/*-setup.exe
+
+          - name: linux-x64
+            os: ubuntu-22.04
+            args: --bundles appimage,deb
+            artifact: codex-config-studio-linux-x64
+            artifact_path: |
+              src-tauri/target/release/bundle/appimage/*.AppImage
+              src-tauri/target/release/bundle/deb/*.deb
+
+          - name: macos-universal
+            os: macos-latest
+            args: --target universal-apple-darwin --bundles app,dmg
+            artifact: codex-config-studio-macos-universal
+            artifact_path: |
+              src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+              src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: 22
+
+      - name: Install Linux system dependencies
+        if: matrix.name == 'linux-x64'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libfuse2
 
       - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install macOS Rust targets
+        if: matrix.name == 'macos-universal'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
 
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+          key: ${{ matrix.name }}
 
       - name: Install frontend dependencies
         run: npm install
 
-      - name: Build Windows installer
+      - name: Generate platform icons
+        run: npm run tauri icon src-tauri/icons/icon.svg
+
+      - name: Build desktop bundle
         uses: tauri-apps/tauri-action@v1
         with:
-          args: --bundles nsis
+          args: ${{ matrix.args }}
 
-      - name: Upload Windows installer artifact
+      - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
         with:
-          name: codex-config-studio-windows
-          path: src-tauri/target/release/bundle/nsis/*-setup.exe
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact_path }}
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        shell: pwsh
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          path: release-artifacts
+
+      - name: Publish cross-platform GitHub Release
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $files = Get-ChildItem "src-tauri\target\release\bundle\nsis\*-setup.exe"
-          gh release create "${{ github.ref_name }}" $files.FullName --title "Codex Config Studio ${{ github.ref_name }}" --generate-notes
+          mapfile -d '' files < <(
+            find release-artifacts -type f \( \
+              -name "*.exe" -o \
+              -name "*.AppImage" -o \
+              -name "*.deb" -o \
+              -name "*.dmg" \
+            \) -print0
+          )
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No release files found."
+            exit 1
+          fi
+          gh release create "${GITHUB_REF_NAME}" "${files[@]}" \
+            --title "Codex Config Studio ${GITHUB_REF_NAME}" \
+            --generate-notes
