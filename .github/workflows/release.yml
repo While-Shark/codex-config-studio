@@ -1,0 +1,271 @@
+name: release-desktop
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump for the next release
+        required: true
+        default: minor
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-desktop
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: prepare-release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release-meta.outputs.version }}
+      tag: ${{ steps.release-meta.outputs.tag }}
+      commit_sha: ${{ steps.release-meta.outputs.commit_sha }}
+      previous_tag: ${{ steps.release-meta.outputs.previous_tag }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'master' || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Prepare automatic version bump
+        if: github.event_name == 'workflow_dispatch'
+        id: auto-version
+        shell: bash
+        run: |
+          version=$(node scripts/prepare-release.mjs "${{ inputs.bump }}")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          npm ci
+          npm run build
+          cargo metadata --manifest-path src-tauri/Cargo.toml --no-deps --format-version 1 >/dev/null
+
+      - name: Commit release version
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          version="${{ steps.auto-version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json
+          git commit -m "chore(release): v${version} [skip ci]"
+          git push origin HEAD:master
+
+      - name: Resolve release metadata
+        id: release-meta
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ steps.auto-version.outputs.version }}"
+            tag="v${version}"
+          else
+            tag="$GITHUB_REF_NAME"
+            version="${tag#v}"
+            package_version=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json','utf8')).version)")
+            if [ "$package_version" != "$version" ]; then
+              echo "Tag $tag does not match package version $package_version."
+              exit 1
+            fi
+          fi
+
+          commit_sha=$(git rev-parse HEAD)
+          previous_tag=$(git tag --list 'v*' --sort=-version:refname | grep -v "^${tag}$" | head -n 1 || true)
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
+          echo "previous_tag=$previous_tag" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    name: build-${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            os: windows-latest
+            args: --bundles nsis
+            artifact: codex-config-studio-windows-x64
+            artifact_path: src-tauri/target/release/bundle/nsis/*-setup.exe
+
+          - name: linux-x64
+            os: ubuntu-22.04
+            args: --bundles appimage,deb
+            artifact: codex-config-studio-linux-x64
+            artifact_path: |
+              src-tauri/target/release/bundle/appimage/*.AppImage
+              src-tauri/target/release/bundle/deb/*.deb
+
+          - name: macos-universal
+            os: macos-latest
+            args: --target universal-apple-darwin --bundles app,dmg
+            artifact: codex-config-studio-macos-universal
+            artifact_path: |
+              src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+              src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit_sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Cache Tauri Linux bundler tools
+        if: matrix.name == 'linux-x64'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/tauri
+          key: tauri-linux-bundler-v1-${{ runner.arch }}
+          restore-keys: |
+            tauri-linux-bundler-v1-
+
+      - name: Install Linux system dependencies
+        if: matrix.name == 'linux-x64'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libfuse2
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install macOS Rust targets
+        if: matrix.name == 'macos-universal'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+          key: ${{ matrix.name }}
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Generate and validate icons
+        shell: bash
+        run: |
+          npm run tauri icon src-tauri/icons/icon.svg
+          npm run verify:icons
+
+      - name: Build desktop bundle
+        uses: tauri-apps/tauri-action@v1
+        with:
+          args: ${{ matrix.args }}
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: [prepare, build]
+    name: publish-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.commit_sha }}
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v5
+        with:
+          path: release-artifacts
+
+      - name: Collect release files and checksums
+        shell: bash
+        run: |
+          mkdir -p release-files
+          find release-artifacts -type f \( \
+            -name "*.exe" -o \
+            -name "*.AppImage" -o \
+            -name "*.deb" -o \
+            -name "*.dmg" \
+          \) -exec cp {} release-files/ \;
+          test -n "$(find release-files -maxdepth 1 -type f -print -quit)"
+          (cd release-files && sha256sum * > SHA256SUMS.txt)
+
+      - name: Build multilingual release notes
+        shell: bash
+        run: |
+          cp RELEASE_NOTES.md release-body.md
+          {
+            echo
+            echo "---"
+            echo
+            echo "## Commits / 提交记录 / 提交紀錄 / コミット / 커밋"
+            if [ -n "${{ needs.prepare.outputs.previous_tag }}" ]; then
+              git log --pretty='- %s (%h)' "${{ needs.prepare.outputs.previous_tag }}..${{ needs.prepare.outputs.commit_sha }}"
+            else
+              git log -20 --pretty='- %s (%h)' "${{ needs.prepare.outputs.commit_sha }}"
+            fi
+          } >> release-body.md
+
+      - name: Create automatic tag if needed
+        shell: bash
+        run: |
+          tag="${{ needs.prepare.outputs.tag }}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "$tag already exists."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" "${{ needs.prepare.outputs.commit_sha }}" -m "Codex Config Studio $tag"
+          git push origin "$tag"
+
+      - name: Create or update GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ needs.prepare.outputs.tag }}"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" release-files/* --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$tag" --repo "$GITHUB_REPOSITORY" \
+              --title "Codex Config Studio $tag" \
+              --notes-file release-body.md
+          else
+            gh release create "$tag" release-files/* --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title "Codex Config Studio $tag" \
+              --notes-file release-body.md
+          fi
