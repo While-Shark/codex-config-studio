@@ -122,7 +122,7 @@ jobs:
           retention-days: 30
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    name: publish-release
     needs: build
     runs-on: ubuntu-latest
 
@@ -131,23 +131,49 @@ jobs:
         with:
           path: release-artifacts
 
-      - name: Publish cross-platform GitHub Release
+      - name: Collect release files
+        shell: bash
+        run: |
+          mkdir -p release-files
+          find release-artifacts -type f \( \
+            -name "*.exe" -o \
+            -name "*.AppImage" -o \
+            -name "*.deb" -o \
+            -name "*.dmg" \
+          \) -exec cp {} release-files/ \;
+          count=$(find release-files -maxdepth 1 -type f | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "No release files found."
+            exit 1
+          fi
+          echo "Collected $count release files."
+          ls -lah release-files
+
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mapfile -d '' files < <(
-            find release-artifacts -type f \( \
-              -name "*.exe" -o \
-              -name "*.AppImage" -o \
-              -name "*.deb" -o \
-              -name "*.dmg" \
-            \) -print0
-          )
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "No release files found."
-            exit 1
-          fi
-          gh release create "${GITHUB_REF_NAME}" "${files[@]}" \
+          gh release create "${GITHUB_REF_NAME}" release-files/* \
+            --repo "${GITHUB_REPOSITORY}" \
             --title "Codex Config Studio ${GITHUB_REF_NAME}" \
             --generate-notes
+
+      - name: Publish latest development release
+        if: github.ref == 'refs/heads/master'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete nightly \
+            --repo "${GITHUB_REPOSITORY}" \
+            --yes \
+            --cleanup-tag || true
+
+          gh release create nightly release-files/* \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title "Codex Config Studio - Latest Development Build" \
+            --notes "Automatically built from the latest successful master commit (${GITHUB_SHA})." \
+            --prerelease
