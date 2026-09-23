@@ -13,7 +13,7 @@
     "verify:icons": "node scripts/verify-icons.mjs",
     "test:preview": "node --test scripts/test-preview.mjs",
     "test:history": "node --test scripts/test-history.mjs",
-    "test:models": "node --test scripts/test-model-picker.mjs"
+    "test:models": "node --test scripts/test-model-picker.mjs scripts/test-model-catalog.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",

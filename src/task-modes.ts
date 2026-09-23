@@ -1,7 +1,18 @@
 export type TaskModeId = 'quick-fix' | 'daily' | 'complex' | 'architecture';
 export type TaskPreference = { model: string; reasoning: string };
 
-export const commonTaskModels = ['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna'] as const;
+// Shared by the main-model, sub-agent and current-task selectors.
+// Latest family first; keep legacy IDs available without migrating saved preferences.
+// IDs: https://openai.com/index/introducing-gpt-6-sol-and-luna/
+export const commonTaskModels = [
+  'gpt-6-sol',
+  'gpt-6-astra',
+  'gpt-6-luna',
+  'gpt-5.6-sol',
+  'gpt-5.6-terra',
+  'gpt-5.6-luna',
+  'gpt-5.5',
+] as const;
 export const reasoningLevels = ['low', 'medium', 'high', 'xhigh', 'ultra', 'persistent', 'max'] as const;
 export const taskModeIds: TaskModeId[] = ['quick-fix', 'daily', 'complex', 'architecture'];
 
