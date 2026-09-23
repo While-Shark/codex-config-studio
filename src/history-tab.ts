@@ -1,3 +1,4 @@
+import { workspaceText } from './i18n/workspace.js';
 export type HistoryCopy = {
   tab: string; search: string; noMatches: string; remove: string;
   confirmTitle: string; confirmBody: string; deleted: string; loadFailed: string;
@@ -56,13 +57,15 @@ export function renderHistoryEntries(
   disabled = false,
 ): string {
   const esc = escapeHistoryText;
+  const locale=Object.keys(copies).find(key=>copies[key]===copy) ?? 'en';
+  const ui=workspaceText(locale);
   return entries.map(entry => `<article class="history-item" data-history-entry="${esc(entry.id)}">
     <div class="history-main"><div><strong>${esc(format.projectName(entry.projectPath))}</strong>
     <span>${esc(format.time(entry.timestampMs))} &middot; ${esc(format.source(entry.source ?? entry.action))}</span></div>
     <span class="history-scope">${esc(entry.scopeKind === 'global' ? labels.global : labels.project)}</span></div>
     <p class="history-model">${esc(entry.values.model ?? '\u2014')} &middot; ${esc(entry.values.modelReasoningEffort ?? '\u2014')}</p>
     <div class="history-path" title="${esc(entry.configPath)}">${esc(entry.configPath)}</div>
-    <div class="history-actions"><button class="button secondary" data-write-action data-history-id="${esc(entry.id)}" ${disabled ? 'disabled' : ''}>${esc(labels.restore)}</button>
+    <div class="history-actions"><button class="button secondary" data-preview-history-id="${esc(entry.id)}" ${disabled ? 'disabled' : ''}>${esc(ui.historyPreview)}</button><button class="button secondary" data-write-action data-history-id="${esc(entry.id)}" ${disabled ? 'disabled' : ''}>${esc(labels.restore)}</button>
     <button class="button danger-ghost" data-write-action data-delete-history-id="${esc(entry.id)}" ${disabled ? 'disabled' : ''}>${esc(copy.remove)}</button></div>
   </article>`).join('');
 }

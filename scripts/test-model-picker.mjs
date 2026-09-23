@@ -1,3 +1,4 @@
+import { loadTypeScript } from './helpers/load-typescript.mjs';
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
 import { execFileSync } from 'node:child_process';
@@ -197,7 +198,8 @@ test('actual advanced renderer uses complete selectors for main and sub-agent mo
   let bound = 0;
   const element = { addEventListener() {} };
   const host = { innerHTML: '' };
-  const context = { host, values: structuredClone(pending), fields, commonTaskModels: models,
+  const context = { host, advancedLayout: loadTypeScript(join(root,'src/ui/advanced-layout.ts')).advancedLayout,
+    workspaceText: loadTypeScript(join(root,'src/i18n/workspace.ts')).workspaceText, getLocale: () => 'en', values: structuredClone(pending), fields, commonTaskModels: models,
     efforts: ['low', 'medium', 'high', 'xhigh'], t: key => key,
     esc: value => String(value).replaceAll('"', '&quot;'),
     resetSelectedPreset() {},

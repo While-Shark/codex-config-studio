@@ -20,6 +20,8 @@ Global scope · Project scope · Reasoning · Sub-agents · Safe backups
 
 </div>
 
+> **Workspace UI/UX redesign**: Clean split layout, pinned apply controls, grouped advanced settings, project/profile history views and read-only previews. Added unsaved-draft confirmation, accessible modal focus handling and keyboard tabs. Preserved five languages, themes, complete configuration previews, inheritance and archived-profile warnings. Slow writes keep their lock until the native operation actually finishes.
+
 ---
 
 ## Overview

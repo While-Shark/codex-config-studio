@@ -2,6 +2,7 @@
 
 ## 简体中文
 
+- **工作台 UI/UX 重构**：简洁双栏布局、固定应用区、分组高级设置、项目/方案历史子页与只读预览；加入草稿放弃确认、弹窗焦点管理和键盘导航。五语言、深浅主题、完整预览、继承配置和历史方案提示均保留。写入较慢时不再提前解锁，避免重复提交。
 - **方案版本 · v0.4.0**: 历史快照保留原有模型、思考等级和子 Agent 参数，不随新版推荐变动。 确认后只载入预览，不会立即写入配置。
 - **GPT-6 快捷方案**：内置方案与新用户任务推荐改用 GPT-6 Luna / Sol / Astra；日常开发使用 GPT-6 Luna。思考等级和并发数不变，不自动覆盖已有项目配置、历史或已保存的任务偏好。Release 标题仅显示版本标签，开发版显示 `nightly`。
 - **GPT-6 模型列表更新**：主模型、默认子 Agent 和当前任务的共用列表新增 `gpt-6-sol`、`gpt-6-luna`，与 `gpt-6-astra` 一起置顶；保留 GPT-5.6 系列并补充 `gpt-5.5`。本次只扩充可选模型，不自动替换现有方案、已保存的模型或思考等级，“未设置／继承”和自定义模型入口保持不变。
@@ -18,6 +19,7 @@
 
 ## 繁體中文
 
+- **工作台 UI/UX 重構**：簡潔雙欄佈局、固定套用區、分組進階設定、專案/方案歷史分頁與唯讀預覽；新增放棄草稿確認、對話框焦點管理與鍵盤導覽。保留五語言、深淺主題、繼承設定與舊方案提示。寫入完成前不會提前解鎖。
 - **方案版本 · v0.4.0**: 歷史快照保留原有模型、思考等級與子 Agent 參數，不隨新版推薦變動。 確認後只載入預覽，不會立即寫入設定。
 - **GPT-6 快捷方案**：內建方案與新使用者任務推薦改用 GPT-6 Luna / Sol / Astra；日常開發使用 GPT-6 Luna。思考等級與並行數不變，不自動覆寫既有專案設定、歷史或已儲存的任務偏好。Release 標題只顯示版本標籤，開發版顯示 `nightly`。
 - **GPT-6 模型清單更新**：主模型、預設子 Agent 與目前任務共用清單新增 `gpt-6-sol`、`gpt-6-luna`，與 `gpt-6-astra` 一起置頂；保留 GPT-5.6 系列並補上 `gpt-5.5`。本次只擴充可選模型，不自動替換既有方案、已儲存的模型或思考等級，「未設定／繼承」與自訂模型入口保持不變。
@@ -31,6 +33,7 @@
 
 ## English
 
+- **Workspace UI/UX redesign**: Clean split layout, pinned apply controls, grouped advanced settings, project/profile history views and read-only previews. Added unsaved-draft confirmation, accessible modal focus handling and keyboard tabs. Preserved five languages, themes, complete configuration previews, inheritance and archived-profile warnings. Slow writes keep their lock until the native operation actually finishes.
 - **Profile version · v0.4.0**: Archived snapshots retain their original models, reasoning levels and sub-agent settings; new recommendations never rewrite them. Confirming only loads a preview; it does not write configuration.
 - **GPT-6 presets**: Built-in profiles and fresh task recommendations now use GPT-6 Luna / Sol / Astra; Daily uses GPT-6 Luna. Reasoning and concurrency are unchanged. Existing project files, history and saved task preferences are not migrated. Release titles show only the version tag; development builds use `nightly`.
 - **GPT-6 model catalog update**: Added `gpt-6-sol` and `gpt-6-luna` to the shared main-model, default sub-agent and current-task selectors, alongside `gpt-6-astra` at the top. Retained the GPT-5.6 family and added `gpt-5.5`. This only expands the choices; existing presets, saved models, reasoning levels, unset/inherit and custom model IDs remain unchanged.
@@ -47,6 +50,7 @@
 
 ## 日本語
 
+- **UI/UX を刷新**：二列レイアウト、固定適用ボタン、設定のグループ化、プロジェクト/プロファイル履歴と読み取り専用プレビュー。草稿破棄の確認、フォーカス管理、キーボード操作を追加。多言語、テーマ、継承と履歴警告を維持し、書き込み完了前のロック解除を防止。
 - **プロファイルの版 · v0.4.0**: 履歴には元のモデル、思考レベル、サブ Agent 設定を保存し、新しい推奨値で上書きしません。 確認後はプレビューのみで、設定は書き込みません。
 - **GPT-6 プロファイル**：内蔵設定と新規タスクの推奨値を GPT-6 Luna / Sol / Astra へ更新し、日常開発は GPT-6 Luna を使用します。思考レベルと並列数は変更せず、既存の設定・履歴・保存済み選択を上書きしません。Release タイトルはバージョンタグのみ、開発版は `nightly` と表示します。
 - **GPT-6 モデル一覧を更新**：メインモデル、既定のサブ Agent、現在のタスクで共有する一覧に `gpt-6-sol` と `gpt-6-luna` を追加し、`gpt-6-astra` とともに先頭へ配置しました。GPT-5.6 系列は保持し、`gpt-5.5` も追加しました。選択肢のみの追加で、既存プロファイル、保存済みモデル、思考レベル、未設定／継承、カスタムモデル ID は変更しません。
@@ -60,6 +64,7 @@
 
 ## 한국어
 
+- **UI/UX 개선**: 두 열 레이아웃, 고정 적용 영역, 설정 그룹, 프로젝트/프로필 기록 및 읽기 전용 미리보기. 초안 폐기 확인, 포커스 관리 및 키보드 탭 조작을 추가했습니다. 다국어, 테마, 상속, 보관 프로필 경고를 유지하며 쓰기 완료 전 잠금을 해제하지 않습니다.
 - **프로필 버전 · v0.4.0**: 보관된 스냅샷은 원래 모델, 사고 수준 및 서브 Agent 설정을 유지하며 새 추천값으로 덮어쓰지 않습니다. 확인하면 미리보기만 불러오며 설정 파일에 쓰지 않습니다.
 - **GPT-6 프로필**: 기본 프로필과 새 작업 추천을 GPT-6 Luna / Sol / Astra로 변경하고 일상 개발은 GPT-6 Luna를 사용합니다. 사고 수준과 동시 실행 수는 유지하며 기존 설정, 기록, 저장된 선호를 덮어쓰지 않습니다. Release 제목은 버전 태그만 표시하고 개발판은 `nightly`로 표시합니다.
 - **GPT-6 모델 목록 업데이트**: 메인 모델, 기본 서브 Agent, 현재 작업에서 공유하는 목록에 `gpt-6-sol`과 `gpt-6-luna`를 추가하고 `gpt-6-astra`와 함께 상단에 배치했습니다. GPT-5.6 계열을 유지하고 `gpt-5.5`도 추가했습니다. 선택지만 확장하며 기존 프로필, 저장된 모델, 사고 수준, 미설정/상속 및 사용자 지정 모델 ID는 변경하지 않습니다.

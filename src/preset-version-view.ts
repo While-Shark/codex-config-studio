@@ -4,6 +4,9 @@ import {
 } from './preset-versions.js';
 import { presetVersionText } from './i18n/preset-versions.js';
 
+import { icon, type IconName } from './ui/icons.js';
+import { workspaceText } from './i18n/workspace.js';
+
 type PresetText = (id: string, part: 'name' | 'badge' | 'description' | 'usage') => string;
 export type PresetWorkspaceOptions = {
   current: readonly PresetDefinition[];
@@ -23,6 +26,7 @@ function esc(value: string): string {
 export function renderPresetWorkspace(host: HTMLElement, options: PresetWorkspaceOptions): void {
   const { current, viewedVersion, selectedVersion, selectedPreset, locale, busy, heading, text } = options;
   const copy = presetVersionText(locale);
+  const ui = workspaceText(locale);
   const version = presetVersion(viewedVersion);
   if (!version) throw new Error('Unknown preset version');
   const presets = versionPresets(current, viewedVersion);
@@ -41,10 +45,14 @@ export function renderPresetWorkspace(host: HTMLElement, options: PresetWorkspac
     <div class="preset-grid">${presets.map(preset => {
       const selected = selectedVersion === viewedVersion && selectedPreset === preset.id;
       const description = archivedPresetDescription(viewedVersion, locale, preset.id) ?? text(preset.id, 'description');
-      return `<button type="button" class="preset-card ${selected ? 'selected' : ''}" data-preset="${esc(preset.id)}" data-write-action ${busy ? 'disabled' : ''}>
-        <div class="preset-top"><strong>${esc(text(preset.id, 'name'))}</strong><span>${esc(version.archived ? copy.archived : text(preset.id, 'badge'))}</span></div>
-        <p>${esc(description)}</p><small>${esc(text(preset.id, 'usage'))}</small>
-        <small class="preset-model-ids">${esc(preset.values.model ?? '—')}${preset.values.defaultSubagentModel ? ` / ${esc(preset.values.defaultSubagentModel)}` : ''}</small>
+      const glyph: Record<string, IconName> = { 'token-save':'leaf', economy:'bolt', daily:'code', balanced:'sliders', astra:'grid', max:'star' };
+      return `<button type="button" class="preset-card ${selected ? 'selected' : ''}" data-preset="${esc(preset.id)}" aria-pressed="${selected}" title="${esc(description)}" data-write-action ${busy ? 'disabled' : ''}>
+        <div class="preset-top"><span class="preset-icon">${icon(glyph[preset.id] ?? 'grid')}</span><span>${esc(version.archived ? copy.archived : text(preset.id, 'badge'))}</span></div>
+        <strong>${esc(text(preset.id, 'name'))}</strong>
+        <div class="preset-model-ids">${esc(preset.values.model ?? '\u2014')}<span class="effort-chip">${esc(preset.values.modelReasoningEffort ?? '\u2014')}</span></div>
+        <p>${esc(version.archived ? description : text(preset.id,'usage'))}</p>
+        ${preset.values.defaultSubagentModel ? `<div class="preset-agent">${icon('bot')}<span>${esc(preset.values.defaultSubagentModel)}</span></div>` : ''}
+        <div class="preset-footer"><span>${esc(selected ? ui.selected : ui.preview)}</span>${icon(selected ? 'check' : 'arrow')}</div>
       </button>`;
     }).join('')}</div>
   </section>`;

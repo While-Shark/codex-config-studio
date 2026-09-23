@@ -25,6 +25,11 @@ import { CURRENT_PRESET_VERSION, presetVersion, presetByReference, matchPresetVe
 import { renderPresetWorkspace, presetReferenceLabel } from './preset-version-view';
 import { presetVersionText } from './i18n/preset-versions';
 import './preset-versions.css';
+import { renderShell } from './ui/shell';
+import { workspaceText } from './i18n/workspace';
+import { advancedLayout } from './ui/advanced-layout';
+import { icon } from './ui/icons';
+import { bindTabs, bindModalKeyboard, setModalActive, closePopovers } from './ui/interactions';
 
 type ScopeKind = 'global' | 'project';
 type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'history';
@@ -59,6 +64,7 @@ type ConfirmSpec = {
   detail?: string;
   confirmText: string;
   danger?: boolean;
+  readOnly?: boolean;
   changes?: Array<{ label: string; from: string; to: string }>;
 };
 
@@ -89,6 +95,8 @@ let activeTaskMode: TaskModeId = loadActiveTaskMode();
 let taskPreferences = loadTaskPreferences();
 let historyEntries: HistoryEntry[] = [];
 let historySearch = '';
+let historyView: 'projects' | 'presets' = 'projects';
+let configReadId = 0;
 let historyLoading = false;
 let historyLoadError = false;
 let historyReadId = 0;
@@ -149,11 +157,19 @@ function projectConfigDisplayPath():string {
 }
 
 async function safeInvoke<T>(command:string,args:Record<string,unknown>,timeoutMs=12000):Promise<T> {
-  const timeout = new Promise<T>((_,reject)=>setTimeout(()=>reject(new Error(t('error.operationTimeout'))),timeoutMs));
-  return Promise.race([invoke<T>(command,args),timeout]);
+  const writing=['apply_config','clear_managed_config','restore_original','restore_history_entry'].includes(command);
+  let timer:ReturnType<typeof setTimeout>;
+  if(writing){
+    timer=setTimeout(()=>toast(workspaceText(getLocale()).waiting),timeoutMs);
+    try{return await invoke<T>(command,args);}finally{clearTimeout(timer);}
+  }
+  const timeout=new Promise<T>((_,reject)=>{timer=setTimeout(()=>reject(new Error(t('error.operationTimeout'))),timeoutMs);});
+  try{return await Promise.race([invoke<T>(command,args),timeout]);}finally{clearTimeout(timer!);}
 }
 function setBusy(next:boolean):void {
   busy=next;
+  document.querySelectorAll<HTMLInputElement|HTMLSelectElement|HTMLButtonElement>('[data-tab], .scope-tab, #projectPath, #chooseProject, #reloadBtn, #languageSelect').forEach(node=>node.disabled=next);
+  const editor=document.querySelector<HTMLElement>('#leftContent');if(editor)editor.inert=next;
   document.querySelectorAll<HTMLButtonElement>('[data-write-action]').forEach(btn=>btn.disabled=next);
   const indicator=document.querySelector<HTMLElement>('#busyIndicator');
   if(indicator){indicator.classList.toggle('hidden',!next);indicator.textContent=next?t('status.applying'):'';}
@@ -161,54 +177,22 @@ function setBusy(next:boolean):void {
 }
 function toast(text:string,error=false):void {
   const e=$<HTMLDivElement>('#toast');
+  const result=document.querySelector<HTMLElement>('#applyResult');
+  if(result&&(error||[t('toast.applied'),t('toast.restored'),t('toast.cleared'),t('toast.historyRestored')].includes(text))){result.textContent=text;result.className=`apply-result ${error?'error':''}`;}
   e.textContent=text;e.className=`toast show ${error?'error':''}`;
   setTimeout(()=>{ if(e.textContent===text)e.className='toast'; },2800);
 }
 function setStatus(key:StatusKey,ok=true):void { currentStatus={key,ok}; renderStatus(); }
 function renderStatus():void {
-  const e=document.querySelector<HTMLElement>('#saveState'); if(!e)return;
-  e.className=`status-pill ${currentStatus.ok?'ok':'warn'}`;e.innerHTML=`<i></i>${t(currentStatus.key)}`;
+  const e=document.querySelector<HTMLElement>('#saveState');if(!e)return;
+  const dirty=getChanges().length>0,copy=workspaceText(getLocale());
+  const text=busy?t('status.applying'):currentStatus.key==='status.read'&&dirty?copy.dirty:t(currentStatus.key);
+  e.className=`status-pill ${dirty?'dirty':currentStatus.ok?'ok':'warn'}`;
+  e.innerHTML=`<i></i>${esc(text)}`;
 }
 
 function renderApp():void {
-  app.innerHTML=`
-<div class="app-shell">
-<header class="topbar">
-  <div class="brand"><div class="logo">C</div><div><h1>Codex Config Studio</h1><p>${t('app.subtitle')}</p></div></div>
-  <div class="top-actions">
-    <label class="compact-select"><span>${t('language.label')}</span><select id="languageSelect">${localeOptions.map(x=>`<option value="${x.value}" ${x.value===getLocale()?'selected':''}>${x.label}</option>`).join('')}</select></label>
-    <label class="compact-select"><span>${t('theme.mode')}</span><select id="themeMode"><option value="system">${t('theme.system')}</option><option value="dark">${t('theme.dark')}</option><option value="light">${t('theme.light')}</option></select></label>
-    <div class="accent-picker" aria-label="${t('theme.accent')}">${(['violet','blue','emerald','amber','rose'] as Accent[]).map(a=>`<button class="accent-dot ${accent===a?'active':''}" data-accent="${a}" aria-label="${a}"></button>`).join('')}</div>
-    <span id="saveState" class="status-pill"><i></i></span>
-  </div>
-</header>
-<main class="workspace">
-  <section class="left-pane">
-    <div class="intro-card card"><div><span class="eyebrow">${t('guide.eyebrow')}</span><h2>${t('guide.title')}</h2><p>${t('guide.description')}</p></div><div class="guide-steps"><span>1 ${t('guide.scope')}</span><span>2 ${t('guide.choose')}</span><span>3 ${t('guide.review')}</span><span>4 ${t('guide.apply')}</span></div></div>
-    <div class="tabs card"><button data-tab="presets">${t('tab.presets')}</button><button data-tab="task">${t('tab.task')}</button><button data-tab="advanced">${t('tab.advanced')}</button><button data-tab="history">${historyText(getLocale()).tab}</button></div>
-    <section id="leftContent" class="left-content"></section>
-  </section>
-  <aside class="right-pane">
-    <section class="card scope-card">
-      <div class="rail-title"><div><span class="eyebrow">${t('rail.scope.eyebrow')}</span><h3>${t('rail.scope.title')}</h3></div><span id="busyIndicator" class="busy-indicator hidden"></span></div>
-      <div class="segmented"><button class="scope-tab" data-scope="global">${t('scope.global')}</button><button class="scope-tab" data-scope="project">${t('scope.project')}</button></div>
-      <div id="projectPicker" class="project-picker hidden"><input id="projectPath" placeholder="${t('scope.projectPlaceholder')}" value="${esc(projectPath)}"><button id="chooseProject" class="button secondary">${t('scope.chooseFolder')}</button></div>
-      <div class="path-block"><span id="scopeLabel">${scope==='global'?t('scope.globalConfig'):t('scope.projectConfig')}</span><code id="configPath">${scope==='global'?'~/.codex/config.toml':esc(projectConfigDisplayPath())}</code></div>
-      <div id="scopeNotice" class="notice">${scope==='project'?t('scope.notice'):t('guide.globalNotice')}</div>
-    </section>
-    <section class="card review-card">
-      <div class="rail-title"><div><span class="eyebrow">${t('rail.review.eyebrow')}</span><h3>${previewText(getLocale()).title}</h3></div><span id="changeCount" class="count-badge">0</span></div>
-      <p id="previewSummary" class="rail-help" aria-live="polite"></p>
-      <p id="presetOrigin" class="preset-origin hidden" role="status"></p><div id="changeList" class="change-list"></div>
-      <div class="safety-note"><strong>${t('rail.safety.title')}</strong><span>${t('rail.safety.body')}</span></div>
-      <button id="applyBtn" data-write-action class="button primary wide">${t('action.apply')}</button>
-      <div class="rail-secondary"><button id="reloadBtn" class="button secondary">${t('action.reload')}</button><button id="clearBtn" data-write-action class="button secondary">${t('action.clear')}</button><button id="restoreBtn" data-write-action class="button danger-ghost">${t('action.restore')}</button></div>
-    </section>
-  </aside>
-</main>
-<div id="confirmModal" class="modal-backdrop hidden"><div class="modal"><div class="modal-head"><span class="eyebrow">${t('confirm.eyebrow')}</span><h3 id="confirmTitle"></h3></div><p id="confirmMessage"></p><div id="confirmDetail" class="modal-detail hidden"></div><div id="confirmChanges" class="modal-changes"></div><label class="confirm-check"><input id="confirmCheckbox" type="checkbox"><span>${t('confirm.checkbox')}</span></label><div class="modal-actions"><button id="confirmCancel" class="button secondary">${t('confirm.cancel')}</button><button id="confirmOk" class="button primary" disabled></button></div></div></div>
-<div id="toast" class="toast"></div>
-</div>`;
+  app.innerHTML=renderShell({projectPath,accent});
   bindStaticEvents();
   renderWorkspace();
   renderRightRail();
@@ -217,7 +201,11 @@ function renderApp():void {
 }
 
 function renderWorkspace():void {
-  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===activeTab));
+  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>{
+    const selected=btn.dataset.tab===activeTab;
+    btn.classList.toggle('active',selected);btn.setAttribute('aria-selected',String(selected));btn.tabIndex=selected?0:-1;
+  });
+  document.querySelector('#leftContent')?.setAttribute('aria-labelledby',`tab-${activeTab}`);
   const host=$<HTMLElement>('#leftContent');
   if(activeTab==='presets') renderPresets(host);
   else if(activeTab==='task') renderTask(host);
@@ -268,20 +256,23 @@ function resetSelectedPreset():void {
 function renderTask(host:HTMLElement):void {
   const pref=taskPreferences[activeTaskMode];
   const isCommon=commonTaskModels.includes(pref.model as (typeof commonTaskModels)[number]);
-  host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.task.eyebrow')}</span><h2>${t('section.task.title')}</h2><p>${t('section.task.hint')}</p></div></div><div class="task-grid">${taskModeIds.map(id=>{const p=taskPreferences[id];return `<button class="task-card ${activeTaskMode===id?'selected':''}" data-task-mode="${id}"><strong>${taskText(id,'name')}</strong><p>${taskText(id,'description')}</p><small>${esc(p.model)} · ${esc(p.reasoning)}</small></button>`;}).join('')}</div><div class="task-editor"><label><span>${t('task.model')}</span><select id="taskModel">${commonTaskModels.map(m=>`<option value="${m}" ${pref.model===m?'selected':''}>${m}</option>`).join('')}<option value="__custom__" ${!isCommon?'selected':''}>${t('task.customModel')}</option></select></label><label id="customModelWrap" class="${isCommon?'hidden':''}"><span>${t('task.customModel')}</span><input id="taskCustomModel" value="${isCommon?'':esc(pref.model)}" placeholder="${t('task.customPlaceholder')}"></label><label><span>${t('task.reasoning')}</span><select id="taskReasoning">${reasoningLevels.map(r=>`<option value="${r}" ${pref.reasoning===r?'selected':''}>${r}</option>`).join('')}</select></label></div><div class="inline-actions"><button id="useTask" class="button primary">${t('task.useAsPending')}</button><button id="resetTask" class="button secondary">${t('task.reset')}</button></div><div class="tip-box"><strong>${t('task.tipTitle')}</strong><span>${t('task.remember')}</span><span>${t('task.modelSupport')}</span><span>${t('task.note')}</span></div></section>`;
+  host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.task.eyebrow')}</span><h2>${t('section.task.title')}</h2><p>${t('section.task.hint')}</p></div></div><div class="task-grid">${taskModeIds.map(id=>{const p=taskPreferences[id];return `<button class="task-card ${activeTaskMode===id?'selected':''}" data-task-mode="${id}"><strong>${taskText(id,'name')}</strong><p>${taskText(id,'description')}</p><small>${esc(p.model)} · ${esc(p.reasoning)}</small></button>`;}).join('')}</div><div class="task-editor"><label><span>${t('task.model')}</span><select id="taskModel">${commonTaskModels.map(m=>`<option value="${m}" ${pref.model===m?'selected':''}>${m}</option>`).join('')}<option value="__custom__" ${!isCommon?'selected':''}>${t('task.customModel')}</option></select></label><label id="customModelWrap" class="${isCommon?'hidden':''}"><span>${t('task.customModel')}</span><input id="taskCustomModel" value="${isCommon?'':esc(pref.model)}" placeholder="${t('task.customPlaceholder')}"></label><label><span>${t('task.reasoning')}</span>${selectHtml('taskReasoning',pref.reasoning,reasoningLevels)}</label></div><div class="inline-actions"><button id="useTask" class="button primary">${t('task.useAsPending')}</button><button id="resetTask" class="button secondary">${t('task.reset')}</button></div><div class="tip-box"><strong>${t('task.tipTitle')}</strong><span>${t('task.remember')}</span><span>${t('task.modelSupport')}</span><span>${t('task.note')}</span></div></section>`;
   host.querySelectorAll<HTMLButtonElement>('[data-task-mode]').forEach(btn=>btn.onclick=()=>{activeTaskMode=btn.dataset.taskMode as TaskModeId;saveActiveTaskMode(activeTaskMode);renderTask(host);});
   $<HTMLSelectElement>('#taskModel').onchange=()=>{const v=$<HTMLSelectElement>('#taskModel').value;$<HTMLElement>('#customModelWrap').classList.toggle('hidden',v!=='__custom__');};
   $('#useTask').addEventListener('click',()=>{const modelSel=$<HTMLSelectElement>('#taskModel').value;const custom=$<HTMLInputElement>('#taskCustomModel')?.value.trim()??'';const model=modelSel==='__custom__'?custom:modelSel;const reasoning=$<HTMLSelectElement>('#taskReasoning').value;if(!model){toast(t('toast.taskModelRequired'),true);return;}const next:TaskPreference={model,reasoning};taskPreferences[activeTaskMode]=next;saveTaskPreference(activeTaskMode,next);draftPresetSource=null;values.model=model;values.modelReasoningEffort=reasoning;activePreset='';renderTask(host);renderRightRail();toast(t('toast.taskPrepared',{name:taskText(activeTaskMode,'name')}));});
   $('#resetTask').addEventListener('click',()=>{taskPreferences[activeTaskMode]=resetTaskPreference(activeTaskMode);renderTask(host);toast(t('toast.taskReset',{name:taskText(activeTaskMode,'name')}));});
 }
 function renderAdvanced(host:HTMLElement):void {
-  host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.custom.eyebrow')}</span><h2>${t('section.custom.title')}</h2><p>${t('advanced.help')}</p></div><button id="resetPresetBtn" class="text-button">${t('action.resetPreset')}</button></div><div class="form-grid">${advancedField('model',t('field.model'),t('field.model.help'),renderModelPicker('model',values.model,commonTaskModels,t('field.model'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('modelReasoningEffort',t('field.reasoning'),t('field.reasoning.help'),selectHtml('modelReasoningEffort',values.modelReasoningEffort,efforts,true))}${advancedField('planModeReasoningEffort',t('field.planReasoning'),t('field.planReasoning.help'),selectHtml('planModeReasoningEffort',values.planModeReasoningEffort,efforts,true))}${advancedField('agentsEnabled',t('field.agents'),t('field.agents.help'),`<select id="agentsEnabled"><option value="">${t('option.inherit')}</option><option value="true" ${values.agentsEnabled===true?'selected':''}>${t('option.enabled')}</option><option value="false" ${values.agentsEnabled===false?'selected':''}>${t('option.disabled')}</option></select>`)}${advancedField('defaultSubagentModel',t('field.subagentModel'),t('field.subagentModel.help'),renderModelPicker('defaultSubagentModel',values.defaultSubagentModel,commonTaskModels,t('field.subagentModel'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('defaultSubagentReasoningEffort',t('field.subagentReasoning'),t('field.subagentReasoning.help'),selectHtml('defaultSubagentReasoningEffort',values.defaultSubagentReasoningEffort,efforts,true))}${advancedField('maxConcurrentThreadsPerSession',t('field.maxConcurrent'),t('field.maxConcurrent.help'),`<input id="maxConcurrentThreadsPerSession" type="number" min="1" max="16" value="${values.maxConcurrentThreadsPerSession??''}" placeholder="${t('option.inherit')}">`)}</div></section>`;
+  host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.custom.eyebrow')}</span><h2>${t('section.custom.title')}</h2><p>${t('advanced.help')}</p></div><button id="resetPresetBtn" class="text-button">${t('action.resetPreset')}</button></div>${advancedLayout(`${advancedField('model',t('field.model'),t('field.model.help'),renderModelPicker('model',values.model,commonTaskModels,t('field.model'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('modelReasoningEffort',t('field.reasoning'),t('field.reasoning.help'),selectHtml('modelReasoningEffort',values.modelReasoningEffort,efforts,true))}${advancedField('planModeReasoningEffort',t('field.planReasoning'),t('field.planReasoning.help'),selectHtml('planModeReasoningEffort',values.planModeReasoningEffort,efforts,true))}`,`${advancedField('agentsEnabled',t('field.agents'),t('field.agents.help'),`<select id="agentsEnabled"><option value="">${t('option.inherit')}</option><option value="true" ${values.agentsEnabled===true?'selected':''}>${t('option.enabled')}</option><option value="false" ${values.agentsEnabled===false?'selected':''}>${t('option.disabled')}</option></select>`)}${advancedField('defaultSubagentModel',t('field.subagentModel'),t('field.subagentModel.help'),renderModelPicker('defaultSubagentModel',values.defaultSubagentModel,commonTaskModels,t('field.subagentModel'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('defaultSubagentReasoningEffort',t('field.subagentReasoning'),t('field.subagentReasoning.help'),selectHtml('defaultSubagentReasoningEffort',values.defaultSubagentReasoningEffort,efforts,true))}${advancedField('maxConcurrentThreadsPerSession',t('field.maxConcurrent'),t('field.maxConcurrent.help'),`<input id="maxConcurrentThreadsPerSession" type="number" min="1" max="16" value="${values.maxConcurrentThreadsPerSession??''}" placeholder="${t('option.inherit')}">`)}`,workspaceText(getLocale()))}</section>`;
   bindModelPickers(host);
   fields.forEach(field=>{const el=document.querySelector<HTMLInputElement|HTMLSelectElement>(`#${field}`);if(el)el.addEventListener('input',()=>{readAdvanced();activePreset='';renderRightRail();});});
   $('#resetPresetBtn').addEventListener('click',resetSelectedPreset);
 }
 function advancedField(id:Field,title:string,help:string,control:string):string { const target=(id==='model'||id==='defaultSubagentModel')?`${id}Select`:id; return `<div class="field"><div><label class="field-label" for="${target}"><strong>${title}</strong></label><small>${help}</small></div><div>${control}</div></div>`; }
-function selectHtml(id:string,value:string|null,options:string[],inherit=false):string { return `<select id="${id}">${inherit?`<option value="">${t('option.inherit')}</option>`:''}${options.map(o=>`<option value="${o}" ${value===o?'selected':''}>${o}</option>`).join('')}</select>`; }
+function selectHtml(id:string,value:string|null,options:readonly string[],inherit=false):string {
+  const all=value && !options.includes(value)?[value,...options]:options;
+  return `<select id="${id}">${inherit?`<option value="" ${value===null?'selected':''}>${t('option.inherit')}</option>`:''}${all.map(o=>`<option value="${esc(o)}" ${value===o?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+}
 function readAdvanced():void {
   const v=(id:Field)=>document.querySelector<HTMLInputElement|HTMLSelectElement>(`#${id}`)?.value??'';
   values={model:v('model').trim()||null,modelReasoningEffort:v('modelReasoningEffort')||null,planModeReasoningEffort:v('planModeReasoningEffort')||null,agentsEnabled:v('agentsEnabled')===''?null:v('agentsEnabled')==='true',defaultSubagentModel:v('defaultSubagentModel').trim()||null,defaultSubagentReasoningEffort:v('defaultSubagentReasoningEffort')||null,maxConcurrentThreadsPerSession:v('maxConcurrentThreadsPerSession')===''?null:Number(v('maxConcurrentThreadsPerSession'))};
@@ -293,7 +284,12 @@ function renderRightRail():void {
   const label=document.querySelector<HTMLElement>('#scopeLabel'); if(label)label.textContent=scope==='global'?t('scope.globalConfig'):t('scope.projectConfig');
   const path=document.querySelector<HTMLElement>('#configPath'); if(path)path.textContent=scope==='global'?'~/.codex/config.toml':projectConfigDisplayPath();
   const notice=document.querySelector<HTMLElement>('#scopeNotice'); if(notice)notice.textContent=scope==='project'?t('scope.notice'):t('guide.globalNotice');
-  renderChanges();renderHistory();renderPresetOrigin();
+  const create=document.querySelector<HTMLElement>('#createNotice');if(create)create.classList.toggle('hidden',lastSnapshot===null||lastSnapshot.exists);
+  const input=document.querySelector<HTMLInputElement>('#projectPath');if(input&&document.activeElement!==input)input.value=projectPath;
+  const restore=document.querySelector<HTMLButtonElement>('#restoreBtn');if(restore)restore.disabled=busy||!lastSnapshot?.originalBackupExists;
+  const clear=document.querySelector<HTMLButtonElement>('#clearBtn');if(clear)clear.disabled=busy||!lastSnapshot;
+  const editor=document.querySelector<HTMLElement>('#leftContent');if(editor)editor.inert=busy||currentStatus.key==='status.reading';
+  renderChanges();renderHistory();renderPresetOrigin();renderStatus();
 }
 function renderChanges():void {
   const copy=previewText(getLocale());
@@ -322,13 +318,25 @@ function renderChanges():void {
 }
 
 function renderHistoryPage(host:HTMLElement):void {
+  const ui=workspaceText(getLocale());
+  const navigation=`<div class="history-subtabs"><button data-history-view="projects" aria-pressed="${historyView==='projects'}" class="${historyView==='projects'?'active':''}">${ui.projectHistory}</button><button data-history-view="presets" aria-pressed="${historyView==='presets'}" class="${historyView==='presets'?'active':''}">${ui.presetHistory}</button></div>`;
+  const bind=()=>host.querySelectorAll<HTMLButtonElement>('[data-history-view]').forEach(button=>button.onclick=()=>{
+    historyView=button.dataset.historyView as 'projects'|'presets';
+    if(historyView==='presets')viewedPresetVersion='legacy-v0.4.0';
+    renderHistoryPage(host);
+  });
+  if(historyView==='presets'){
+    host.innerHTML=navigation+'<div id="historyArchive"></div>';
+    renderPresets(host.querySelector<HTMLElement>('#historyArchive')!);bind();return;
+  }
   const copy=historyText(getLocale());
-  host.innerHTML=`<section class="card pane-card history-workspace">
+  host.innerHTML=navigation+`<section class="card pane-card history-workspace">
     <div class="section-heading"><div><h2>${t('history.title')}</h2><p>${t('history.help')}</p></div><button id="refreshHistory" class="button secondary">${t('history.refresh')}</button></div>
     <div class="history-toolbar"><input id="historySearch" type="search" value="${esc(historySearch)}" placeholder="${esc(copy.search)}" aria-label="${esc(copy.search)}"><span id="historyCount" class="history-result-count"></span></div>
     <p id="historyLoadState" class="history-load-state" role="status"></p>
     <div id="historyList" class="history-list"></div>
   </section>`;
+  bind();
   $('#refreshHistory').addEventListener('click',()=>{ if(!busy)void loadHistory(); });
   $<HTMLInputElement>('#historySearch').addEventListener('input',e=>{historySearch=(e.currentTarget as HTMLInputElement).value;renderHistory();});
   renderHistory();
@@ -346,13 +354,48 @@ function renderHistory():void {
     return;
   }
   host.innerHTML=renderHistoryEntries(entries,copy,{restore:t('history.restore'),global:t('scope.global'),project:t('scope.project')},{projectName,time:formatTime,source:normalizeSource},busy||historyLoading||historyLoadError);
+  host.querySelectorAll<HTMLButtonElement>('[data-preview-history-id]').forEach(btn=>btn.onclick=()=>previewHistory(btn.dataset.previewHistoryId!));
   host.querySelectorAll<HTMLButtonElement>('[data-history-id]').forEach(btn=>btn.onclick=()=>restoreHistory(btn.dataset.historyId!));
   host.querySelectorAll<HTMLButtonElement>('[data-delete-history-id]').forEach(btn=>btn.onclick=()=>deleteHistory(btn.dataset.deleteHistoryId!));
 }
+async function previewHistory(id:string):Promise<void> {
+  if(busy||confirmResolver)return;
+  const entry=historyEntries.find(item=>item.id===id);if(!entry)return;
+  const copy=workspaceText(getLocale());
+  await askConfirm({title:copy.historyPreview,message:copy.noWrite,readOnly:true,confirmText:copy.close,
+    detail:[entry.configPath,formatTime(entry.timestampMs),...fields.map(field=>fieldLabel(field)+': '+(entry.values[field]===null?t('option.inherit'):String(entry.values[field])))].join('\n')});
+}
+async function approveDraftDiscard():Promise<boolean> {
+  if(busy||confirmResolver)return false;
+  if(getChanges().length===0)return true;
+  const copy=workspaceText(getLocale());
+  return askConfirm({title:copy.discardTitle,message:copy.discardBody,detail:lastSnapshot?.path,confirmText:copy.discard,danger:true});
+}
+async function changeScope(kind:ScopeKind,path=projectPath):Promise<void> {
+  if(busy||confirmResolver)return;
+  if(kind===scope && path===projectPath)return;
+  if(!await approveDraftDiscard()){
+    const input=document.querySelector<HTMLInputElement>('#projectPath');if(input)input.value=projectPath;
+    return;
+  }
+  scope=kind;projectPath=path;await loadConfig();
+}
+async function reloadConfig():Promise<void> {
+  if(await approveDraftDiscard())await loadConfig();
+}
 async function loadConfig():Promise<void> {
-  draftPresetSource=null;
-  if(scope==='project'&&!projectPath){lastSnapshot=null;setStatus('status.selectProject',false);renderRightRail();return;}
-  try{setStatus('status.reading',true);const snap=await safeInvoke<ConfigSnapshot>('read_config',{scope:requestScope()});applySnapshot(snap);setStatus(snap.exists?'status.read':'status.missing',true);}catch(e){lastSnapshot=null;setStatus('status.readFailed',false);toast(String(e),true);}finally{renderRightRail();}
+  if(busy)return;
+  const request=++configReadId,target=JSON.stringify(requestScope());
+  draftPresetSource=null;lastSnapshot=null;
+  const result=document.querySelector<HTMLElement>('#applyResult');result?.classList.add('hidden');
+  if(scope==='project'&&!projectPath){setStatus('status.selectProject',false);renderRightRail();return;}
+  setStatus('status.reading',true);renderRightRail();
+  try{
+    const snap=await safeInvoke<ConfigSnapshot>('read_config',{scope:requestScope()});
+    if(request!==configReadId||target!==JSON.stringify(requestScope()))return;
+    applySnapshot(snap);setStatus(snap.exists?'status.read':'status.missing',true);
+  }catch(e){if(request===configReadId){lastSnapshot=null;setStatus('status.readFailed',false);toast(String(e),true);}}
+  finally{if(request===configReadId)renderRightRail();}
 }
 function applySnapshot(snapshot:ConfigSnapshot):void {
   lastSnapshot=snapshot;values=clone(snapshot.values);draftPresetSource=null;
@@ -399,7 +442,7 @@ async function deleteHistory(id:string):Promise<void> {
 }
 async function applyChanges():Promise<void> {
   if(busy||confirmResolver||!lastSnapshot)return;
-  const n=values.maxConcurrentThreadsPerSession;if(n!==null&&(n<1||n>16)){toast(t('toast.concurrentRange'),true);return;}
+  const n=values.maxConcurrentThreadsPerSession;if(n!==null&&(!Number.isInteger(n)||n<1||n>16)){toast(workspaceText(getLocale()).invalidConcurrency,true);return;}
   const changes=getChanges();if(changes.length===0)return;
   if(!validateModelPickers(document))return;
   const reference=draftPresetSource?{...draftPresetSource}:null;
@@ -430,31 +473,38 @@ async function restoreHistory(id:string):Promise<void> {
 }
 
 function askConfirm(spec:ConfirmSpec):Promise<boolean> {
-  if(confirmResolver)confirmResolver(false);
+  if(confirmResolver)return Promise.resolve(false);
   const modal=$<HTMLElement>('#confirmModal');modal.classList.remove('hidden');
   $('#confirmTitle').textContent=spec.title;$('#confirmMessage').textContent=spec.message;
   const detail=$<HTMLElement>('#confirmDetail');detail.textContent=spec.detail??'';detail.classList.toggle('hidden',!spec.detail);
   const changes=$<HTMLElement>('#confirmChanges');changes.innerHTML=(spec.changes??[]).map(c=>`<div class="confirm-change"><span>${esc(c.label)}</span><del>${esc(c.from)}</del><strong>${esc(c.to)}</strong></div>`).join('');
-  const check=$<HTMLInputElement>('#confirmCheckbox');check.checked=false;
-  const ok=$<HTMLButtonElement>('#confirmOk');ok.textContent=spec.confirmText;ok.disabled=true;ok.className=`button ${spec.danger?'danger':'primary'}`;
+  const check=$<HTMLInputElement>('#confirmCheckbox');check.checked=false;check.closest('.confirm-check')?.classList.toggle('hidden',!!spec.readOnly);
+  const ok=$<HTMLButtonElement>('#confirmOk');ok.textContent=spec.confirmText;ok.disabled=!spec.readOnly;ok.className=`button ${spec.danger?'danger':'primary'}`;
+  setModalActive(true);
   return new Promise(resolve=>{confirmResolver=resolve;});
 }
-function finishConfirm(value:boolean):void { const modal=document.querySelector<HTMLElement>('#confirmModal');modal?.classList.add('hidden');const r=confirmResolver;confirmResolver=null;r?.(value); }
+function finishConfirm(value:boolean):void { const modal=document.querySelector<HTMLElement>('#confirmModal');modal?.classList.add('hidden');const r=confirmResolver;confirmResolver=null;setModalActive(false);r?.(value); }
 
 function bindStaticEvents():void {
-  $<HTMLSelectElement>('#languageSelect').onchange=e=>{setLocale((e.currentTarget as HTMLSelectElement).value as Locale);document.documentElement.lang=getLocale();renderApp();};
+  $<HTMLSelectElement>('#languageSelect').onchange=e=>{if(busy||confirmResolver||!validateModelPickers(document)){(e.currentTarget as HTMLSelectElement).value=getLocale();return;}setLocale((e.currentTarget as HTMLSelectElement).value as Locale);document.documentElement.lang=getLocale();renderApp();};
   $<HTMLSelectElement>('#themeMode').value=themeMode;
   $<HTMLSelectElement>('#themeMode').onchange=e=>{themeMode=(e.currentTarget as HTMLSelectElement).value as ThemeMode;safeSet('codex-config-studio.theme.mode',themeMode);applyTheme();};
-  document.querySelectorAll<HTMLButtonElement>('[data-accent]').forEach(btn=>btn.onclick=()=>{accent=btn.dataset.accent as Accent;safeSet('codex-config-studio.theme.accent',accent);applyTheme();document.querySelectorAll('[data-accent]').forEach(x=>x.classList.toggle('active',(x as HTMLElement).dataset.accent===accent));});
-  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>btn.onclick=()=>{activeTab=btn.dataset.tab as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();});
-  document.querySelectorAll<HTMLButtonElement>('.scope-tab').forEach(btn=>btn.onclick=async()=>{scope=btn.dataset.scope as ScopeKind;renderRightRail();await loadConfig();});
-  $('#chooseProject').addEventListener('click',async()=>{const p=await open({directory:true,multiple:false,title:t('scope.dialogTitle')});if(typeof p==='string'){projectPath=p;$<HTMLInputElement>('#projectPath').value=p;await loadConfig();}});
-  $<HTMLInputElement>('#projectPath').onchange=async e=>{projectPath=(e.currentTarget as HTMLInputElement).value.trim();await loadConfig();};
-  $('#reloadBtn').addEventListener('click',loadConfig);$('#applyBtn').addEventListener('click',applyChanges);$('#clearBtn').addEventListener('click',clearManaged);$('#restoreBtn').addEventListener('click',restoreOriginal);
+  document.querySelectorAll<HTMLButtonElement>('[data-accent]').forEach(btn=>btn.onclick=()=>{accent=btn.dataset.accent as Accent;safeSet('codex-config-studio.theme.accent',accent);applyTheme();document.querySelectorAll('[data-accent]').forEach(x=>{x.classList.toggle('active',(x as HTMLElement).dataset.accent===accent);x.setAttribute('aria-pressed',String((x as HTMLElement).dataset.accent===accent));});});
+  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>btn.onclick=()=>{if(busy||confirmResolver||!validateModelPickers(document))return;activeTab=btn.dataset.tab as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();});
+  document.querySelectorAll<HTMLButtonElement>('.scope-tab').forEach(btn=>btn.onclick=()=>void changeScope(btn.dataset.scope as ScopeKind));
+  $('#chooseProject').addEventListener('click',async()=>{if(busy||confirmResolver)return;try{const p=await open({directory:true,multiple:false,title:t('scope.dialogTitle')});if(typeof p==='string')await changeScope('project',p);}catch(e){toast(String(e),true);}});
+  $<HTMLInputElement>('#projectPath').onchange=e=>{const path=(e.currentTarget as HTMLInputElement).value.trim();void changeScope('project',path);};
+  $('#reloadBtn').addEventListener('click',reloadConfig);$('#applyBtn').addEventListener('click',applyChanges);$('#clearBtn').addEventListener('click',clearManaged);$('#restoreBtn').addEventListener('click',restoreOriginal);
   $<HTMLInputElement>('#confirmCheckbox').onchange=e=>$<HTMLButtonElement>('#confirmOk').disabled=!(e.currentTarget as HTMLInputElement).checked;
-  $('#confirmCancel').addEventListener('click',()=>finishConfirm(false));$('#confirmOk').addEventListener('click',()=>finishConfirm(true));
+  $('#confirmCancel').addEventListener('click',()=>finishConfirm(false));$('#confirmOk').addEventListener('click',()=>{if(!$<HTMLButtonElement>('#confirmOk').disabled)finishConfirm(true);});
+  $('#confirmClose').addEventListener('click',()=>finishConfirm(false));
+  bindModalKeyboard(()=>finishConfirm(false));
+  bindTabs(document,id=>{if(busy||confirmResolver||!validateModelPickers(document))return false;activeTab=id as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();});
   $('#confirmModal').addEventListener('click',e=>{if(e.target===e.currentTarget)finishConfirm(false);});
 }
+
+document.addEventListener('click',e=>closePopovers(e.target));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!confirmResolver)closePopovers(null);});
 
 window.addEventListener('unhandledrejection',e=>{console.error(e.reason);toast(t('error.unexpected',{error:String(e.reason)}),true);});
 window.addEventListener('error',e=>{console.error(e.error);toast(t('error.unexpected',{error:String(e.message)}),true);});

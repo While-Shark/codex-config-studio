@@ -1,3 +1,4 @@
+import { loadTypeScript } from './helpers/load-typescript.mjs';
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
 import { execFileSync } from 'node:child_process';
@@ -45,7 +46,7 @@ test('stored paths, model IDs and history IDs cannot inject HTML',()=>{
   assert.ok(html.includes('&quot;'));
 });
 test('all history mutation buttons stay disabled during a pending write',()=>{
-  assert.equal((render(entries,true).match(/ disabled/g)??[]).length,4);
+  assert.equal((render(entries,true).match(/ disabled/g)??[]).length,6);
   assert.equal((render(entries,false).match(/ disabled/g)??[]).length,0);
 });
 test('global history and null models are valid entries',()=>{
@@ -96,7 +97,7 @@ if(process.env.STUDIO_HISTORY_MODULE_ONLY!=='1'){
     assert.equal(context.busy,false);assert.deepEqual(calls,['preview','history']);
   });
   test('history tab is left-only with no stale right-rail refresh binding',()=>{
-    const app=functionSource('renderApp');const binding=functionSource('bindStaticEvents');
+    const app=loadTypeScript(join(root,'src/ui/shell.ts')).renderShell({projectPath:'',accent:'violet'});const binding=functionSource('bindStaticEvents');
     assert.ok(app.includes('data-tab="history"'));
     assert.ok(!app.match(/<aside[\s\S]*history-card/));
     assert.ok(!binding.includes("$('#refreshHistory').addEventListener"));
