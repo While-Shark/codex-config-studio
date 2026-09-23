@@ -21,6 +21,10 @@ import { historyText, filterHistoryEntries, renderHistoryEntries } from './histo
 import './history-tab.css';
 import { renderModelPicker, bindModelPickers, validateModelPickers } from './model-picker';
 import './model-picker.css';
+import { CURRENT_PRESET_VERSION, presetVersion, presetByReference, matchPresetVersion, presetSource, parsePresetSource, type PresetReference } from './preset-versions';
+import { renderPresetWorkspace, presetReferenceLabel } from './preset-version-view';
+import { presetVersionText } from './i18n/preset-versions';
+import './preset-versions.css';
 
 type ScopeKind = 'global' | 'project';
 type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'history';
@@ -63,18 +67,21 @@ type StatusKey = 'status.unread' | 'status.selectProject' | 'status.reading' | '
 const fields: Field[] = ['model','modelReasoningEffort','planModeReasoningEffort','agentsEnabled','defaultSubagentModel','defaultSubagentReasoningEffort','maxConcurrentThreadsPerSession'];
 const efforts = ['low','medium','high','xhigh','ultra','persistent','max'];
 const presets: Preset[] = [
-  { id:'token-save', values:{model:'gpt-5.6-luna',modelReasoningEffort:'low',planModeReasoningEffort:'medium',agentsEnabled:false,defaultSubagentModel:null,defaultSubagentReasoningEffort:null,maxConcurrentThreadsPerSession:null}},
-  { id:'economy', values:{model:'gpt-5.6-luna',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:false,defaultSubagentModel:null,defaultSubagentReasoningEffort:null,maxConcurrentThreadsPerSession:null}},
-  { id:'daily', values:{model:'gpt-5.6-terra',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-5.6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
-  { id:'balanced', values:{model:'gpt-5.6-sol',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-5.6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
-  { id:'astra', values:{model:'gpt-6-astra',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-5.6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
-  { id:'max', values:{model:'gpt-6-astra',modelReasoningEffort:'xhigh',planModeReasoningEffort:'xhigh',agentsEnabled:true,defaultSubagentModel:'gpt-5.6-luna',defaultSubagentReasoningEffort:'high',maxConcurrentThreadsPerSession:3}},
+  { id:'token-save', values:{model:'gpt-6-luna',modelReasoningEffort:'low',planModeReasoningEffort:'medium',agentsEnabled:false,defaultSubagentModel:null,defaultSubagentReasoningEffort:null,maxConcurrentThreadsPerSession:null}},
+  { id:'economy', values:{model:'gpt-6-luna',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:false,defaultSubagentModel:null,defaultSubagentReasoningEffort:null,maxConcurrentThreadsPerSession:null}},
+  { id:'daily', values:{model:'gpt-6-luna',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
+  { id:'balanced', values:{model:'gpt-6-sol',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
+  { id:'astra', values:{model:'gpt-6-astra',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
+  { id:'max', values:{model:'gpt-6-astra',modelReasoningEffort:'xhigh',planModeReasoningEffort:'xhigh',agentsEnabled:true,defaultSubagentModel:'gpt-6-luna',defaultSubagentReasoningEffort:'high',maxConcurrentThreadsPerSession:3}},
 ];
 
 let scope: ScopeKind = 'global';
 let projectPath = '';
 let activeTab: WorkspaceTab = 'presets';
 let activePreset = 'daily';
+let activePresetVersion = CURRENT_PRESET_VERSION;
+let viewedPresetVersion = CURRENT_PRESET_VERSION;
+let draftPresetSource: PresetReference | null = null;
 let values = structuredClone(presets[2].values);
 let lastSnapshot: ConfigSnapshot | null = null;
 let currentStatus: { key: StatusKey; ok: boolean } = { key: 'status.unread', ok: false };
@@ -116,6 +123,8 @@ function displayValue(field:Field,value:ManagedConfig[Field]):string {
   return String(value);
 }
 function normalizeSource(source:string):string {
+  const reference = parsePresetSource(source, presets);
+  if (reference) return presetReferenceLabel(reference, getLocale(), presetText);
   const map:Record<string,string> = {manual:t('history.source.manual'),task:t('history.source.task'),clear:t('history.source.clear'),restore_original:t('history.source.restoreOriginal'),history_restore:t('history.source.historyRestore')};
   return map[source] ?? source;
 }
@@ -190,7 +199,7 @@ function renderApp():void {
     <section class="card review-card">
       <div class="rail-title"><div><span class="eyebrow">${t('rail.review.eyebrow')}</span><h3>${previewText(getLocale()).title}</h3></div><span id="changeCount" class="count-badge">0</span></div>
       <p id="previewSummary" class="rail-help" aria-live="polite"></p>
-      <div id="changeList" class="change-list"></div>
+      <p id="presetOrigin" class="preset-origin hidden" role="status"></p><div id="changeList" class="change-list"></div>
       <div class="safety-note"><strong>${t('rail.safety.title')}</strong><span>${t('rail.safety.body')}</span></div>
       <button id="applyBtn" data-write-action class="button primary wide">${t('action.apply')}</button>
       <div class="rail-secondary"><button id="reloadBtn" class="button secondary">${t('action.reload')}</button><button id="clearBtn" data-write-action class="button secondary">${t('action.clear')}</button><button id="restoreBtn" data-write-action class="button danger-ghost">${t('action.restore')}</button></div>
@@ -216,8 +225,45 @@ function renderWorkspace():void {
   else renderAdvanced(host);
 }
 function renderPresets(host:HTMLElement):void {
-  host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.preset.eyebrow')}</span><h2>${t('section.preset.title')}</h2><p>${t('section.preset.hint')}</p></div></div><div class="preset-grid">${presets.map(p=>`<button class="preset-card ${activePreset===p.id?'selected':''}" data-preset="${p.id}"><div class="preset-top"><strong>${presetText(p.id,'name')}</strong><span>${presetText(p.id,'badge')}</span></div><p>${presetText(p.id,'description')}</p><small>${presetText(p.id,'usage')}</small></button>`).join('')}</div></section>`;
-  host.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach(btn=>btn.onclick=()=>{const p=presets.find(x=>x.id===btn.dataset.preset)!;activePreset=p.id;values=clone(p.values);renderWorkspace();renderRightRail();});
+  renderPresetWorkspace(host, {
+    current: presets, viewedVersion: viewedPresetVersion, selectedVersion: activePresetVersion,
+    selectedPreset: activePreset, locale: getLocale(), busy,
+    heading: { eyebrow: t('section.preset.eyebrow'), title: t('section.preset.title'), hint: t('section.preset.hint') },
+    text: presetText,
+    onVersion: id => { if(!busy && !confirmResolver){viewedPresetVersion=id;renderWorkspace();} },
+    onChoose: reference => { void choosePreset(reference); },
+  });
+}
+async function choosePreset(reference:PresetReference):Promise<void> {
+  if(busy || confirmResolver)return;
+  const preset=presetByReference(presets,reference);
+  const version=presetVersion(reference.versionId);
+  if(!preset || !version)return;
+  const before=values;
+  const destination=JSON.stringify(requestScope());
+  if(version.archived){
+    const copy=presetVersionText(getLocale());
+    const detail=[presetReferenceLabel(reference,getLocale(),presetText),version.date,
+      ...fields.map(field=>fieldLabel(field)+': '+displayValue(field,preset.values[field]))].join('\n');
+    const accepted=await askConfirm({title:copy.confirmTitle,message:copy.warning+'\n\n'+copy.previewOnly,detail,confirmText:copy.loadPreview});
+    if(!accepted || busy)return;
+    if(values!==before || destination!==JSON.stringify(requestScope())){toast(copy.changedScope,true);return;}
+  }
+  activePreset=preset.id;activePresetVersion=version.id;viewedPresetVersion=version.id;
+  draftPresetSource={...reference};values=clone(preset.values);
+  renderWorkspace();renderRightRail();
+  if(version.archived)toast(presetVersionText(getLocale()).loaded);
+}
+function renderPresetOrigin():void {
+  const element=document.querySelector<HTMLElement>('#presetOrigin');if(!element)return;
+  element.classList.toggle('hidden',!draftPresetSource);
+  const archived=draftPresetSource!==null && presetVersion(draftPresetSource.versionId)?.archived===true;
+  element.classList.toggle('archived',archived);
+  element.textContent=draftPresetSource?presetReferenceLabel(draftPresetSource,getLocale(),presetText)+(archived?'\n'+presetVersionText(getLocale()).warning:''):'';
+}
+function resetSelectedPreset():void {
+  const reference=draftPresetSource ?? {versionId:activePresetVersion,presetId:activePreset||'daily'};
+  void choosePreset(reference);
 }
 function renderTask(host:HTMLElement):void {
   const pref=taskPreferences[activeTaskMode];
@@ -225,14 +271,14 @@ function renderTask(host:HTMLElement):void {
   host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.task.eyebrow')}</span><h2>${t('section.task.title')}</h2><p>${t('section.task.hint')}</p></div></div><div class="task-grid">${taskModeIds.map(id=>{const p=taskPreferences[id];return `<button class="task-card ${activeTaskMode===id?'selected':''}" data-task-mode="${id}"><strong>${taskText(id,'name')}</strong><p>${taskText(id,'description')}</p><small>${esc(p.model)} · ${esc(p.reasoning)}</small></button>`;}).join('')}</div><div class="task-editor"><label><span>${t('task.model')}</span><select id="taskModel">${commonTaskModels.map(m=>`<option value="${m}" ${pref.model===m?'selected':''}>${m}</option>`).join('')}<option value="__custom__" ${!isCommon?'selected':''}>${t('task.customModel')}</option></select></label><label id="customModelWrap" class="${isCommon?'hidden':''}"><span>${t('task.customModel')}</span><input id="taskCustomModel" value="${isCommon?'':esc(pref.model)}" placeholder="${t('task.customPlaceholder')}"></label><label><span>${t('task.reasoning')}</span><select id="taskReasoning">${reasoningLevels.map(r=>`<option value="${r}" ${pref.reasoning===r?'selected':''}>${r}</option>`).join('')}</select></label></div><div class="inline-actions"><button id="useTask" class="button primary">${t('task.useAsPending')}</button><button id="resetTask" class="button secondary">${t('task.reset')}</button></div><div class="tip-box"><strong>${t('task.tipTitle')}</strong><span>${t('task.remember')}</span><span>${t('task.modelSupport')}</span><span>${t('task.note')}</span></div></section>`;
   host.querySelectorAll<HTMLButtonElement>('[data-task-mode]').forEach(btn=>btn.onclick=()=>{activeTaskMode=btn.dataset.taskMode as TaskModeId;saveActiveTaskMode(activeTaskMode);renderTask(host);});
   $<HTMLSelectElement>('#taskModel').onchange=()=>{const v=$<HTMLSelectElement>('#taskModel').value;$<HTMLElement>('#customModelWrap').classList.toggle('hidden',v!=='__custom__');};
-  $('#useTask').addEventListener('click',()=>{const modelSel=$<HTMLSelectElement>('#taskModel').value;const custom=$<HTMLInputElement>('#taskCustomModel')?.value.trim()??'';const model=modelSel==='__custom__'?custom:modelSel;const reasoning=$<HTMLSelectElement>('#taskReasoning').value;if(!model){toast(t('toast.taskModelRequired'),true);return;}const next:TaskPreference={model,reasoning};taskPreferences[activeTaskMode]=next;saveTaskPreference(activeTaskMode,next);values.model=model;values.modelReasoningEffort=reasoning;activePreset='';renderTask(host);renderRightRail();toast(t('toast.taskPrepared',{name:taskText(activeTaskMode,'name')}));});
+  $('#useTask').addEventListener('click',()=>{const modelSel=$<HTMLSelectElement>('#taskModel').value;const custom=$<HTMLInputElement>('#taskCustomModel')?.value.trim()??'';const model=modelSel==='__custom__'?custom:modelSel;const reasoning=$<HTMLSelectElement>('#taskReasoning').value;if(!model){toast(t('toast.taskModelRequired'),true);return;}const next:TaskPreference={model,reasoning};taskPreferences[activeTaskMode]=next;saveTaskPreference(activeTaskMode,next);draftPresetSource=null;values.model=model;values.modelReasoningEffort=reasoning;activePreset='';renderTask(host);renderRightRail();toast(t('toast.taskPrepared',{name:taskText(activeTaskMode,'name')}));});
   $('#resetTask').addEventListener('click',()=>{taskPreferences[activeTaskMode]=resetTaskPreference(activeTaskMode);renderTask(host);toast(t('toast.taskReset',{name:taskText(activeTaskMode,'name')}));});
 }
 function renderAdvanced(host:HTMLElement):void {
   host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.custom.eyebrow')}</span><h2>${t('section.custom.title')}</h2><p>${t('advanced.help')}</p></div><button id="resetPresetBtn" class="text-button">${t('action.resetPreset')}</button></div><div class="form-grid">${advancedField('model',t('field.model'),t('field.model.help'),renderModelPicker('model',values.model,commonTaskModels,t('field.model'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('modelReasoningEffort',t('field.reasoning'),t('field.reasoning.help'),selectHtml('modelReasoningEffort',values.modelReasoningEffort,efforts,true))}${advancedField('planModeReasoningEffort',t('field.planReasoning'),t('field.planReasoning.help'),selectHtml('planModeReasoningEffort',values.planModeReasoningEffort,efforts,true))}${advancedField('agentsEnabled',t('field.agents'),t('field.agents.help'),`<select id="agentsEnabled"><option value="">${t('option.inherit')}</option><option value="true" ${values.agentsEnabled===true?'selected':''}>${t('option.enabled')}</option><option value="false" ${values.agentsEnabled===false?'selected':''}>${t('option.disabled')}</option></select>`)}${advancedField('defaultSubagentModel',t('field.subagentModel'),t('field.subagentModel.help'),renderModelPicker('defaultSubagentModel',values.defaultSubagentModel,commonTaskModels,t('field.subagentModel'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('defaultSubagentReasoningEffort',t('field.subagentReasoning'),t('field.subagentReasoning.help'),selectHtml('defaultSubagentReasoningEffort',values.defaultSubagentReasoningEffort,efforts,true))}${advancedField('maxConcurrentThreadsPerSession',t('field.maxConcurrent'),t('field.maxConcurrent.help'),`<input id="maxConcurrentThreadsPerSession" type="number" min="1" max="16" value="${values.maxConcurrentThreadsPerSession??''}" placeholder="${t('option.inherit')}">`)}</div></section>`;
   bindModelPickers(host);
   fields.forEach(field=>{const el=document.querySelector<HTMLInputElement|HTMLSelectElement>(`#${field}`);if(el)el.addEventListener('input',()=>{readAdvanced();activePreset='';renderRightRail();});});
-  $('#resetPresetBtn').addEventListener('click',()=>{const p=presets.find(x=>x.id===activePreset)??presets[2];values=clone(p.values);renderAdvanced(host);renderRightRail();toast(t('toast.resetPreset',{name:presetText(p.id,'name')}));});
+  $('#resetPresetBtn').addEventListener('click',resetSelectedPreset);
 }
 function advancedField(id:Field,title:string,help:string,control:string):string { const target=(id==='model'||id==='defaultSubagentModel')?`${id}Select`:id; return `<div class="field"><div><label class="field-label" for="${target}"><strong>${title}</strong></label><small>${help}</small></div><div>${control}</div></div>`; }
 function selectHtml(id:string,value:string|null,options:string[],inherit=false):string { return `<select id="${id}">${inherit?`<option value="">${t('option.inherit')}</option>`:''}${options.map(o=>`<option value="${o}" ${value===o?'selected':''}>${o}</option>`).join('')}</select>`; }
@@ -247,7 +293,7 @@ function renderRightRail():void {
   const label=document.querySelector<HTMLElement>('#scopeLabel'); if(label)label.textContent=scope==='global'?t('scope.globalConfig'):t('scope.projectConfig');
   const path=document.querySelector<HTMLElement>('#configPath'); if(path)path.textContent=scope==='global'?'~/.codex/config.toml':projectConfigDisplayPath();
   const notice=document.querySelector<HTMLElement>('#scopeNotice'); if(notice)notice.textContent=scope==='project'?t('scope.notice'):t('guide.globalNotice');
-  renderChanges();renderHistory();
+  renderChanges();renderHistory();renderPresetOrigin();
 }
 function renderChanges():void {
   const copy=previewText(getLocale());
@@ -304,10 +350,17 @@ function renderHistory():void {
   host.querySelectorAll<HTMLButtonElement>('[data-delete-history-id]').forEach(btn=>btn.onclick=()=>deleteHistory(btn.dataset.deleteHistoryId!));
 }
 async function loadConfig():Promise<void> {
+  draftPresetSource=null;
   if(scope==='project'&&!projectPath){lastSnapshot=null;setStatus('status.selectProject',false);renderRightRail();return;}
   try{setStatus('status.reading',true);const snap=await safeInvoke<ConfigSnapshot>('read_config',{scope:requestScope()});applySnapshot(snap);setStatus(snap.exists?'status.read':'status.missing',true);}catch(e){lastSnapshot=null;setStatus('status.readFailed',false);toast(String(e),true);}finally{renderRightRail();}
 }
-function applySnapshot(snapshot:ConfigSnapshot):void { lastSnapshot=snapshot;values=clone(snapshot.values);const match=presets.find(p=>fields.every(f=>p.values[f]===snapshot.values[f]));activePreset=match?.id??'';if(activeTab==='advanced')renderWorkspace(); }
+function applySnapshot(snapshot:ConfigSnapshot):void {
+  lastSnapshot=snapshot;values=clone(snapshot.values);draftPresetSource=null;
+  const match=matchPresetVersion(presets,snapshot.values);
+  activePreset=match?.presetId??'';activePresetVersion=match?.versionId??CURRENT_PRESET_VERSION;
+  if(match)viewedPresetVersion=match.versionId;
+  if(activeTab==='advanced'||activeTab==='presets')renderWorkspace();
+}
 
 async function loadHistoryAfterWrite():Promise<void> {
   const request=++historyReadId;
@@ -345,13 +398,20 @@ async function deleteHistory(id:string):Promise<void> {
   finally{setBusy(false);renderRightRail();}
 }
 async function applyChanges():Promise<void> {
-  if(busy||!lastSnapshot)return;
+  if(busy||confirmResolver||!lastSnapshot)return;
   const n=values.maxConcurrentThreadsPerSession;if(n!==null&&(n<1||n>16)){toast(t('toast.concurrentRange'),true);return;}
   const changes=getChanges();if(changes.length===0)return;
   if(!validateModelPickers(document))return;
-  const ok=await askConfirm({title:t('confirm.apply.title'),message:t('confirm.apply.message'),detail:lastSnapshot.exists?lastSnapshot.path:`${t('status.missing')}\n${lastSnapshot.path}`,confirmText:t('action.apply'),changes:changes.map(c=>({label:fieldLabel(c.field),from:c.from,to:c.to}))});if(!ok)return;
+  const reference=draftPresetSource?{...draftPresetSource}:null;
+  const pending=clone(values), originalDraft=values, target=requestScope(), snapshot=lastSnapshot;
+  const archived=reference!==null && presetVersion(reference.versionId)?.archived===true;
+  const copy=presetVersionText(getLocale());
+  const detail=(snapshot.exists?snapshot.path:t('status.missing')+'\n'+snapshot.path)+(reference?'\n'+presetReferenceLabel(reference,getLocale(),presetText):'');
+  const ok=await askConfirm({title:t('confirm.apply.title'),message:t('confirm.apply.message')+(archived?'\n\n'+copy.warning:''),detail,confirmText:t('action.apply'),changes:changes.map(c=>({label:fieldLabel(c.field),from:c.from,to:c.to}))});
+  if(!ok||busy)return;
+  if(values!==originalDraft || lastSnapshot!==snapshot || JSON.stringify(target)!==JSON.stringify(requestScope())){toast(copy.changedScope,true);return;}
   setBusy(true);
-  try{const snap=await safeInvoke<ConfigSnapshot>('apply_config',{scope:requestScope(),values,source:'manual'});applySnapshot(snap);setStatus('status.read',true);await loadHistoryAfterWrite();toast(t('toast.applied'));}
+  try{const snap=await safeInvoke<ConfigSnapshot>('apply_config',{scope:target,values:pending,source:presetSource(reference)});applySnapshot(snap);setStatus('status.read',true);await loadHistoryAfterWrite();toast(t('toast.applied'));}
   catch(e){toast(t('error.applyFailed',{error:String(e)}),true);}
   finally{setBusy(false);renderWorkspace();renderRightRail();}
 }

@@ -177,6 +177,7 @@ test('unchanged preview never writes files or creates duplicate history', async 
   const { context, js } = runApplicationPreview(daily);
   let writes = 0;
   let confirms = 0;
+  context.confirmResolver = null;
   context.safeInvoke = async () => { writes += 1; throw new Error('Unexpected write'); };
   context.askConfirm = async () => { confirms += 1; return true; };
   const apply = compile(functionSource('applyChanges'));

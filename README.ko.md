@@ -47,12 +47,12 @@ Astra, Sol, Terra, Luna를 자주 전환하거나 계획 모델, 실행 모델, 
 
 | 프로필 | 메인 모델 | 용도 |
 | --- | --- | --- |
-| Token 절약 | Luna / low | 작은 수정, 일괄 치환, 명확한 작업 |
-| Economy | Luna / medium | CRUD, 프론트 수정, 일반 API |
-| Daily | Terra + Luna | 대부분의 일상 개발 |
-| Balanced | Sol + Luna | 다중 파일 기능, 리팩터링, 연동 |
-| Astra Director | Astra + Luna | Astra 계획/Review, Luna 실행 |
-| Max Quality | Astra xhigh + Luna high | 어려운 Bug, 대규모 리팩터링, 출시 전 Review |
+| Token 절약 | GPT-6 Luna / low | 작은 수정, 일괄 치환, 명확한 작업 |
+| Economy | GPT-6 Luna / medium | CRUD, 프론트 수정, 일반 API |
+| Daily | GPT-6 Luna + GPT-6 Luna | 대부분의 일상 개발 |
+| Balanced | GPT-6 Sol + GPT-6 Luna | 다중 파일 기능, 리팩터링, 연동 |
+| Astra Director | GPT-6 Astra + GPT-6 Luna | Astra 계획/Review, Luna 실행 |
+| Max Quality | GPT-6 Astra xhigh + GPT-6 Luna high | 어려운 Bug, 대규모 리팩터링, 출시 전 Review |
 
 모든 프로필은 UI에서 자유롭게 추가 조정할 수 있습니다.
 
@@ -97,6 +97,16 @@ bash ./run-dev.sh
 - 앱이 관리하는 모델 / Agent 키만 수정합니다
 - plugins, MCP, hooks, marketplaces, project trust는 수정하지 않습니다
 - 백업은 `~/.codex/.config-studio-backups/`에 저장합니다
+
+## 프로필 버전
+
+**GPT-6 / v0.4.0**
+
+현재 추천은 GPT-6를 사용합니다. 이전 프로필은 기록에 완전히 보존됩니다. 버전을 살펴보는 것만으로 설정이 변경되지는 않습니다.
+
+보관된 스냅샷은 원래 모델, 사고 수준 및 서브 Agent 설정을 유지하며 새 추천값으로 덮어쓰지 않습니다.
+
+> 이전 모델과 고정 사고 수준이 포함된 보관 프로필입니다. 사용 가능 여부와 비용은 계정 또는 서비스 제공업체에 따라 다릅니다. 고정 수준은 Codex에서 수동 조정에 영향을 줄 수 있습니다. 확인하면 미리보기만 불러오며 설정 파일에 쓰지 않습니다.
 
 ---
 

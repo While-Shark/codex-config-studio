@@ -47,12 +47,12 @@ It is designed for people who frequently switch between Astra, Sol, Terra, and L
 
 | Profile | Main model | Typical use |
 | --- | --- | --- |
-| Token Saver | Luna / low | Small edits, bulk replacements, explicit tasks |
-| Economy | Luna / medium | CRUD, frontend changes, routine API work |
-| Daily | Terra + Luna | Most day-to-day development |
-| Balanced | Sol + Luna | Cross-file work, refactors, integration |
-| Astra Director | Astra + Luna | Astra plans/reviews, Luna executes |
-| Max Quality | Astra xhigh + Luna high | Hard bugs, major refactors, pre-release review |
+| Token Saver | GPT-6 Luna / low | Small edits, bulk replacements, explicit tasks |
+| Economy | GPT-6 Luna / medium | CRUD, frontend changes, routine API work |
+| Daily | GPT-6 Luna + GPT-6 Luna | Most day-to-day development |
+| Balanced | GPT-6 Sol + GPT-6 Luna | Cross-file work, refactors, integration |
+| Astra Director | GPT-6 Astra + GPT-6 Luna | Astra plans/reviews, Luna executes |
+| Max Quality | GPT-6 Astra xhigh + GPT-6 Luna high | Hard bugs, major refactors, pre-release review |
 
 Every preset remains fully editable in the UI.
 
@@ -136,6 +136,16 @@ Codex Config Studio does not expose broad filesystem or shell access to the fron
 - Only model / Agent keys managed by this app are changed
 - Plugins, MCP, hooks, marketplaces, and project trust are left untouched
 - Project backups live under user-level `~/.codex/.config-studio-backups/`
+
+## Profile version
+
+**GPT-6 / v0.4.0**
+
+Current recommendations use GPT-6. Complete older profiles remain in the archive. Browsing versions does not change configuration.
+
+Archived snapshots retain their original models, reasoning levels and sub-agent settings; new recommendations never rewrite them.
+
+> This archived profile uses older models and fixed reasoning levels. Availability and pricing depend on your account or provider. Fixed levels may affect manual adjustments in Codex. Confirming only loads a preview; it does not write configuration.
 
 ---
 

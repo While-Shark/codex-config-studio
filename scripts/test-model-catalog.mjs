@@ -103,11 +103,11 @@ test('each task can save and reload either new model without changing other task
   }
 });
 
-test('expanding model choices leaves all existing task recommendations unchanged', () => {
+test('fresh task recommendations use GPT-6 while keeping reasoning levels unchanged', () => {
   assert.deepEqual(defaultTaskPreferences, {
-    'quick-fix': { model: 'gpt-5.6-luna', reasoning: 'low' },
-    daily: { model: 'gpt-5.6-terra', reasoning: 'medium' },
-    complex: { model: 'gpt-5.6-sol', reasoning: 'high' },
+    'quick-fix': { model: 'gpt-6-luna', reasoning: 'low' },
+    daily: { model: 'gpt-6-luna', reasoning: 'medium' },
+    complex: { model: 'gpt-6-sol', reasoning: 'high' },
     architecture: { model: 'gpt-6-astra', reasoning: 'high' },
   });
 });

@@ -271,11 +271,11 @@ jobs:
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$tag" release-files/* --repo "$GITHUB_REPOSITORY" --clobber
             gh release edit "$tag" --repo "$GITHUB_REPOSITORY" \
-              --title "Codex Config Studio $tag" \
+              --title "$tag" \
               --notes-file release-body.md
           else
             gh release create "$tag" release-files/* --repo "$GITHUB_REPOSITORY" \
               --verify-tag \
-              --title "Codex Config Studio $tag" \
+              --title "$tag" \
               --notes-file release-body.md
           fi

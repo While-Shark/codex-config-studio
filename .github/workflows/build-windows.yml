@@ -181,6 +181,6 @@ jobs:
           gh release create nightly release-files/* \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "Codex Config Studio - Latest Development Build" \
+            --title "nightly" \
             --notes "Automatically built from the latest successful master commit ($GITHUB_SHA)." \
             --prerelease

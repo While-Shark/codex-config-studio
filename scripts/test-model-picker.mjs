@@ -200,6 +200,7 @@ test('actual advanced renderer uses complete selectors for main and sub-agent mo
   const context = { host, values: structuredClone(pending), fields, commonTaskModels: models,
     efforts: ['low', 'medium', 'high', 'xhigh'], t: key => key,
     esc: value => String(value).replaceAll('"', '&quot;'),
+    resetSelectedPreset() {},
     renderModelPicker, bindModelPickers: target => { assert.equal(target, host); bound++; },
     document: { querySelector: () => element }, $: () => element,
   };
@@ -226,7 +227,7 @@ test('actual form reading does not reset reasoning inheritance or unrelated agen
 
 test('actual apply path rejects an unfinished custom model before confirmation or native writes', async () => {
   let confirms = 0; let writes = 0;
-  const context = { busy: false, lastSnapshot: { values: pending }, values: pending,
+  const context = { busy: false, confirmResolver: null, lastSnapshot: { values: pending }, values: pending,
     getChanges: () => [{ field: 'model', from: 'old', to: 'new' }], document: {},
     validateModelPickers: () => false,
     askConfirm: () => { confirms++; throw new Error('Unexpected confirmation'); },

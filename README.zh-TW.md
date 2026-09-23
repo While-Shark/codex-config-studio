@@ -47,12 +47,12 @@ Codex Config Studio 是基於 **Tauri v2** 的桌面設定管理器，用於安�
 
 | 方案 | 主模型 | 適用情境 |
 | --- | --- | --- |
-| Token 節省 | Luna / low | 小修改、批次替換、明確任務 |
-| 經濟 | Luna / medium | CRUD、前端修改、一般 API |
-| 日常 | Terra + Luna | 多數日常開發 |
-| 均衡 | Sol + Luna | 跨檔案功能、重構、聯調 |
-| Astra 總指揮 | Astra + Luna | Astra 規劃/Review，Luna 執行 |
-| 最高品質 | Astra xhigh + Luna high | 疑難 Bug、大型重構、上線前 Review |
+| Token 節省 | GPT-6 Luna / low | 小修改、批次替換、明確任務 |
+| 經濟 | GPT-6 Luna / medium | CRUD、前端修改、一般 API |
+| 日常 | GPT-6 Luna + GPT-6 Luna | 多數日常開發 |
+| 均衡 | GPT-6 Sol + GPT-6 Luna | 跨檔案功能、重構、聯調 |
+| Astra 總指揮 | GPT-6 Astra + GPT-6 Luna | Astra 規劃/Review，Luna 執行 |
+| 最高品質 | GPT-6 Astra xhigh + GPT-6 Luna high | 疑難 Bug、大型重構、上線前 Review |
 
 所有方案都可以在介面裡繼續單獨修改。
 
@@ -136,6 +136,16 @@ Codex Config Studio 不向前端開放通用檔案系統或 Shell 權限。
 - 只修改本工具管理的模型 / Agent 設定鍵
 - plugins、MCP、hooks、marketplaces、project trust 保持不變
 - 專案備份放在使用者級 `~/.codex/.config-studio-backups/`
+
+## 方案版本
+
+**GPT-6 / v0.4.0**
+
+目前推薦使用 GPT-6。舊方案已完整保留在歷史版本中；瀏覽版本不會修改設定。
+
+歷史快照保留原有模型、思考等級與子 Agent 參數，不隨新版推薦變動。
+
+> 這是歷史方案，包含舊模型與固定思考等級。舊模型的可用性與費用以帳號或服務商為準；固定等級可能影響 Codex 內的手動調整。 確認後只載入預覽，不會立即寫入設定。
 
 ---
 

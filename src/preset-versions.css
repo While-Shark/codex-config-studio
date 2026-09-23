@@ -1,0 +1,11 @@
+.preset-version-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.preset-version-toolbar label{color:var(--muted);font-size:12px}
+.preset-version-toolbar select{height:38px;max-width:100%;min-width:220px;padding:0 10px;border:1px solid var(--border);border-radius:9px;color:var(--text);background:var(--panel3)}
+.preset-version-toolbar select:focus{outline:2px solid var(--accent);outline-offset:2px}
+.preset-version-notice{display:grid;gap:5px;margin-bottom:14px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--panel3);color:var(--muted);font-size:11px;line-height:1.6}
+.preset-version-notice strong{color:var(--text);font-size:12px}
+.preset-version-notice.archived,.preset-origin.archived{border-color:color-mix(in srgb,#f3b54a 45%,var(--border));background:color-mix(in srgb,#f3b54a 8%,var(--panel3))}
+.preset-card .preset-model-ids{font-family:Consolas,monospace;color:var(--muted);overflow-wrap:anywhere;line-height:1.5}
+.preset-origin{margin-top:10px;padding:10px;border:1px solid var(--border);border-radius:9px;color:var(--muted);background:var(--panel3);font-size:11px;line-height:1.55;white-space:pre-line}
+.modal-detail,#confirmMessage{white-space:pre-line}
+@media(max-width:900px){.preset-version-toolbar select{width:100%;min-width:0}}

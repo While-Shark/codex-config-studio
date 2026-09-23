@@ -17,9 +17,9 @@ export const reasoningLevels = ['low', 'medium', 'high', 'xhigh', 'ultra', 'pers
 export const taskModeIds: TaskModeId[] = ['quick-fix', 'daily', 'complex', 'architecture'];
 
 export const defaultTaskPreferences: Record<TaskModeId, TaskPreference> = {
-  'quick-fix': { model: 'gpt-5.6-luna', reasoning: 'low' },
-  daily: { model: 'gpt-5.6-terra', reasoning: 'medium' },
-  complex: { model: 'gpt-5.6-sol', reasoning: 'high' },
+  'quick-fix': { model: 'gpt-6-luna', reasoning: 'low' },
+  daily: { model: 'gpt-6-luna', reasoning: 'medium' },
+  complex: { model: 'gpt-6-sol', reasoning: 'high' },
   architecture: { model: 'gpt-6-astra', reasoning: 'high' },
 };
 

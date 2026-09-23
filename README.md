@@ -50,12 +50,12 @@ Codex Config Studio 是一个基于 **Tauri v2** 的桌面配置管理器，用�
 
 | 方案 | 主模型 | 默认定位 |
 | --- | --- | --- |
-| 极省 Token | Luna / low | 小修改、批量替换、明确任务 |
-| 经济 | Luna / medium | CRUD、前端修改、常规接口 |
-| 日常 | Terra + Luna | 大多数日常开发 |
-| 均衡 | Sol + Luna | 跨文件功能、重构、联调 |
-| Astra 总指挥 | Astra + Luna | Astra 规划/Review，Luna 执行 |
-| 极致 | Astra xhigh + Luna high | 疑难 Bug、大重构、上线前 Review |
+| 极省 Token | GPT-6 Luna / low | 小修改、批量替换、明确任务 |
+| 经济 | GPT-6 Luna / medium | CRUD、前端修改、常规接口 |
+| 日常 | GPT-6 Luna + GPT-6 Luna | 大多数日常开发 |
+| 均衡 | GPT-6 Sol + GPT-6 Luna | 跨文件功能、重构、联调 |
+| Astra 总指挥 | GPT-6 Astra + GPT-6 Luna | Astra 规划/Review，Luna 执行 |
+| 极致 | GPT-6 Astra xhigh + GPT-6 Luna high | 疑难 Bug、大重构、上线前 Review |
 
 所有方案都可以在界面里继续单独修改，不会被预设锁死。
 
@@ -67,10 +67,10 @@ Codex Config Studio 是一个基于 **Tauri v2** 的桌面配置管理器，用�
 
 | 当前任务 | 初始推荐 |
 | --- | --- |
-| 小修复 | Luna / low |
-| 日常开发 | Terra / medium |
-| 复杂问题 | Sol / high |
-| 架构设计 | Astra / high |
+| 小修复 | GPT-6 Luna / low |
+| 日常开发 | GPT-6 Luna / medium |
+| 复杂问题 | GPT-6 Sol / high |
+| 架构设计 | GPT-6 Astra / high |
 
 这些只是开源默认值，**不会锁死**。每一类都可以从下拉框改成 Astra / Sol / Terra / Luna，也支持任意自定义模型 ID；Reasoning 可选择 `low / medium / high / xhigh / ultra / persistent / max`。
 
@@ -173,6 +173,16 @@ Codex Config Studio 不向前端开放通用文件系统或 Shell 权限。
 - 只修改本工具管理的模型 / Agent 配置键
 - 不修改 plugins、MCP、hooks、marketplaces、项目 trust 等其他配置
 - 项目备份统一存放在用户级 `~/.codex/.config-studio-backups/`，避免污染项目仓库
+
+## 方案版本
+
+**GPT-6 / v0.4.0**
+
+当前推荐使用 GPT-6。旧方案已完整保存在历史版本中；浏览版本不会修改配置。
+
+历史快照保留原有模型、思考等级和子 Agent 参数，不随新版推荐变动。
+
+> 这是历史方案，包含旧模型和固定思考等级。旧模型的可用性与费用以你的账号或服务商为准；固定等级可能影响 Codex 内的手动调整。 确认后只载入预览，不会立即写入配置。
 
 ---
 
