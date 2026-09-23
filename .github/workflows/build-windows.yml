@@ -1,4 +1,4 @@
-name: build-desktop
+name: Nightly
 
 on:
   push:
@@ -38,6 +38,7 @@ jobs:
         run: npm run build
 
   build:
+    if: ${{ !contains(github.event.head_commit.message, '[actions-maintenance]') }}
     needs: check
     name: build-${{ matrix.name }}
     strategy:
@@ -184,3 +185,124 @@ jobs:
             --title "nightly" \
             --notes "Automatically built from the latest successful master commit ($GITHUB_SHA)." \
             --prerelease
+
+  cleanup_legacy_workflows:
+    name: Remove retired verification history
+    needs: check
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' && contains(github.event.head_commit.message, '[actions-maintenance]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Clean only the six retired verification workflows
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY_CLEANUP'
+          """One-time, closed-allowlist cleanup of retired verification workflow runs."""
+          import json
+          import os
+          from collections import Counter
+          from urllib.error import HTTPError
+          from urllib.request import Request, urlopen
+
+          REPOSITORY = 'While-Shark/codex-config-studio'
+          TARGETS = {
+              name: f'.github/workflows/{name}.yml'
+              for name in (
+                  'verify-gpt6-catalog', 'verify-history-tab', 'verify-model-picker',
+                  'verify-presets-release', 'verify-redesign', 'verify-workspace-ui',
+              )
+          }
+          KEEP = {'.github/workflows/build-windows.yml', '.github/workflows/release.yml'}
+
+
+          def is_target(item):
+              return item.get('name') in TARGETS and item.get('path') == TARGETS[item['name']]
+
+
+          def pages(api, endpoint, key):
+              result = []
+              for page in range(1, 21):
+                  batch = api('GET', f'{endpoint}?per_page=100&page={page}')[key]
+                  result.extend(batch)
+                  if len(batch) < 100:
+                      return result
+              raise RuntimeError('Pagination limit reached; no partial cleanup is allowed.')
+
+
+          def cleanup(api):
+              # Verify that these are retired files, not still-enabled source workflows.
+              files = api('GET', 'contents/.github/workflows?ref=master')
+              paths = {item['path'] for item in files if item['type'] == 'file'}
+              if not KEEP.issubset(paths) or paths.intersection(TARGETS.values()):
+                  raise RuntimeError('Unexpected workflow files on master; refusing cleanup.')
+              workflows = pages(api, 'actions/workflows', 'workflows')
+              runs = pages(api, 'actions/runs', 'workflow_runs')
+              selected = [run for run in runs if is_target(run)]
+              protected = {run['id'] for run in runs if not is_target(run)}
+              if len(selected) > 100:
+                  raise RuntimeError('More than 100 retired runs; refusing an oversized cleanup.')
+              if any(run['status'] != 'completed' for run in selected):
+                  raise RuntimeError('A targeted verification run is still active; nothing deleted.')
+              print('Cleanup plan:', json.dumps(dict(Counter(run['name'] for run in selected)), sort_keys=True), flush=True)
+              for workflow in workflows:
+                  if is_target(workflow) and workflow['state'] == 'active':
+                      api('PUT', f"actions/workflows/{int(workflow['id'])}/disable")
+              deleted = []
+              for run in selected:
+                  run_id = int(run['id'])
+                  current = api('GET', f'actions/runs/{run_id}')
+                  if not is_target(current) or current['workflow_id'] != run['workflow_id'] or current['status'] != 'completed':
+                      raise RuntimeError(f'Run {run_id} changed since inspection; stopping.')
+                  api('DELETE', f'actions/runs/{run_id}')
+                  deleted.append({'id': run_id, 'workflow': run['name']})
+                  print(f"Deleted retired verification: {run['name']} / {run_id}", flush=True)
+              remaining = pages(api, 'actions/runs', 'workflow_runs')
+              if any(is_target(run) for run in remaining):
+                  raise RuntimeError('Targeted verification history still exists; inspect before retrying.')
+              if not protected.issubset({run['id'] for run in remaining}):
+                  raise RuntimeError('A non-target run disappeared during cleanup; investigate.')
+              workflows_after = pages(api, 'actions/workflows', 'workflows')
+              report = {
+                  'deleted_count': len(deleted), 'deleted': deleted,
+                  'protected_run_count': len(protected), 'remaining_target_runs': 0,
+                  'active_workflows': [
+                      {'name': item['name'], 'path': item['path']}
+                      for item in workflows_after if item['state'] == 'active'
+                  ],
+                  'retired_workflow_states': [
+                      {'name': item['name'], 'state': item['state']}
+                      for item in workflows_after if is_target(item)
+                  ],
+              }
+              print(json.dumps(report, indent=2), flush=True)
+              return report
+
+
+          def main():
+              if os.environ.get('GITHUB_REPOSITORY') != REPOSITORY or os.environ.get('GITHUB_REF') != 'refs/heads/master':
+                  raise RuntimeError('This one-time cleanup is restricted to the requested repository/master.')
+              token = os.environ['GH_TOKEN']
+              def api(method, endpoint):
+                  request = Request(f'https://api.github.com/repos/{REPOSITORY}/{endpoint}', method=method, headers={
+                      'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json',
+                      'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'codex-config-studio-actions-maintenance',
+                  })
+                  try:
+                      with urlopen(request, timeout=30) as response:
+                          data = response.read()
+                          return json.loads(data) if data else None
+                  except HTTPError as error:
+                      raise RuntimeError(f'{method} {endpoint} failed with HTTP {error.code}; stopping.') from None
+              report = cleanup(api)
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
+                  summary.write('## Retired verification cleanup\n\n```json\n' + json.dumps(report, indent=2) + '\n```\n')
+
+
+          if __name__ == '__main__':
+              main()
+          PY_CLEANUP
