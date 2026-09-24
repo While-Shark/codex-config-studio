@@ -8,6 +8,13 @@ on:
       - "**/*.md"
       - "docs/**"
       - "screenshots/**"
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "screenshots/**"
   workflow_dispatch:
 
 permissions:
@@ -148,6 +155,7 @@ jobs:
 
   nightly:
     name: publish-nightly
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
 
