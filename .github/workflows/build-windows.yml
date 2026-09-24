@@ -149,12 +149,21 @@ jobs:
       - name: Run configuration regression tests before uploading
         shell: bash
         run: |
+          set -o pipefail
           if [ "$RUNNER_OS" = "macOS" ]; then
             host=$(rustc -vV | sed -n 's/^host: //p')
-            cargo test --manifest-path src-tauri/Cargo.toml --lib --release --locked --target "$host"
+            cargo test --manifest-path src-tauri/Cargo.toml --lib --release --locked --target "$host" 2>&1 | tee cargo-test.log
           else
-            cargo test --manifest-path src-tauri/Cargo.toml --lib --release --locked
+            cargo test --manifest-path src-tauri/Cargo.toml --lib --release --locked 2>&1 | tee cargo-test.log
           fi
+
+      - name: Upload cargo regression log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-regression-log-${{ matrix.name }}
+          path: cargo-test.log
+          retention-days: 2
 
       - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
