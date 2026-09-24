@@ -25,7 +25,7 @@ function scopeFixture(extra={}) {
   const ctx={scope:'project',projectPath:'/a',busy:false,confirmResolver:null,configReadId:0,lastSnapshot:{values:settings,path:'/a/.codex/config.toml'},draftPresetSource:null,
     getChanges:()=>[{field:'model'}],workspaceText:ui.workspaceText,getLocale:()=> 'en',
     askConfirm:async spec=>{calls.push(['confirm',spec]);return false;},
-    loadConfig:async()=>calls.push(['load']),document:{querySelector:()=>input},...extra};
+    loadConfig:async()=>calls.push(['load']),loadConfigHealth:async()=>{},document:{querySelector:()=>input},...extra};
   return {ctx,calls,input};
 }
 test('shell has exactly four accessible tabs, one apply action and an isolated dock',()=>{

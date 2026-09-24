@@ -8,6 +8,13 @@ on:
       - "**/*.md"
       - "docs/**"
       - "screenshots/**"
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "screenshots/**"
   workflow_dispatch:
 
 permissions:
@@ -35,7 +42,18 @@ jobs:
         run: npm ci
 
       - name: Type-check and build frontend
-        run: npm run build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee frontend-preflight.log
+
+      - name: Upload frontend preflight log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-preflight-log
+          path: frontend-preflight.log
+          retention-days: 2
 
   build:
     needs: check
@@ -123,20 +141,29 @@ jobs:
       - name: Validate generated icons
         run: npm run verify:icons
 
+      - name: Run configuration regression tests before uploading
+        shell: bash
+        run: |
+          set -o pipefail
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            host=$(rustc -vV | sed -n 's/^host: //p')
+            cargo test --manifest-path src-tauri/Cargo.toml --lib --release --locked --target "$host" 2>&1 | tee cargo-test.log
+          else
+            cargo test --manifest-path src-tauri/Cargo.toml --lib --release --locked 2>&1 | tee cargo-test.log
+          fi
+
+      - name: Upload cargo regression log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-regression-log-${{ matrix.name }}
+          path: cargo-test.log
+          retention-days: 2
+
       - name: Build desktop bundle
         uses: tauri-apps/tauri-action@v1
         with:
           args: ${{ matrix.args }}
-
-      - name: Run configuration regression tests before uploading
-        shell: bash
-        run: |
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            host=$(rustc -vV | sed -n 's/^host: //p')
-            cargo test --manifest-path src-tauri/Cargo.toml --lib --release --locked --target "$host"
-          else
-            cargo test --manifest-path src-tauri/Cargo.toml --lib --release --locked
-          fi
 
       - name: Upload desktop artifact
         uses: actions/upload-artifact@v4
@@ -148,6 +175,7 @@ jobs:
 
   nightly:
     name: publish-nightly
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
 

@@ -70,6 +70,19 @@ struct HistoryRestoreResult {
     snapshot: ConfigSnapshot,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ConfigInspection {
+    scope_kind: String,
+    project_path: Option<String>,
+    path: String,
+    exists: bool,
+    valid_toml: bool,
+    key_paths: Vec<Vec<String>>,
+    managed_field_count: usize,
+    parse_error: Option<String>,
+}
+
 fn recoverable_file_lock() -> MutexGuard<'static, ()> {
     match CONFIG_WRITE_LOCK.lock() {
         Ok(guard) => guard,
@@ -224,6 +237,176 @@ fn history_backup(config_path: &Path) -> Result<(), String> {
     let target = dir.join(format!("config.{stamp}.toml"));
     fs::copy(config_path, target).map_err(|e| format!("创建历史备份失败: {e}"))?;
     Ok(())
+}
+
+fn collect_key_paths_from_table(
+    table: &dyn toml_edit::TableLike,
+    prefix: &mut Vec<String>,
+    output: &mut Vec<Vec<String>>,
+) {
+    for (key, item) in table.iter() {
+        prefix.push(key.to_string());
+        output.push(prefix.clone());
+
+        if let Some(child) = item.as_table_like() {
+            collect_key_paths_from_table(child, prefix, output);
+        } else if let Some(array) = item.as_array_of_tables() {
+            for child in array.iter() {
+                collect_key_paths_from_table(child, prefix, output);
+            }
+        }
+        prefix.pop();
+    }
+}
+
+fn collect_key_paths(doc: &DocumentMut) -> Vec<Vec<String>> {
+    let mut output = Vec::new();
+    let mut prefix = Vec::new();
+    collect_key_paths_from_table(doc.as_table(), &mut prefix, &mut output);
+    output.sort();
+    output.dedup();
+    output
+}
+
+fn managed_field_count(values: &ManagedConfig) -> usize {
+    [
+        values.model.is_some(),
+        values.model_reasoning_effort.is_some(),
+        values.plan_mode_reasoning_effort.is_some(),
+        values.agents_enabled.is_some(),
+        values.default_subagent_model.is_some(),
+        values.default_subagent_reasoning_effort.is_some(),
+        values.max_concurrent_threads_per_session.is_some(),
+    ]
+    .into_iter()
+    .filter(|value| *value)
+    .count()
+}
+
+fn inspect_config_inner(scope: ScopeRequest) -> Result<ConfigInspection, String> {
+    let path = resolve_scope(&scope)?;
+    if !path.exists() {
+        return Ok(ConfigInspection {
+            scope_kind: scope.kind,
+            project_path: scope.project_path,
+            path: path.to_string_lossy().to_string(),
+            exists: false,
+            valid_toml: true,
+            key_paths: Vec::new(),
+            managed_field_count: 0,
+            parse_error: None,
+        });
+    }
+
+    let text = fs::read_to_string(&path).map_err(|e| format!("读取配置失败: {e}"))?;
+    if text.trim().is_empty() {
+        return Ok(ConfigInspection {
+            scope_kind: scope.kind,
+            project_path: scope.project_path,
+            path: path.to_string_lossy().to_string(),
+            exists: true,
+            valid_toml: true,
+            key_paths: Vec::new(),
+            managed_field_count: 0,
+            parse_error: None,
+        });
+    }
+
+    match text.parse::<DocumentMut>() {
+        Ok(doc) => {
+            let values = read_values(&doc);
+            Ok(ConfigInspection {
+                scope_kind: scope.kind,
+                project_path: scope.project_path,
+                path: path.to_string_lossy().to_string(),
+                exists: true,
+                valid_toml: true,
+                key_paths: collect_key_paths(&doc),
+                managed_field_count: managed_field_count(&values),
+                parse_error: None,
+            })
+        }
+        Err(error) => Ok(ConfigInspection {
+            scope_kind: scope.kind,
+            project_path: scope.project_path,
+            path: path.to_string_lossy().to_string(),
+            exists: true,
+            valid_toml: false,
+            key_paths: Vec::new(),
+            managed_field_count: 0,
+            parse_error: Some(error.to_string()),
+        }),
+    }
+}
+
+fn is_managed_key_path(path: &[String]) -> bool {
+    matches!(
+        path,
+        [root]
+            if matches!(
+                root.as_str(),
+                "model" | "model_reasoning_effort" | "plan_mode_reasoning_effort"
+            )
+    ) || matches!(
+        path,
+        [agents, key]
+            if agents == "agents"
+                && matches!(
+                    key.as_str(),
+                    "enabled"
+                        | "default_subagent_model"
+                        | "default_subagent_reasoning_effort"
+                        | "max_concurrent_threads_per_session"
+                )
+    )
+}
+
+fn remove_table_path(table: &mut dyn toml_edit::TableLike, path: &[String]) -> Result<bool, String> {
+    if path.is_empty() {
+        return Err("配置键路径不能为空".into());
+    }
+    if path.len() == 1 {
+        return Ok(table.remove(&path[0]).is_some());
+    }
+    let Some(item) = table.get_mut(&path[0]) else {
+        return Ok(false);
+    };
+    let Some(child) = item.as_table_like_mut() else {
+        return Err(format!("无法进入配置表 '{}'", path[0]));
+    };
+    remove_table_path(child, &path[1..])
+}
+
+fn remove_config_key_inner(scope: ScopeRequest, key_path: Vec<String>) -> Result<ConfigSnapshot, String> {
+    if key_path.is_empty()
+        || key_path.len() > 16
+        || key_path.iter().any(|part| part.is_empty() || part.len() > 256)
+        || key_path.iter().map(String::len).sum::<usize>() > 1024
+    {
+        return Err("配置键路径无效".into());
+    }
+    if is_managed_key_path(&key_path) {
+        return Err("受管字段请在高级配置中修改，健康检查不会直接删除".into());
+    }
+
+    let path = resolve_scope(&scope)?;
+    let mut doc = read_document(&path)?;
+    if !remove_table_path(doc.as_table_mut(), &key_path)? {
+        return snapshot_for_path(&path);
+    }
+
+    ensure_original_backup(&path)?;
+    history_backup(&path)?;
+    write_document(&path, &doc)?;
+    let snapshot = snapshot_for_path(&path)?;
+    record_history(
+        &scope,
+        &path,
+        &snapshot.values,
+        "health_remove",
+        Some(format!("health_remove:{}", key_path.join("."))),
+    )?;
+    Ok(snapshot)
 }
 
 fn read_document(config_path: &Path) -> Result<DocumentMut, String> {
@@ -556,6 +739,27 @@ fn restore_original_inner(scope: ScopeRequest) -> Result<ConfigSnapshot, String>
 }
 
 #[tauri::command]
+async fn inspect_config(scope: ScopeRequest) -> Result<ConfigInspection, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_config_lock("检查配置", || inspect_config_inner(scope))
+    })
+    .await
+    .map_err(|e| format!("配置检查任务异常终止: {e}"))?
+}
+
+#[tauri::command]
+async fn remove_config_key(
+    scope: ScopeRequest,
+    key_path: Vec<String>,
+) -> Result<ConfigSnapshot, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        with_config_lock("删除未知配置字段", || remove_config_key_inner(scope, key_path))
+    })
+    .await
+    .map_err(|e| format!("删除配置字段任务异常终止: {e}"))?
+}
+
+#[tauri::command]
 async fn read_config(scope: ScopeRequest) -> Result<ConfigSnapshot, String> {
     tauri::async_runtime::spawn_blocking(move || {
         with_config_lock("读取配置", || {
@@ -687,6 +891,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
+            inspect_config,
+            remove_config_key,
             read_config,
             apply_config,
             clear_managed_config,

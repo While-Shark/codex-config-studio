@@ -30,6 +30,8 @@ import { workspaceText } from './i18n/workspace';
 import { advancedLayout } from './ui/advanced-layout';
 import { icon } from './ui/icons';
 import { bindTabs, bindModalKeyboard, setModalActive, closePopovers } from './ui/interactions';
+import { inspectHealth, type ConfigHealthState, type HealthIssue } from './config-health';
+import { healthText } from './config-schema';
 
 type ScopeKind = 'global' | 'project';
 type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'history';
@@ -101,6 +103,9 @@ let historyLoading = false;
 let historyLoadError = false;
 let historyReadId = 0;
 let busy = false;
+let configHealthState: ConfigHealthState | null = null;
+let configHealthLoading = false;
+let configHealthRequestId = 0;
 let confirmResolver: ((value: boolean) => void) | null = null;
 let themeMode = (safeGet('codex-config-studio.theme.mode') as ThemeMode | null) ?? 'system';
 let accent = (safeGet('codex-config-studio.theme.accent') as Accent | null) ?? 'violet';
@@ -289,7 +294,7 @@ function renderRightRail():void {
   const restore=document.querySelector<HTMLButtonElement>('#restoreBtn');if(restore)restore.disabled=busy||!lastSnapshot?.originalBackupExists;
   const clear=document.querySelector<HTMLButtonElement>('#clearBtn');if(clear)clear.disabled=busy||!lastSnapshot;
   const editor=document.querySelector<HTMLElement>('#leftContent');if(editor)editor.inert=busy||currentStatus.key==='status.reading';
-  renderChanges();renderHistory();renderPresetOrigin();renderStatus();
+  renderConfigHealth();renderChanges();renderHistory();renderPresetOrigin();renderStatus();
 }
 function renderChanges():void {
   const copy=previewText(getLocale());
@@ -315,6 +320,115 @@ function renderChanges():void {
   }
   // Show every field here; getChanges() remains the source of the confirmation diff.
   list.innerHTML=notice+renderPreviewRows(rows,copy);
+}
+
+function healthScopeLabel(kind:'global'|'project'):string {
+  return kind==='global'?t('scope.globalConfig'):t('scope.projectConfig');
+}
+function healthStatusLine(inspection:ConfigHealthState['global'], kind:'global'|'project'):string {
+  const copy=healthText(getLocale());
+  if(!inspection) return '';
+  if(!inspection.exists) return copy.missing;
+  if(!inspection.validToml) return `${copy.invalidToml}: ${inspection.parseError??''}`;
+  return `${kind==='global'?copy.globalValid:copy.projectValid} · ${inspection.managedFieldCount} ${copy.managed}`;
+}
+function renderConfigHealth():void {
+  const host=document.querySelector<HTMLElement>('#healthCard');if(!host)return;
+  const copy=healthText(getLocale());
+  if(configHealthLoading){
+    host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${copy.title}</h3></div><p class="rail-help">${esc(copy.loading)}</p>`;
+    return;
+  }
+  if(!configHealthState){
+    host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${copy.title}</h3></div><p class="rail-help">${esc(copy.unavailable)}</p><button id="refreshHealthRules" class="text-button">${copy.refreshRules}</button>`;
+    bindHealthActions();
+    return;
+  }
+  const state=configHealthState;
+  const schemaText=state.schema.status==='fresh'?copy.fresh:state.schema.status==='stale'?copy.stale:copy.unavailable;
+  const issueCount=state.issues.length;
+  const issueDetails=state.issues.map((issue,index)=>`<div class="health-issue">
+    <div><strong>${esc(copy.unknown)}</strong><span>${esc(healthScopeLabel(issue.scopeKind))}</span></div>
+    <code>${esc(issue.keyLabel)}</code>
+    <small>${esc(issue.configPath)}</small>
+    <p>${esc(copy.recommendation)}</p>
+    ${issue.removable?`<button class="text-button danger-text" data-health-remove="${index}">${copy.remove}</button>`:''}
+  </div>`).join('');
+  const rows=[state.global?healthStatusLine(state.global,'global'):'',state.project?healthStatusLine(state.project,'project'):''].filter(Boolean);
+  host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${copy.title}</h3><span class="health-status-dot ${issueCount?'warn':'ok'}"></span></div>
+    <div class="health-summary">${rows.map(row=>`<p>${esc(row)}</p>`).join('')}<p class="${issueCount?'warning-text':'ok-text'}">${issueCount?`⚠ ${issueCount} ${copy.issues}`:`✓ ${copy.healthy}`}</p></div>
+    <details class="health-details" ${issueCount?'':'hidden'}><summary>${copy.viewProblems}</summary>${issueDetails}</details>
+    <div class="health-schema"><span>${esc(schemaText)}</span><button id="refreshHealthRules" class="text-button">${copy.refreshRules}</button></div>
+    <p class="rail-help">${esc(copy.preserved)}</p><p class="rail-help">${esc(copy.sessionNote)}</p>`;
+  bindHealthActions();
+}
+function bindHealthActions():void {
+  document.querySelector<HTMLButtonElement>('#refreshHealthRules')?.addEventListener('click',()=>{void loadConfigHealth(true);});
+  document.querySelectorAll<HTMLButtonElement>('[data-health-remove]').forEach(button=>button.addEventListener('click',()=>{
+    const index=Number(button.dataset.healthRemove);
+    const issue=configHealthState?.issues[index];
+    if(issue)void removeHealthIssue(issue);
+  }));
+}
+async function loadConfigHealth(forceSchema=false):Promise<void> {
+  const request=++configHealthRequestId;
+  configHealthLoading=true;renderConfigHealth();
+  try{
+    const state=await inspectHealth(projectPath,forceSchema);
+    if(request!==configHealthRequestId)return;
+    configHealthState=state;
+    if(forceSchema)toast(healthText(getLocale()).rulesUpdated);
+  }catch(error){
+    if(request!==configHealthRequestId)return;
+    console.warn('config health',error);
+    if(forceSchema)toast(healthText(getLocale()).refreshFailed,true);
+  }finally{
+    if(request===configHealthRequestId){configHealthLoading=false;renderConfigHealth();}
+  }
+}
+async function removeHealthIssue(issue:HealthIssue):Promise<void> {
+  if(busy||confirmResolver)return;
+  const copy=healthText(getLocale());
+
+  // Destructive cleanup never trusts a cached schema. Refresh official rules first
+  // and make sure the same key is still unknown before asking for confirmation.
+  configHealthLoading=true;renderConfigHealth();
+  let refreshed:ConfigHealthState;
+  try{
+    refreshed=await inspectHealth(projectPath,true);
+    configHealthState=refreshed;
+  }catch(error){
+    configHealthLoading=false;renderConfigHealth();
+    toast(copy.refreshFailed,true);
+    return;
+  }
+  configHealthLoading=false;renderConfigHealth();
+  if(!refreshed.schema.canWarnUnknown || !refreshed.issues.some(candidate =>
+    candidate.scopeKind===issue.scopeKind
+      && candidate.configPath===issue.configPath
+      && candidate.keyLabel===issue.keyLabel
+  )){
+    toast(copy.rulesUpdated);
+    return;
+  }
+
+  const accepted=await askConfirm({
+    title:copy.removeTitle,
+    message:copy.removeBody,
+    detail:`${issue.configPath}\n${issue.keyLabel}\n\n${copy.recommendation}`,
+    confirmText:copy.confirmRemove,
+    danger:true,
+  });
+  if(!accepted||busy)return;
+  setBusy(true);
+  try{
+    const target={kind:issue.scopeKind,projectPath:issue.scopeKind==='project'?projectPath:null};
+    await safeInvoke<ConfigSnapshot>('remove_config_key',{scope:target,keyPath:issue.keyPath});
+    if(issue.scopeKind===scope)await loadConfig();
+    else await loadConfigHealth(false);
+    toast(copy.healthy);
+  }catch(error){toast(String(error),true);}
+  finally{setBusy(false);renderRightRail();}
 }
 
 function renderHistoryPage(host:HTMLElement):void {
@@ -388,14 +502,14 @@ async function loadConfig():Promise<void> {
   const request=++configReadId,target=JSON.stringify(requestScope());
   draftPresetSource=null;lastSnapshot=null;
   const result=document.querySelector<HTMLElement>('#applyResult');result?.classList.add('hidden');
-  if(scope==='project'&&!projectPath){setStatus('status.selectProject',false);renderRightRail();return;}
+  if(scope==='project'&&!projectPath){setStatus('status.selectProject',false);renderRightRail();void loadConfigHealth(false);return;}
   setStatus('status.reading',true);renderRightRail();
   try{
     const snap=await safeInvoke<ConfigSnapshot>('read_config',{scope:requestScope()});
     if(request!==configReadId||target!==JSON.stringify(requestScope()))return;
     applySnapshot(snap);setStatus(snap.exists?'status.read':'status.missing',true);
   }catch(e){if(request===configReadId){lastSnapshot=null;setStatus('status.readFailed',false);toast(String(e),true);}}
-  finally{if(request===configReadId)renderRightRail();}
+  finally{if(request===configReadId){renderRightRail();void loadConfigHealth(false);}}
 }
 function applySnapshot(snapshot:ConfigSnapshot):void {
   lastSnapshot=snapshot;values=clone(snapshot.values);draftPresetSource=null;
