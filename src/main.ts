@@ -30,7 +30,8 @@ import { workspaceText } from './i18n/workspace';
 import { advancedLayout } from './ui/advanced-layout';
 import { icon } from './ui/icons';
 import { bindTabs, bindModalKeyboard, setModalActive, closePopovers } from './ui/interactions';
-import { inspectHealth, healthText, type ConfigHealthState, type HealthIssue } from './config-health';
+import { inspectHealth, type ConfigHealthState, type HealthIssue } from './config-health';
+import { healthText } from './config-schema';
 
 type ScopeKind = 'global' | 'project';
 type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'history';
