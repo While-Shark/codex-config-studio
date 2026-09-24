@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path';
 import { loadTypeScript } from './helpers/load-typescript.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const health=loadTypeScript(resolve(root,'src/config-health.ts'),{
+const health=loadTypeScript(resolve(root,'src/config-schema.ts'),{
   localStorage:{getItem(){return null;},setItem(){}},
   fetch:async()=>{throw new Error('network disabled in unit test');},
   AbortController:globalThis.AbortController,
