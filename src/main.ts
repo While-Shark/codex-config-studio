@@ -389,6 +389,29 @@ async function loadConfigHealth(forceSchema=false):Promise<void> {
 async function removeHealthIssue(issue:HealthIssue):Promise<void> {
   if(busy||confirmResolver)return;
   const copy=healthText(getLocale());
+
+  // Destructive cleanup never trusts a cached schema. Refresh official rules first
+  // and make sure the same key is still unknown before asking for confirmation.
+  configHealthLoading=true;renderConfigHealth();
+  let refreshed:ConfigHealthState;
+  try{
+    refreshed=await inspectHealth(projectPath,true);
+    configHealthState=refreshed;
+  }catch(error){
+    configHealthLoading=false;renderConfigHealth();
+    toast(copy.refreshFailed,true);
+    return;
+  }
+  configHealthLoading=false;renderConfigHealth();
+  if(!refreshed.schema.canWarnUnknown || !refreshed.issues.some(candidate =>
+    candidate.scopeKind===issue.scopeKind
+      && candidate.configPath===issue.configPath
+      && candidate.keyLabel===issue.keyLabel
+  )){
+    toast(copy.rulesUpdated);
+    return;
+  }
+
   const accepted=await askConfirm({
     title:copy.removeTitle,
     message:copy.removeBody,
@@ -402,7 +425,7 @@ async function removeHealthIssue(issue:HealthIssue):Promise<void> {
     const target={kind:issue.scopeKind,projectPath:issue.scopeKind==='project'?projectPath:null};
     await safeInvoke<ConfigSnapshot>('remove_config_key',{scope:target,keyPath:issue.keyPath});
     if(issue.scopeKind===scope)await loadConfig();
-    await loadConfigHealth(false);
+    else await loadConfigHealth(false);
     toast(copy.healthy);
   }catch(error){toast(String(error),true);}
   finally{setBusy(false);renderRightRail();}
