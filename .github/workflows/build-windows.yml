@@ -42,7 +42,18 @@ jobs:
         run: npm ci
 
       - name: Type-check and build frontend
-        run: npm run build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee frontend-preflight.log
+
+      - name: Upload frontend preflight log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-preflight-log
+          path: frontend-preflight.log
+          retention-days: 2
 
   build:
     needs: check
