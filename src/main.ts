@@ -293,7 +293,7 @@ function renderRightRail():void {
   const restore=document.querySelector<HTMLButtonElement>('#restoreBtn');if(restore)restore.disabled=busy||!lastSnapshot?.originalBackupExists;
   const clear=document.querySelector<HTMLButtonElement>('#clearBtn');if(clear)clear.disabled=busy||!lastSnapshot;
   const editor=document.querySelector<HTMLElement>('#leftContent');if(editor)editor.inert=busy||currentStatus.key==='status.reading';
-  renderChanges();renderHistory();renderPresetOrigin();renderStatus();
+  renderConfigHealth();renderChanges();renderHistory();renderPresetOrigin();renderStatus();
 }
 function renderChanges():void {
   const copy=previewText(getLocale());
@@ -478,7 +478,7 @@ async function loadConfig():Promise<void> {
   const request=++configReadId,target=JSON.stringify(requestScope());
   draftPresetSource=null;lastSnapshot=null;
   const result=document.querySelector<HTMLElement>('#applyResult');result?.classList.add('hidden');
-  if(scope==='project'&&!projectPath){setStatus('status.selectProject',false);renderRightRail();return;}
+  if(scope==='project'&&!projectPath){setStatus('status.selectProject',false);renderRightRail();void loadConfigHealth(false);return;}
   setStatus('status.reading',true);renderRightRail();
   try{
     const snap=await safeInvoke<ConfigSnapshot>('read_config',{scope:requestScope()});
@@ -603,4 +603,4 @@ matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{if(th
 document.documentElement.lang=getLocale();
 applyTheme();
 renderApp();
-Promise.all([loadConfig(),loadHistory(),loadConfigHealth(false)]);
+Promise.all([loadConfig(),loadHistory()]);
