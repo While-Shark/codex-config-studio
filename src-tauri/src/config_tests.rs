@@ -460,3 +460,70 @@ fn history_delete_missing_store_does_not_create_files() {
     assert!(!history_file_path().unwrap().exists());
     assert_eq!(files_except_history(&sandbox.root), before);
 }
+
+
+#[test]
+fn inspection_reports_unknown_paths_without_modifying_configuration() {
+    let sandbox = Sandbox::new();
+    let scope = sandbox.project("health-inspection");
+    let original = r#"model = "gpt-6-sol"
+[features]
+respect_system_proxies = true
+[agents]
+enabled = true
+"#;
+    let path = write_input(&scope, original);
+    let before = fs::read(&path).unwrap();
+    let inspection = inspect_config_inner(scope.clone()).unwrap();
+    assert!(inspection.exists);
+    assert!(inspection.valid_toml);
+    assert!(inspection.key_paths.contains(&vec!["features".into(), "respect_system_proxies".into()]));
+    assert!(inspection.key_paths.contains(&vec!["agents".into(), "enabled".into()]));
+    assert_eq!(inspection.managed_field_count, 2);
+    assert_eq!(fs::read(&path).unwrap(), before, "health inspection must be read-only");
+}
+
+#[test]
+fn confirmed_health_removal_preserves_managed_and_unrelated_configuration() {
+    let sandbox = Sandbox::new();
+    let scope = sandbox.project("health-remove");
+    let original = r#"model = "gpt-6-sol"
+approval_policy = "on-request"
+[features]
+respect_system_proxies = true
+multi_agent = true
+[agents]
+enabled = true
+"#;
+    let path = write_input(&scope, original);
+    let snapshot = with_config_lock("health remove regression", || {
+        remove_config_key_inner(
+            scope.clone(),
+            vec!["features".into(), "respect_system_proxies".into()],
+        )
+    })
+    .unwrap();
+    assert_eq!(snapshot.values.model.as_deref(), Some("gpt-6-sol"));
+    let text = fs::read_to_string(&path).unwrap();
+    assert!(!text.contains("respect_system_proxies"));
+    assert!(text.contains("multi_agent = true"));
+    assert!(text.contains("approval_policy = "on-request""));
+    assert!(text.contains("model = "gpt-6-sol""));
+    assert!(backup_dir(&path).unwrap().join("config.original.toml").is_file());
+    let history = read_history_store().unwrap();
+    assert_eq!(history.entries.first().unwrap().action, "health_remove");
+}
+
+#[test]
+fn health_removal_refuses_managed_fields() {
+    let sandbox = Sandbox::new();
+    let scope = sandbox.project("health-protect-managed");
+    let path = write_input(&scope, "model = 'gpt-6-sol'\n");
+    let before = fs::read(&path).unwrap();
+    let error = with_config_lock("health protect regression", || {
+        remove_config_key_inner(scope, vec!["model".into()])
+    })
+    .unwrap_err();
+    assert!(error.contains("受管字段"));
+    assert_eq!(fs::read(path).unwrap(), before);
+}
