@@ -41,6 +41,7 @@ export function renderShell({ projectPath, accent }: ShellOptions): string {
           <details class="scope-details"><summary><span id="scopeLabel"></span>${icon('chevron')}</summary><div class="path-block"><code id="configPath"></code></div><p id="scopeNotice" class="rail-help"></p></details>
           <p id="createNotice" class="create-notice hidden">${copy.autoCreate}</p>
         </section>
+        <section id="healthCard" class="health-card" aria-live="polite"></section>
         <section class="review-card">
           <div class="rail-title"><h3>${previewText(getLocale()).title}</h3><span id="changeCount" class="count-badge">0</span></div>
           <p id="previewSummary" class="rail-help" aria-live="polite"></p>
