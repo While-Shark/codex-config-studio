@@ -507,8 +507,8 @@ enabled = true
     let text = fs::read_to_string(&path).unwrap();
     assert!(!text.contains("respect_system_proxies"));
     assert!(text.contains("multi_agent = true"));
-    assert!(text.contains("approval_policy = "on-request""));
-    assert!(text.contains("model = "gpt-6-sol""));
+    assert!(text.contains(r#"approval_policy = "on-request""#));
+    assert!(text.contains(r#"model = "gpt-6-sol""#));
     assert!(backup_dir(&path).unwrap().join("config.original.toml").is_file());
     let history = read_history_store().unwrap();
     assert_eq!(history.entries.first().unwrap().action, "health_remove");
