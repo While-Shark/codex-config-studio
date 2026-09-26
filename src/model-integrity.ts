@@ -167,7 +167,11 @@ export function resolveIntegrityTarget(
     if (!globalValues) return null;
     return { model: globalValues.model, reasoning: globalValues.modelReasoningEffort };
   }
-  if (!scopeValues || !globalValues) return null;
+  if (!scopeValues) return null;
+  if (scopeValues.model !== null && scopeValues.modelReasoningEffort !== null) {
+    return { model: scopeValues.model, reasoning: scopeValues.modelReasoningEffort };
+  }
+  if (!globalValues) return null;
   return {
     model: scopeValues.model ?? globalValues.model,
     reasoning: scopeValues.modelReasoningEffort ?? globalValues.modelReasoningEffort,
