@@ -52,3 +52,56 @@ test('health copy is complete in five languages',()=>{
     assert.ok(Object.values(copy).every(value=>typeof value==='string'&&value.trim()));
   }
 });
+
+
+test('authoritative generated schema is fetched before the developers mirror',async()=>{
+  const calls=[];
+  const mod=loadTypeScript(resolve(root,'src/config-schema.ts'),{
+    localStorage:{getItem(){return null;},setItem(){}},
+    fetch:async(url)=>{
+      calls.push(String(url));
+      return {ok:true,text:async()=>JSON.stringify(schema)};
+    },
+    AbortController:globalThis.AbortController,
+    setTimeout,clearTimeout,
+  });
+  const loaded=await mod.loadOfficialSchema(true);
+  assert.equal(calls.length,1);
+  assert.match(calls[0],/raw\.githubusercontent\.com\/openai\/codex\/main\/codex-rs\/core\/config\.schema\.json/);
+  assert.equal(loaded.state.sourceTrust,'authoritative');
+  assert.equal(loaded.state.canWarnUnknown,true);
+});
+
+test('developers mirror is fallback-only and cannot produce unknown-field warnings',async()=>{
+  const calls=[];
+  const mod=loadTypeScript(resolve(root,'src/config-schema.ts'),{
+    localStorage:{getItem(){return null;},setItem(){}},
+    fetch:async(url)=>{
+      calls.push(String(url));
+      if(String(url).includes('raw.githubusercontent.com'))throw new Error('github unavailable');
+      return {ok:true,text:async()=>JSON.stringify(schema)};
+    },
+    AbortController:globalThis.AbortController,
+    setTimeout,clearTimeout,
+  });
+  const loaded=await mod.loadOfficialSchema(true);
+  assert.equal(calls.length,2);
+  assert.match(calls[1],/developers\.openai\.com\/codex\/config-schema\.json/);
+  assert.equal(loaded.state.sourceTrust,'fallback');
+  assert.equal(loaded.state.canWarnUnknown,false);
+});
+
+test('legacy cached github schema inherits authoritative trust while old cache stops warning',async()=>{
+  const now=Date.now();
+  const cache={schema,fetchedAt:now-31*24*60*60*1000,sourceUrl:'https://raw.githubusercontent.com/openai/codex/main/codex-rs/core/config.schema.json'};
+  const mod=loadTypeScript(resolve(root,'src/config-schema.ts'),{
+    localStorage:{getItem(){return JSON.stringify(cache);},setItem(){}},
+    fetch:async()=>{throw new Error('offline');},
+    AbortController:globalThis.AbortController,
+    setTimeout,clearTimeout,
+  });
+  const loaded=await mod.loadOfficialSchema(false);
+  assert.equal(loaded.state.status,'stale');
+  assert.equal(loaded.state.sourceTrust,'authoritative');
+  assert.equal(loaded.state.canWarnUnknown,false);
+});

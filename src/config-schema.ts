@@ -1,6 +1,7 @@
 export type SchemaState = {
   status: 'fresh' | 'stale' | 'unavailable';
   sourceUrl: string | null;
+  sourceTrust: 'authoritative' | 'fallback' | null;
   fetchedAt: number | null;
   error: string | null;
   canWarnUnknown: boolean;
@@ -22,32 +23,64 @@ const healthCopies: Record<string, HealthCopy> = {
 };
 export function healthText(locale: string): HealthCopy { return healthCopies[locale] ?? healthCopies.en; }
 
-type CachedSchema = { schema: unknown; fetchedAt: number; sourceUrl: string };
+type SchemaTrust='authoritative'|'fallback';
+type SchemaSource={url:string;trust:SchemaTrust};
+type CachedSchema = { schema: unknown; fetchedAt: number; sourceUrl: string; sourceTrust?: SchemaTrust };
 const CACHE_KEY='codex-config-studio.official-config-schema.v1';
 const FRESH_MS=7*24*60*60*1000;
 const WARN_MAX_AGE_MS=30*24*60*60*1000;
-const SCHEMA_URLS=[
-  'https://developers.openai.com/codex/config-schema.json',
-  'https://raw.githubusercontent.com/openai/codex/main/codex-rs/core/config.schema.json',
-] as const;
+// The generated schema committed in openai/codex is derived directly from ConfigToml
+// and is the authority for unknown-field diagnostics. The developers site mirror is
+// only a fallback because it can temporarily lag the generated schema.
+const SCHEMA_SOURCES:readonly SchemaSource[]=[
+  {url:'https://raw.githubusercontent.com/openai/codex/main/codex-rs/core/config.schema.json',trust:'authoritative'},
+  {url:'https://developers.openai.com/codex/config-schema.json',trust:'fallback'},
+];
 
 function isRecord(value: unknown): value is Record<string, unknown> { return !!value&&typeof value==='object'&&!Array.isArray(value); }
 function isSchemaDocument(value: unknown): value is Record<string, unknown> { return isRecord(value)&&isRecord(value.properties)&&isRecord(value.definitions); }
+function trustForUrl(url:string):SchemaTrust {
+  return url.includes('raw.githubusercontent.com/openai/codex/')?'authoritative':'fallback';
+}
 function readCache(): CachedSchema|null {
-  try{const raw=localStorage.getItem(CACHE_KEY);if(!raw)return null;const parsed=JSON.parse(raw) as CachedSchema;return parsed&&typeof parsed.fetchedAt==='number'&&typeof parsed.sourceUrl==='string'&&isSchemaDocument(parsed.schema)?parsed:null;}catch{return null;}
+  try{
+    const raw=localStorage.getItem(CACHE_KEY);
+    if(!raw)return null;
+    const parsed=JSON.parse(raw) as CachedSchema;
+    if(!parsed||typeof parsed.fetchedAt!=='number'||typeof parsed.sourceUrl!=='string'||!isSchemaDocument(parsed.schema))return null;
+    return {...parsed,sourceTrust:parsed.sourceTrust??trustForUrl(parsed.sourceUrl)};
+  }catch{return null;}
 }
 function writeCache(value:CachedSchema):void { try{localStorage.setItem(CACHE_KEY,JSON.stringify(value));}catch{/* optional */} }
+function cacheCanWarnUnknown(cached:CachedSchema,age:number):boolean {
+  return (cached.sourceTrust??trustForUrl(cached.sourceUrl))==='authoritative'&&age<=WARN_MAX_AGE_MS;
+}
 async function fetchJson(url:string):Promise<unknown>{
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),9000);
   try{const response=await fetch(url,{cache:'no-store',signal:controller.signal,redirect:'follow'});if(!response.ok)throw new Error(`HTTP ${response.status}`);const text=await response.text();if(text.length>2_000_000)throw new Error('schema too large');return JSON.parse(text);}finally{clearTimeout(timer);}
 }
 export async function loadOfficialSchema(force=false):Promise<{schema:unknown|null;state:SchemaState}>{
   const cached=readCache(),age=cached?Date.now()-cached.fetchedAt:Number.POSITIVE_INFINITY;
-  if(!force&&cached&&age<=FRESH_MS)return{schema:cached.schema,state:{status:'fresh',sourceUrl:cached.sourceUrl,fetchedAt:cached.fetchedAt,error:null,canWarnUnknown:true}};
+  if(!force&&cached&&age<=FRESH_MS){
+    const sourceTrust=cached.sourceTrust??trustForUrl(cached.sourceUrl);
+    return{schema:cached.schema,state:{status:'fresh',sourceUrl:cached.sourceUrl,sourceTrust,fetchedAt:cached.fetchedAt,error:null,canWarnUnknown:cacheCanWarnUnknown(cached,age)}};
+  }
   let lastError='';
-  for(const url of SCHEMA_URLS){try{const schema=await fetchJson(url);if(!isSchemaDocument(schema))throw new Error('invalid schema document');const fetchedAt=Date.now();writeCache({schema,fetchedAt,sourceUrl:url});return{schema,state:{status:'fresh',sourceUrl:url,fetchedAt,error:null,canWarnUnknown:true}};}catch(error){lastError=String(error);}}
-  if(cached){const cachedAge=Date.now()-cached.fetchedAt;return{schema:cached.schema,state:{status:'stale',sourceUrl:cached.sourceUrl,fetchedAt:cached.fetchedAt,error:lastError||'refresh failed',canWarnUnknown:cachedAge<=WARN_MAX_AGE_MS}};}
-  return{schema:null,state:{status:'unavailable',sourceUrl:null,fetchedAt:null,error:lastError||'schema unavailable',canWarnUnknown:false}};
+  for(const source of SCHEMA_SOURCES){
+    try{
+      const schema=await fetchJson(source.url);
+      if(!isSchemaDocument(schema))throw new Error('invalid schema document');
+      const fetchedAt=Date.now();
+      writeCache({schema,fetchedAt,sourceUrl:source.url,sourceTrust:source.trust});
+      return{schema,state:{status:'fresh',sourceUrl:source.url,sourceTrust:source.trust,fetchedAt,error:null,canWarnUnknown:source.trust==='authoritative'}};
+    }catch(error){lastError=String(error);}
+  }
+  if(cached){
+    const cachedAge=Date.now()-cached.fetchedAt;
+    const sourceTrust=cached.sourceTrust??trustForUrl(cached.sourceUrl);
+    return{schema:cached.schema,state:{status:'stale',sourceUrl:cached.sourceUrl,sourceTrust,fetchedAt:cached.fetchedAt,error:lastError||'refresh failed',canWarnUnknown:cacheCanWarnUnknown(cached,cachedAge)}};
+  }
+  return{schema:null,state:{status:'unavailable',sourceUrl:null,sourceTrust:null,fetchedAt:null,error:lastError||'schema unavailable',canWarnUnknown:false}};
 }
 
 function decodePointer(value:string):string{return value.replace(/~1/g,'/').replace(/~0/g,'~');}
