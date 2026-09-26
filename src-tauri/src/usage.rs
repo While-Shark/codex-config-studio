@@ -88,6 +88,8 @@ pub(crate) struct UsageSession {
     pub is_subagent: bool,
     pub turns: usize,
     pub responses: u64,
+    pub last_model: Option<String>,
+    pub last_reasoning: Option<String>,
     pub usage_source: String,
     pub usage: UsageTokens,
     pub models: Vec<ModelUsage>,
@@ -300,6 +302,7 @@ impl SessionBuilder {
 
     fn finish(self) -> UsageSession {
         let exact = self.has_exact_records;
+        let last_model = self.last_model.clone();
         let usage = if exact {
             self.exact_usage.clone()
         } else {
@@ -317,7 +320,7 @@ impl SessionBuilder {
             .collect::<Vec<_>>();
 
         if !exact && usage.total_tokens > 0 && models.is_empty() {
-            let selection = self.last_model.unwrap_or_else(|| TurnModel {
+            let selection = self.last_model.clone().unwrap_or_else(|| TurnModel {
                 model: "unknown".to_string(),
                 reasoning: None,
             });
@@ -408,6 +411,8 @@ impl SessionBuilder {
             is_subagent,
             turns: self.turns.len(),
             responses: self.exact_responses,
+            last_model: last_model.as_ref().map(|selection| selection.model.clone()),
+            last_reasoning: last_model.and_then(|selection| selection.reasoning),
             usage_source: if exact {
                 "response_records".to_string()
             } else if self.legacy_total.is_some() {
@@ -948,6 +953,8 @@ mod tests {
         let session = builder.finish();
         assert_eq!(session.thread_id, "thread-1");
         assert_eq!(session.responses, 2);
+        assert_eq!(session.last_model.as_deref(), Some("gpt-6-sol"));
+        assert_eq!(session.last_reasoning.as_deref(), Some("xhigh"));
         assert_eq!(session.usage.total_tokens, 185);
         assert_eq!(session.usage.input_tokens, 150);
         assert_eq!(session.reroutes.len(), 1);
