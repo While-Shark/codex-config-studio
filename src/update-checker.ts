@@ -9,16 +9,16 @@ export type UpdateState =
   | { status:'error'; message:string };
 
 export type UpdateCopy = {
-  check:string; checking:string; current:string; available:string; openRelease:string; failed:string;
+  check:string; checking:string; current:string; available:string; openRelease:string; install:string; installing:string; failed:string;
   currentVersion:string; latestVersion:string;
 };
 
 const copies:Record<string,UpdateCopy>={
-  en:{check:'Check updates',checking:'Checking…',current:'Up to date',available:'Update available',openRelease:'Open release',failed:'Update check failed',currentVersion:'Current',latestVersion:'Latest'},
-  'zh-CN':{check:'检查更新',checking:'正在检查…',current:'已是最新版本',available:'发现新版本',openRelease:'打开正式版页面',failed:'检查更新失败',currentVersion:'当前版本',latestVersion:'最新版本'},
-  'zh-TW':{check:'檢查更新',checking:'正在檢查…',current:'已是最新版本',available:'發現新版本',openRelease:'開啟正式版頁面',failed:'檢查更新失敗',currentVersion:'目前版本',latestVersion:'最新版本'},
-  ja:{check:'更新を確認',checking:'確認中…',current:'最新版です',available:'更新があります',openRelease:'リリースを開く',failed:'更新確認に失敗しました',currentVersion:'現在',latestVersion:'最新'},
-  ko:{check:'업데이트 확인',checking:'확인 중…',current:'최신 버전',available:'업데이트 있음',openRelease:'릴리스 열기',failed:'업데이트 확인 실패',currentVersion:'현재',latestVersion:'최신'},
+  en:{check:'Check updates',checking:'Checking…',current:'Up to date',available:'Update available',openRelease:'Open release',install:'Install and restart',installing:'Installing update…',failed:'Update check failed',currentVersion:'Current',latestVersion:'Latest'},
+  'zh-CN':{check:'检查更新',checking:'正在检查…',current:'已是最新版本',available:'发现新版本',openRelease:'打开正式版页面',install:'安装并重启',installing:'正在安装更新…',failed:'检查更新失败',currentVersion:'当前版本',latestVersion:'最新版本'},
+  'zh-TW':{check:'檢查更新',checking:'正在檢查…',current:'已是最新版本',available:'發現新版本',openRelease:'開啟正式版頁面',install:'安裝並重新啟動',installing:'正在安裝更新…',failed:'檢查更新失敗',currentVersion:'目前版本',latestVersion:'最新版本'},
+  ja:{check:'更新を確認',checking:'確認中…',current:'最新版です',available:'更新があります',openRelease:'リリースを開く',install:'インストールして再起動',installing:'更新をインストール中…',failed:'更新確認に失敗しました',currentVersion:'現在',latestVersion:'最新'},
+  ko:{check:'업데이트 확인',checking:'확인 중…',current:'최신 버전',available:'업데이트 있음',openRelease:'릴리스 열기',install:'설치 후 다시 시작',installing:'업데이트 설치 중…',failed:'업데이트 확인 실패',currentVersion:'현재',latestVersion:'최신'},
 };
 export function updateText(locale:string):UpdateCopy{return copies[locale]??copies.en;}
 
@@ -57,4 +57,16 @@ export async function checkStableUpdate():Promise<UpdateState>{
 
 export async function openStableReleasePage():Promise<void>{
   await invoke('open_stable_release_page',{});
+}
+
+
+export async function signedUpdaterEnabled():Promise<boolean>{
+  try{
+    const info=await invoke<{enabled:boolean}>('signed_updater_info',{});
+    return info.enabled===true;
+  }catch{return false;}
+}
+
+export async function installSignedUpdate():Promise<void>{
+  await invoke('install_signed_update',{});
 }
