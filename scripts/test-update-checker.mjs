@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { loadTypeScript } from './helpers/load-typescript.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -64,4 +66,28 @@ test('updater manifest maps installer-specific targets to matching packages',()=
   assert.match(source,/darwin-x86_64-app/);
   assert.match(source,/darwin-aarch64-app/);
   assert.match(source,/\.deb\.sig/);
+});
+
+
+test('updater manifest generator emits matching signed package URLs',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'ccs-updater-'));
+  try{
+    for(const name of [
+      'Codex_1.2.3_x64-setup.exe.sig',
+      'Codex_1.2.3_amd64.AppImage.sig',
+      'Codex_1.2.3_amd64.deb.sig',
+      'Codex.app.tar.gz.sig',
+    ])writeFileSync(join(dir,name),'trusted-signature\n');
+    const run=spawnSync(process.execPath,[
+      resolve(root,'scripts/build-updater-manifest.mjs'),dir,'1.2.3','v1.2.3','While-Shark/codex-config-studio'
+    ],{encoding:'utf8'});
+    assert.equal(run.status,0,run.stderr);
+    const manifest=JSON.parse(readFileSync(join(dir,'latest.json'),'utf8'));
+    assert.equal(manifest.version,'1.2.3');
+    assert.match(manifest.platforms['windows-x86_64-nsis'].url,/-setup\.exe$/);
+    assert.match(manifest.platforms['linux-x86_64-appimage'].url,/\.AppImage$/);
+    assert.match(manifest.platforms['linux-x86_64-deb'].url,/\.deb$/);
+    assert.match(manifest.platforms['darwin-aarch64-app'].url,/\.app\.tar\.gz$/);
+    assert.equal(manifest.platforms['linux-x86_64-deb'].signature,'trusted-signature');
+  }finally{rmSync(dir,{recursive:true,force:true});}
 });
