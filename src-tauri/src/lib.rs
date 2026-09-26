@@ -7,6 +7,7 @@ use std::{
     io::Write,
     panic::{catch_unwind, AssertUnwindSafe},
     path::{Path, PathBuf},
+    process::Command,
     sync::{
         atomic::{AtomicU64, Ordering},
         Mutex, MutexGuard,
@@ -83,6 +84,96 @@ struct ConfigInspection {
     key_paths: Vec<Vec<String>>,
     managed_field_count: usize,
     parse_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CodexRuntimeInfo {
+    installed: bool,
+    version: Option<String>,
+    raw_version: Option<String>,
+    launcher: Option<String>,
+    error: Option<String>,
+}
+
+fn parse_codex_version(raw: &str) -> Option<String> {
+    raw.split_whitespace().rev().find_map(|part| {
+        let cleaned = part.trim_matches(|c: char| matches!(c, ',' | ';' | '(' | ')' | '[' | ']'));
+        let candidate = cleaned.strip_prefix('v').unwrap_or(cleaned);
+        let mut chars = candidate.chars();
+        let first = chars.next()?;
+        if !first.is_ascii_digit() {
+            return None;
+        }
+        if chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '+' | '_')) {
+            Some(candidate.to_string())
+        } else {
+            None
+        }
+    })
+}
+
+fn runtime_info_from_output(output: std::process::Output, launcher: &str) -> Option<CodexRuntimeInfo> {
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let raw = if !stdout.is_empty() { stdout } else { stderr };
+    if !output.status.success() {
+        return None;
+    }
+    let version = parse_codex_version(&raw);
+    Some(CodexRuntimeInfo {
+        installed: true,
+        version,
+        raw_version: (!raw.is_empty()).then_some(raw.clone()),
+        launcher: Some(launcher.to_string()),
+        error: if raw.is_empty() {
+            Some("Codex CLI responded without a version string".to_string())
+        } else if parse_codex_version(&raw).is_none() {
+            Some("Codex CLI version string could not be parsed".to_string())
+        } else {
+            None
+        },
+    })
+}
+
+fn detect_codex_runtime() -> CodexRuntimeInfo {
+    let mut errors = Vec::new();
+
+    match Command::new("codex").arg("--version").output() {
+        Ok(output) => {
+            if let Some(info) = runtime_info_from_output(output, "codex") {
+                return info;
+            }
+            errors.push("codex --version returned a non-zero exit status".to_string());
+        }
+        Err(error) => errors.push(format!("codex: {error}")),
+    }
+
+    #[cfg(windows)]
+    {
+        // npm-style Windows shims may be .cmd files. This is a fixed command with
+        // no user-controlled arguments; it does not expose a general shell IPC.
+        match Command::new("cmd")
+            .args(["/D", "/C", "codex", "--version"])
+            .output()
+        {
+            Ok(output) => {
+                if let Some(info) = runtime_info_from_output(output, "cmd:codex") {
+                    return info;
+                }
+                errors.push("cmd /C codex --version returned a non-zero exit status".to_string());
+            }
+            Err(error) => errors.push(format!("cmd:codex: {error}")),
+        }
+    }
+
+    CodexRuntimeInfo {
+        installed: false,
+        version: None,
+        raw_version: None,
+        launcher: None,
+        error: Some(errors.join("; ")),
+    }
 }
 
 fn recoverable_file_lock() -> MutexGuard<'static, ()> {
@@ -772,6 +863,13 @@ async fn get_project_usage(
 }
 
 #[tauri::command]
+async fn get_codex_runtime_info() -> Result<CodexRuntimeInfo, String> {
+    tauri::async_runtime::spawn_blocking(detect_codex_runtime)
+        .await
+        .map_err(|e| format!("Codex version detection task failed: {e}"))
+}
+
+#[tauri::command]
 async fn inspect_config(scope: ScopeRequest) -> Result<ConfigInspection, String> {
     tauri::async_runtime::spawn_blocking(move || {
         with_config_lock("检查配置", || inspect_config_inner(scope))
@@ -925,6 +1023,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             inspect_config,
+            get_codex_runtime_info,
             get_project_usage,
             get_projects_usage_overview,
             remove_config_key,
@@ -943,6 +1042,13 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_common_codex_version_output() {
+        assert_eq!(parse_codex_version("codex-cli 0.63.0"), Some("0.63.0".to_string()));
+        assert_eq!(parse_codex_version("codex v1.2.3-beta.1"), Some("1.2.3-beta.1".to_string()));
+        assert_eq!(parse_codex_version("Codex CLI"), None);
+    }
 
     #[test]
     fn guarded_operation_catches_panic_without_poisoning_lock() {
