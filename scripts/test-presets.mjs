@@ -52,7 +52,7 @@ function context(extra={}){
   const confirms=[],writes=[],messages=[];
   const draft=structuredClone(presets[2].values);
   const ctx={...versionApi,...viewApi,presetVersionText,presets:structuredClone(presets),fields,
-    busy:false,confirmResolver:null,values:draft,lastSnapshot:{exists:true,path:'/projects/a/.codex/config.toml',values:structuredClone(oldDaily)},
+    busy:false,confirmResolver:null,scope:'project',globalSnapshot:null,values:draft,lastSnapshot:{exists:true,path:'/projects/a/.codex/config.toml',values:structuredClone(oldDaily)},
     activeTab:'presets',activePreset:'',activePresetVersion:current,viewedPresetVersion:current,draftPresetSource:null,
     requestScope:()=>({kind:'project',projectPath:'/projects/a'}),getLocale:()=> 'en',t:key=>key,presetText:(id,part)=>`${id}.${part}`,
     fieldLabel:field=>field,displayValue:(_field,value)=>value===null?'inherit':String(value),clone:structuredClone,
