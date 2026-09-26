@@ -21,6 +21,12 @@ export type ModelReroute = {
   reason: string;
 };
 
+export type ObservableReroute = ModelReroute & {
+  threadId: string;
+  isSubagent: boolean;
+  agentRole: string | null;
+};
+
 export type DailyUsage = {
   day: string;
   responses: number;
@@ -101,6 +107,7 @@ export type UsageSummary = {
   dailyTrend: Array<DailyUsage & { share: number }>;
   modelTrend: ModelTrendDay[];
   agentRoles: AgentRoleUsage[];
+  rerouteEvents: ObservableReroute[];
 };
 
 export type UsageCopy = {
@@ -150,6 +157,9 @@ export type UsageCopy = {
   avgPerSession: string;
   role: string;
   uncategorizedAgent: string;
+  rerouteTimeline: string;
+  rerouteTimelineHint: string;
+  noReroutes: string;
 };
 
 const copies: Record<string, UsageCopy> = {
@@ -160,7 +170,7 @@ const copies: Record<string, UsageCopy> = {
     cached:'Cached input',reasoning:'Reasoning',input:'Input',output:'Output',modelUsage:'Model usage',agentUsage:'Agent split',rootAgent:'Root agent',subagents:'Sub-agents',
     reroutes:'Observed reroutes',latestSessions:'Recent sessions',model:'Model',usage:'Tokens',share:'Share',source:'Data quality',exact:'Exact response records',
     legacy:'Legacy session totals',files:'rollout files scanned',dataNote:'Usage is best-effort local telemetry, not billing. Exact response records are preferred; older sessions may only expose cumulative totals.',
-    truncated:'The scan hit its safety limit; older sessions may be omitted.',parseWarning:'Some rollout records could not be parsed.',unknownModel:'Unknown model',noUsage:'No token usage',dailyTrend:'Daily trend',trendHint:'Daily totals use exact response timestamps when available.',estimatedDay:'Estimated from legacy session total',modelTrend:'Model trend',modelTrendHint:'Shows which model consumed tokens each day; legacy-only days are estimates.',agentAnalysis:'Agent analysis',agentAnalysisHint:'Objective usage metrics for root and sub-agent sessions. No quality score is inferred.',avgPerSession:'Avg / session',role:'Role',uncategorizedAgent:'Sub-agent (unclassified)',
+    truncated:'The scan hit its safety limit; older sessions may be omitted.',parseWarning:'Some rollout records could not be parsed.',unknownModel:'Unknown model',noUsage:'No token usage',dailyTrend:'Daily trend',trendHint:'Daily totals use exact response timestamps when available.',estimatedDay:'Estimated from legacy session total',modelTrend:'Model trend',modelTrendHint:'Shows which model consumed tokens each day; legacy-only days are estimates.',agentAnalysis:'Agent analysis',agentAnalysisHint:'Objective usage metrics for root and sub-agent sessions. No quality score is inferred.',avgPerSession:'Avg / session',role:'Role',uncategorizedAgent:'Sub-agent (unclassified)',rerouteTimeline:'Observed reroutes',rerouteTimelineHint:'Only reroutes explicitly recorded by Codex are shown. Absence of an event does not prove server-side routing never changed.',noReroutes:'No observable reroute events in this period.',
   },
   'zh-CN': {
     tab:'用量',title:'项目用量',subtitle:'只读分析本机 Codex rollout 历史中的 Token、模型与 Agent 使用情况。',
@@ -169,7 +179,7 @@ const copies: Record<string, UsageCopy> = {
     cached:'缓存输入',reasoning:'Reasoning',input:'输入',output:'输出',modelUsage:'模型用量',agentUsage:'Agent 分布',rootAgent:'主 Agent',subagents:'子 Agent',
     reroutes:'可观测模型路由',latestSessions:'最近会话',model:'模型',usage:'Token',share:'占比',source:'数据质量',exact:'精确响应记录',
     legacy:'旧版会话累计值',files:'个 rollout 文件已扫描',dataNote:'这里是本机 best-effort 用量统计，不等同于账单。优先使用逐响应精确记录；旧会话可能只有累计值。',
-    truncated:'扫描已达到安全上限，较旧会话可能未纳入。',parseWarning:'部分 rollout 记录无法解析。',unknownModel:'未知模型',noUsage:'暂无 Token 用量',dailyTrend:'每日趋势',trendHint:'有逐响应记录时按真实响应时间统计每日 Token。',estimatedDay:'根据旧版会话累计值估算',modelTrend:'模型趋势',modelTrendHint:'按天显示各模型 Token 消耗；只有旧版累计数据的日期会标记为估算。',agentAnalysis:'Agent 分析',agentAnalysisHint:'展示主 Agent 与子 Agent 的客观用量指标，不根据 Token 消耗推断质量高低。',avgPerSession:'平均 / 会话',role:'角色',uncategorizedAgent:'子 Agent（未分类）',
+    truncated:'扫描已达到安全上限，较旧会话可能未纳入。',parseWarning:'部分 rollout 记录无法解析。',unknownModel:'未知模型',noUsage:'暂无 Token 用量',dailyTrend:'每日趋势',trendHint:'有逐响应记录时按真实响应时间统计每日 Token。',estimatedDay:'根据旧版会话累计值估算',modelTrend:'模型趋势',modelTrendHint:'按天显示各模型 Token 消耗；只有旧版累计数据的日期会标记为估算。',agentAnalysis:'Agent 分析',agentAnalysisHint:'展示主 Agent 与子 Agent 的客观用量指标，不根据 Token 消耗推断质量高低。',avgPerSession:'平均 / 会话',role:'角色',uncategorizedAgent:'子 Agent（未分类）',rerouteTimeline:'可观测模型路由',rerouteTimelineHint:'这里只显示 Codex 明确记录的 reroute 事件；没有事件不代表服务端内部路由一定没有变化。',noReroutes:'当前时间范围内没有可观测 reroute 事件。',
   },
   'zh-TW': {
     tab:'用量',title:'專案用量',subtitle:'唯讀分析本機 Codex rollout 歷史中的 Token、模型與 Agent 使用情況。',
@@ -178,7 +188,7 @@ const copies: Record<string, UsageCopy> = {
     cached:'快取輸入',reasoning:'Reasoning',input:'輸入',output:'輸出',modelUsage:'模型用量',agentUsage:'Agent 分布',rootAgent:'主 Agent',subagents:'子 Agent',
     reroutes:'可觀測模型路由',latestSessions:'最近工作階段',model:'模型',usage:'Token',share:'占比',source:'資料品質',exact:'精確回應記錄',
     legacy:'舊版工作階段累計值',files:'個 rollout 檔案已掃描',dataNote:'這是本機 best-effort 用量統計，不等同帳單。優先使用逐回應精確記錄；舊工作階段可能只有累計值。',
-    truncated:'掃描已達安全上限，較舊工作階段可能未納入。',parseWarning:'部分 rollout 記錄無法解析。',unknownModel:'未知模型',noUsage:'暫無 Token 用量',dailyTrend:'每日趨勢',trendHint:'有逐回應記錄時依真實回應時間統計每日 Token。',estimatedDay:'依舊版工作階段累計值估算',modelTrend:'模型趨勢',modelTrendHint:'按日顯示各模型 Token 消耗；只有舊版累計資料的日期會標記為估算。',agentAnalysis:'Agent 分析',agentAnalysisHint:'呈現主 Agent 與子 Agent 的客觀用量指標，不依 Token 消耗推斷品質高低。',avgPerSession:'平均 / 工作階段',role:'角色',uncategorizedAgent:'子 Agent（未分類）',
+    truncated:'掃描已達安全上限，較舊工作階段可能未納入。',parseWarning:'部分 rollout 記錄無法解析。',unknownModel:'未知模型',noUsage:'暫無 Token 用量',dailyTrend:'每日趨勢',trendHint:'有逐回應記錄時依真實回應時間統計每日 Token。',estimatedDay:'依舊版工作階段累計值估算',modelTrend:'模型趨勢',modelTrendHint:'按日顯示各模型 Token 消耗；只有舊版累計資料的日期會標記為估算。',agentAnalysis:'Agent 分析',agentAnalysisHint:'呈現主 Agent 與子 Agent 的客觀用量指標，不依 Token 消耗推斷品質高低。',avgPerSession:'平均 / 工作階段',role:'角色',uncategorizedAgent:'子 Agent（未分類）',rerouteTimeline:'可觀測模型路由',rerouteTimelineHint:'只顯示 Codex 明確記錄的 reroute 事件；沒有事件不代表服務端內部路由一定沒有變化。',noReroutes:'目前時間範圍內沒有可觀測 reroute 事件。',
   },
   ja: {
     tab:'使用量',title:'プロジェクト使用量',subtitle:'ローカル Codex rollout 履歴から Token・モデル・Agent 使用量を読み取り専用で集計します。',
@@ -187,7 +197,7 @@ const copies: Record<string, UsageCopy> = {
     cached:'キャッシュ入力',reasoning:'Reasoning',input:'入力',output:'出力',modelUsage:'モデル使用量',agentUsage:'Agent 内訳',rootAgent:'Root Agent',subagents:'Sub-Agent',
     reroutes:'観測された reroute',latestSessions:'最近のセッション',model:'モデル',usage:'Token',share:'割合',source:'データ品質',exact:'正確な応答記録',
     legacy:'旧形式の累積値',files:' rollout ファイルを走査',dataNote:'ローカルの best-effort 統計で、請求額ではありません。逐次応答記録を優先し、古いセッションは累積値のみの場合があります。',
-    truncated:'安全上限に達したため、古いセッションが省略されている可能性があります。',parseWarning:'一部の rollout 記録を解析できませんでした。',unknownModel:'不明なモデル',noUsage:'Token 使用量なし',dailyTrend:'日別トレンド',trendHint:'応答単位の記録がある場合は実際の応答時刻で日別集計します。',estimatedDay:'旧形式のセッション累積値から推定',modelTrend:'モデル推移',modelTrendHint:'日ごとのモデル別 Token 消費を表示します。旧形式のみの日は推定値です。',agentAnalysis:'Agent 分析',agentAnalysisHint:'Root / Sub-Agent の客観的な使用量指標です。Token 消費から品質スコアは推定しません。',avgPerSession:'平均 / セッション',role:'ロール',uncategorizedAgent:'Sub-Agent（未分類）',
+    truncated:'安全上限に達したため、古いセッションが省略されている可能性があります。',parseWarning:'一部の rollout 記録を解析できませんでした。',unknownModel:'不明なモデル',noUsage:'Token 使用量なし',dailyTrend:'日別トレンド',trendHint:'応答単位の記録がある場合は実際の応答時刻で日別集計します。',estimatedDay:'旧形式のセッション累積値から推定',modelTrend:'モデル推移',modelTrendHint:'日ごとのモデル別 Token 消費を表示します。旧形式のみの日は推定値です。',agentAnalysis:'Agent 分析',agentAnalysisHint:'Root / Sub-Agent の客観的な使用量指標です。Token 消費から品質スコアは推定しません。',avgPerSession:'平均 / セッション',role:'ロール',uncategorizedAgent:'Sub-Agent（未分類）',rerouteTimeline:'観測された reroute',rerouteTimelineHint:'Codex が明示的に記録した reroute のみ表示します。イベントがないことはサーバー内部ルーティングの不変を証明しません。',noReroutes:'この期間に観測可能な reroute はありません。',
   },
   ko: {
     tab:'사용량',title:'프로젝트 사용량',subtitle:'로컬 Codex rollout 기록에서 Token, 모델, Agent 사용량을 읽기 전용으로 집계합니다.',
@@ -196,7 +206,7 @@ const copies: Record<string, UsageCopy> = {
     cached:'캐시 입력',reasoning:'Reasoning',input:'입력',output:'출력',modelUsage:'모델 사용량',agentUsage:'Agent 분포',rootAgent:'루트 Agent',subagents:'서브 Agent',
     reroutes:'관찰된 reroute',latestSessions:'최근 세션',model:'모델',usage:'Token',share:'비중',source:'데이터 품질',exact:'정확한 응답 기록',
     legacy:'이전 형식 누적값',files:'개 rollout 파일 스캔',dataNote:'로컬 best-effort 통계이며 청구 금액이 아닙니다. 응답별 정확한 기록을 우선하고, 오래된 세션은 누적값만 있을 수 있습니다.',
-    truncated:'안전 한도에 도달해 오래된 세션이 누락될 수 있습니다.',parseWarning:'일부 rollout 기록을 파싱하지 못했습니다.',unknownModel:'알 수 없는 모델',noUsage:'Token 사용량 없음',dailyTrend:'일별 추이',trendHint:'응답별 기록이 있으면 실제 응답 시각을 기준으로 일별 집계합니다.',estimatedDay:'이전 세션 누적값에서 추정',modelTrend:'모델 추이',modelTrendHint:'날짜별 모델 Token 사용량을 표시합니다. 이전 형식만 있는 날짜는 추정값입니다.',agentAnalysis:'Agent 분석',agentAnalysisHint:'루트/서브 Agent의 객관적 사용량 지표입니다. Token 사용량으로 품질 점수를 추정하지 않습니다.',avgPerSession:'평균 / 세션',role:'역할',uncategorizedAgent:'서브 Agent(미분류)',
+    truncated:'안전 한도에 도달해 오래된 세션이 누락될 수 있습니다.',parseWarning:'일부 rollout 기록을 파싱하지 못했습니다.',unknownModel:'알 수 없는 모델',noUsage:'Token 사용량 없음',dailyTrend:'일별 추이',trendHint:'응답별 기록이 있으면 실제 응답 시각을 기준으로 일별 집계합니다.',estimatedDay:'이전 세션 누적값에서 추정',modelTrend:'모델 추이',modelTrendHint:'날짜별 모델 Token 사용량을 표시합니다. 이전 형식만 있는 날짜는 추정값입니다.',agentAnalysis:'Agent 분석',agentAnalysisHint:'루트/서브 Agent의 객관적 사용량 지표입니다. Token 사용량으로 품질 점수를 추정하지 않습니다.',avgPerSession:'평균 / 세션',role:'역할',uncategorizedAgent:'서브 Agent(미분류)',rerouteTimeline:'관찰된 reroute',rerouteTimelineHint:'Codex가 명시적으로 기록한 reroute만 표시합니다. 이벤트가 없다고 서버 내부 라우팅이 변하지 않았다는 뜻은 아닙니다.',noReroutes:'이 기간에 관찰 가능한 reroute 이벤트가 없습니다.',
   },
 };
 
@@ -222,6 +232,7 @@ export function summarizeUsage(report: UsageReport): UsageSummary {
   const dayMap=new Map<string,DailyUsage>();
   const modelDayMap=new Map<string,DailyModelUsage>();
   const roleMap=new Map<string,{sessions:number;turns:number;responses:number;usage:UsageTokens}>();
+  const rerouteEvents:ObservableReroute[]=[];
   let turns=0,responses=0,rootUsage=0,subagentUsage=0,rootSessions=0,subagentSessions=0,reroutes=0,exactSessions=0,legacySessions=0;
   for(const session of report.sessions){
     addTokens(usage,session.usage);turns+=session.turns;responses+=session.responses;reroutes+=session.reroutes.length;
@@ -235,6 +246,9 @@ export function summarizeUsage(report: UsageReport): UsageSummary {
       rootUsage+=session.usage.totalTokens;rootSessions++;
     }
     if(session.usageSource==='response_records')exactSessions++;else if(session.usageSource==='legacy_session_total')legacySessions++;
+    for(const event of session.reroutes??[]){
+      rerouteEvents.push({...event,threadId:session.threadId,isSubagent:session.isSubagent,agentRole:session.agentRole});
+    }
     for(const day of session.dailyUsage??[]){
       let item=dayMap.get(day.day);
       if(!item){item={day:day.day,responses:0,usage:zeroTokens(),estimated:false};dayMap.set(day.day,item);}
@@ -276,7 +290,8 @@ export function summarizeUsage(report: UsageReport): UsageSummary {
     role,sessions:item.sessions,turns:item.turns,responses:item.responses,usage:item.usage,
     share:subagentUsage>0?item.usage.totalTokens/subagentUsage:0,
   })).sort((a,b)=>b.usage.totalTokens-a.usage.totalTokens||a.role.localeCompare(b.role));
-  return {usage,sessions:report.sessions.length,turns,responses,rootUsage,subagentUsage,rootSessions,subagentSessions,reroutes,exactSessions,legacySessions,modelRows,dailyTrend,modelTrend,agentRoles};
+  rerouteEvents.sort((a,b)=>b.timestamp.localeCompare(a.timestamp));
+  return {usage,sessions:report.sessions.length,turns,responses,rootUsage,subagentUsage,rootSessions,subagentSessions,reroutes,exactSessions,legacySessions,modelRows,dailyTrend,modelTrend,agentRoles,rerouteEvents};
 }
 
 export function periodSinceMs(period: UsagePeriod, now=Date.now()): number | null {
