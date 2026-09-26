@@ -80,7 +80,7 @@ const copies: Record<string, IntegrityCopy> = {
     changeTitle: 'Change the locked model?',
     changeBody: 'Strict lock is active. Applying this draft changes the locked model or reasoning level. Confirm to update the lock target after the configuration is written.',
     changeConfirm: 'Apply and update lock',
-    scopeNote: 'Checks Studio-visible configuration layers. CLI flags, an already-running session, and server-side routing are outside this local check.',
+    scopeNote: 'Checks Studio-visible configuration plus runtime evidence recorded in local Codex rollouts. CLI-only overrides and unobservable server-side routing remain outside this local check.',
   },
   'zh-CN': {
     title: '模型完整性',
@@ -110,7 +110,7 @@ const copies: Record<string, IntegrityCopy> = {
     changeTitle: '修改已锁定的模型？',
     changeBody: '严格锁定已开启。当前草稿会改变锁定的模型或思考等级。确认后会先写入配置，再同步更新锁定目标。',
     changeConfirm: '应用并更新锁定',
-    scopeNote: '这里只检查 Studio 可见的配置层；CLI 参数、已运行会话以及服务端内部路由不在本地校验范围内。',
+    scopeNote: '这里检查 Studio 可见配置和本机 Codex rollout 已记录的运行时证据；仅 CLI 临时覆盖和不可观测的服务端内部路由仍不在本地校验范围内。',
   },
   'zh-TW': {
     title: '模型完整性',
@@ -140,7 +140,7 @@ const copies: Record<string, IntegrityCopy> = {
     changeTitle: '修改已鎖定的模型？',
     changeBody: '嚴格鎖定已開啟。目前草稿會改變鎖定的模型或思考等級。確認後會先寫入設定，再同步更新鎖定目標。',
     changeConfirm: '套用並更新鎖定',
-    scopeNote: '這裡只檢查 Studio 可見的設定層；CLI 參數、已執行工作階段與服務端內部路由不在本地校驗範圍內。',
+    scopeNote: '這裡檢查 Studio 可見設定與本機 Codex rollout 已記錄的執行階段證據；僅 CLI 臨時覆寫與不可觀測的服務端內部路由仍不在本地校驗範圍內。',
   },
   ja: {
     title: 'Model Integrity',
@@ -170,7 +170,7 @@ const copies: Record<string, IntegrityCopy> = {
     changeTitle: 'ロック中のモデルを変更しますか？',
     changeBody: '厳格ロックが有効です。この下書きはロック中のモデルまたは推論レベルを変更します。確認すると設定を書き込み、その後ロック対象も更新します。',
     changeConfirm: '適用してロック更新',
-    scopeNote: 'Studio から見える設定レイヤーのみ確認します。CLI フラグ、既存セッション、サーバー内部ルーティングはこのローカル確認の対象外です。',
+    scopeNote: 'Studio から見える設定とローカル Codex rollout に記録された実行時証拠を確認します。CLI の一時上書きと観測不能なサーバー内部ルーティングは対象外です。',
   },
   ko: {
     title: 'Model Integrity',
@@ -200,7 +200,7 @@ const copies: Record<string, IntegrityCopy> = {
     changeTitle: '잠긴 모델을 변경할까요?',
     changeBody: '엄격 잠금이 활성화되어 있습니다. 이 초안은 잠긴 모델 또는 추론 수준을 변경합니다. 확인하면 설정을 쓴 뒤 잠금 대상도 갱신합니다.',
     changeConfirm: '적용 후 잠금 갱신',
-    scopeNote: 'Studio에서 보이는 설정 계층만 확인합니다. CLI 플래그, 이미 실행 중인 세션, 서버 내부 라우팅은 이 로컬 검사 범위 밖입니다.',
+    scopeNote: 'Studio에서 보이는 설정과 로컬 Codex rollout에 기록된 런타임 증거를 확인합니다. CLI 임시 재정의와 관찰할 수 없는 서버 내부 라우팅은 검사 범위 밖입니다.',
   },
 };
 
