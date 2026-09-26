@@ -862,6 +862,39 @@ async fn get_project_usage(
     .map_err(|e| format!("Usage collection task failed: {e}"))?
 }
 
+fn open_fixed_release_page() -> Result<(), String> {
+    const URL: &str = "https://github.com/While-Shark/codex-config-studio/releases/latest";
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut cmd = Command::new("cmd");
+        cmd.args(["/D", "/C", "start", "", URL]);
+        cmd
+    };
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut cmd = Command::new("open");
+        cmd.arg(URL);
+        cmd
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut command = {
+        let mut cmd = Command::new("xdg-open");
+        cmd.arg(URL);
+        cmd
+    };
+    command
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| format!("Could not open the release page: {e}"))
+}
+
+#[tauri::command]
+async fn open_stable_release_page() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(open_fixed_release_page)
+        .await
+        .map_err(|e| format!("Open release page task failed: {e}"))?
+}
+
 #[tauri::command]
 async fn get_codex_runtime_info() -> Result<CodexRuntimeInfo, String> {
     tauri::async_runtime::spawn_blocking(detect_codex_runtime)
@@ -1024,6 +1057,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             inspect_config,
             get_codex_runtime_info,
+            open_stable_release_page,
             get_project_usage,
             get_projects_usage_overview,
             remove_config_key,

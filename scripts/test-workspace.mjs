@@ -135,3 +135,11 @@ test('native health plumbing registers Codex version detection and packaged CSP 
   assert.match(csp,/https:\/\/developers\.openai\.com/);
   assert.doesNotMatch(csp,/connect-src[^;]*\*/);
 });
+
+
+test('shell exposes one update control and CSP permits the stable GitHub release API',()=>{
+  const html=shell.renderShell({projectPath:'/test',accent:'violet'});
+  assert.equal((html.match(/id="updateCheckBtn"/g)||[]).length,1);
+  const tauri=JSON.parse(readFileSync(resolve(root,'src-tauri/tauri.conf.json'),'utf8'));
+  assert.match(tauri.app.security.csp,/https:\/\/api\.github\.com/);
+});
