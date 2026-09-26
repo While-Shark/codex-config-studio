@@ -23,6 +23,8 @@ test('period windows and token formatting are deterministic',()=>{
   const now=1_000_000_000_000;
   assert.equal(usage.periodSinceMs('7d',now),now-7*24*60*60*1000);
   assert.equal(usage.periodSinceMs('all',now),null);
+  assert.equal(usage.periodSinceDay('7d',Date.UTC(2026,8,26,12)), '2026-09-19');
+  assert.equal(usage.periodSinceDay('all',now),null);
   assert.equal(usage.formatTokens(1234),'1.23K');
   assert.equal(usage.formatTokens(12_340_000),'12.3M');
 });
