@@ -9,7 +9,7 @@ const usage=loadTypeScript(resolve(root,'src/usage-dashboard.ts'));
 test('usage summary aggregates sessions, agents and models without losing token categories',()=>{
   const report={source:'x',filesScanned:2,filesMatched:2,parseErrors:0,skippedLargeFiles:0,truncated:false,sessions:[
     {threadId:'a',sessionId:'a',cwd:'/p',startedAt:'',updatedAt:'',parentThreadId:null,agentRole:null,agentPath:null,isSubagent:false,turns:2,responses:2,usageSource:'response_records',usage:{inputTokens:100,cachedInputTokens:40,cacheWriteInputTokens:0,outputTokens:20,reasoningOutputTokens:5,totalTokens:120},models:[{model:'luna',reasoning:'xhigh',responses:2,usage:{inputTokens:100,cachedInputTokens:40,cacheWriteInputTokens:0,outputTokens:20,reasoningOutputTokens:5,totalTokens:120}}],dailyUsage:[{day:'2026-09-25',responses:2,usage:{inputTokens:100,cachedInputTokens:40,cacheWriteInputTokens:0,outputTokens:20,reasoningOutputTokens:5,totalTokens:120},estimated:false}],dailyModelUsage:[{day:'2026-09-25',model:'luna',reasoning:'xhigh',responses:2,usage:{inputTokens:100,cachedInputTokens:40,cacheWriteInputTokens:0,outputTokens:20,reasoningOutputTokens:5,totalTokens:120},estimated:false}],reroutes:[]},
-    {threadId:'b',sessionId:'a',cwd:'/p',startedAt:'',updatedAt:'',parentThreadId:'a',agentRole:'worker',agentPath:'1',isSubagent:true,turns:1,responses:1,usageSource:'response_records',usage:{inputTokens:50,cachedInputTokens:10,cacheWriteInputTokens:0,outputTokens:15,reasoningOutputTokens:3,totalTokens:65},models:[{model:'luna',reasoning:'xhigh',responses:1,usage:{inputTokens:50,cachedInputTokens:10,cacheWriteInputTokens:0,outputTokens:15,reasoningOutputTokens:3,totalTokens:65}}],dailyUsage:[{day:'2026-09-26',responses:1,usage:{inputTokens:50,cachedInputTokens:10,cacheWriteInputTokens:0,outputTokens:15,reasoningOutputTokens:3,totalTokens:65},estimated:false}],dailyModelUsage:[{day:'2026-09-26',model:'luna',reasoning:'xhigh',responses:1,usage:{inputTokens:50,cachedInputTokens:10,cacheWriteInputTokens:0,outputTokens:15,reasoningOutputTokens:3,totalTokens:65},estimated:false}],reroutes:[{}]}
+    {threadId:'b',sessionId:'a',cwd:'/p',startedAt:'',updatedAt:'',parentThreadId:'a',agentRole:'worker',agentPath:'1',isSubagent:true,turns:1,responses:1,usageSource:'response_records',usage:{inputTokens:50,cachedInputTokens:10,cacheWriteInputTokens:0,outputTokens:15,reasoningOutputTokens:3,totalTokens:65},models:[{model:'luna',reasoning:'xhigh',responses:1,usage:{inputTokens:50,cachedInputTokens:10,cacheWriteInputTokens:0,outputTokens:15,reasoningOutputTokens:3,totalTokens:65}}],dailyUsage:[{day:'2026-09-26',responses:1,usage:{inputTokens:50,cachedInputTokens:10,cacheWriteInputTokens:0,outputTokens:15,reasoningOutputTokens:3,totalTokens:65},estimated:false}],dailyModelUsage:[{day:'2026-09-26',model:'luna',reasoning:'xhigh',responses:1,usage:{inputTokens:50,cachedInputTokens:10,cacheWriteInputTokens:0,outputTokens:15,reasoningOutputTokens:3,totalTokens:65},estimated:false}],reroutes:[{timestamp:'2026-09-26T01:00:00Z',fromModel:'luna',toModel:'sol',reason:'high_risk_cyber_activity'}]}
   ]};
   const summary=JSON.parse(JSON.stringify(usage.summarizeUsage(report)));
   assert.equal(summary.usage.totalTokens,185);assert.equal(summary.usage.cachedInputTokens,50);
@@ -21,6 +21,8 @@ test('usage summary aggregates sessions, agents and models without losing token 
   assert.equal(summary.modelTrend[0].rows[0].share,1);
   assert.equal(summary.agentRoles.length,1);assert.equal(summary.agentRoles[0].role,'worker');
   assert.equal(summary.agentRoles[0].usage.totalTokens,65);assert.equal(summary.agentRoles[0].share,1);
+  assert.equal(summary.rerouteEvents.length,1);assert.equal(summary.rerouteEvents[0].fromModel,'luna');
+  assert.equal(summary.rerouteEvents[0].agentRole,'worker');assert.equal(summary.rerouteEvents[0].isSubagent,true);
 });
 
 test('period windows and token formatting are deterministic',()=>{
@@ -79,4 +81,16 @@ test('agent role analysis groups sub-agent sessions without treating root sessio
   assert.equal(summary.agentRoles[0].role,'worker');assert.equal(summary.agentRoles[0].sessions,2);
   assert.equal(summary.agentRoles[0].usage.totalTokens,100);assert.equal(summary.agentRoles[0].share,100/120);
   assert.equal(summary.agentRoles[1].role,'reviewer');assert.equal(summary.agentRoles[1].usage.totalTokens,20);
+});
+
+test('observable reroute timeline is sorted newest first and keeps session context',()=>{
+  const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
+  const session=(id,isSubagent,role,stamp)=>({threadId:id,sessionId:id,cwd:'/p',startedAt:'',updatedAt:'',parentThreadId:isSubagent?'root':null,agentRole:role,agentPath:null,isSubagent,turns:1,responses:1,usageSource:'response_records',usage:tokens(10),models:[],dailyUsage:[],dailyModelUsage:[],reroutes:[{timestamp:stamp,fromModel:'a',toModel:'b',reason:'test'}]});
+  const report={source:'x',filesScanned:2,filesMatched:2,parseErrors:0,skippedLargeFiles:0,truncated:false,sessions:[
+    session('root',false,null,'2026-09-25T10:00:00Z'),
+    session('child',true,'worker','2026-09-26T10:00:00Z')
+  ]};
+  const events=JSON.parse(JSON.stringify(usage.summarizeUsage(report).rerouteEvents));
+  assert.equal(events.length,2);assert.equal(events[0].threadId,'child');assert.equal(events[0].agentRole,'worker');
+  assert.equal(events[1].threadId,'root');assert.equal(events[1].isSubagent,false);
 });
