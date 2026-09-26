@@ -105,3 +105,34 @@ test('legacy cached github schema inherits authoritative trust while old cache s
   assert.equal(loaded.state.sourceTrust,'authoritative');
   assert.equal(loaded.state.canWarnUnknown,false);
 });
+
+
+test('schema comparison reports added removed and changed declared fields',()=>{
+  const before={
+    properties:{
+      model:{type:'string'},
+      old_field:{type:'boolean'},
+      agents:{$ref:'#/definitions/Agents'},
+    },
+    definitions:{Agents:{type:'object',additionalProperties:false,properties:{enabled:{type:'boolean'}}}},
+  };
+  const after={
+    properties:{
+      model:{type:'string',enum:['a','b']},
+      new_field:{type:'integer'},
+      agents:{$ref:'#/definitions/Agents'},
+    },
+    definitions:{Agents:{type:'object',additionalProperties:false,properties:{enabled:{type:'boolean'},mode:{type:'string'}}}},
+  };
+  const changes=JSON.parse(JSON.stringify(health.compareSchemas(before,after)));
+  assert.ok(changes.some(change=>change.kind==='changed'&&change.path==='model'));
+  assert.ok(changes.some(change=>change.kind==='removed'&&change.path==='old_field'));
+  assert.ok(changes.some(change=>change.kind==='added'&&change.path==='new_field'));
+  assert.ok(changes.some(change=>change.kind==='added'&&change.path==='agents.mode'));
+});
+
+test('schema comparison ignores documentation-only edits',()=>{
+  const before={properties:{model:{type:'string',description:'old'}},definitions:{}};
+  const after={properties:{model:{type:'string',description:'new',markdownDescription:'new docs'}},definitions:{}};
+  assert.deepEqual(JSON.parse(JSON.stringify(health.compareSchemas(before,after))),[]);
+});

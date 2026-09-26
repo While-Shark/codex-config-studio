@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import { loadOfficialSchema, schemaAllowsPath, type SchemaState } from './config-schema';
+import { loadOfficialSchema, readSchemaChangeReport, schemaAllowsPath, type SchemaChangeReport, type SchemaState } from './config-schema';
 
 export type ScopeKind = 'global' | 'project';
 export type ConfigInspection = {
@@ -21,11 +21,20 @@ export type HealthIssue = {
   removable: boolean;
   reason: 'unknown';
 };
+export type CodexRuntimeInfo = {
+  installed: boolean;
+  version: string | null;
+  rawVersion: string | null;
+  launcher: string | null;
+  error: string | null;
+};
 export type ConfigHealthState = {
   global: ConfigInspection | null;
   project: ConfigInspection | null;
   issues: HealthIssue[];
   schema: SchemaState;
+  schemaChanges: SchemaChangeReport | null;
+  runtime: CodexRuntimeInfo | null;
 };
 
 function issuesForInspection(inspection: ConfigInspection | null, schema: unknown, canWarnUnknown: boolean): HealthIssue[] {
@@ -53,11 +62,14 @@ export async function inspectHealth(projectPath: string, forceSchema = false): P
   const projectPromise = projectPath
     ? invoke<ConfigInspection>('inspect_config', { scope: { kind: 'project', projectPath } })
     : Promise.resolve<ConfigInspection | null>(null);
-  const [{ schema, state }, global, project] = await Promise.all([schemaPromise, globalPromise, projectPromise]);
+  const runtimePromise = invoke<CodexRuntimeInfo>('get_codex_runtime_info', {}).catch(() => null);
+  const [{ schema, state }, global, project, runtime] = await Promise.all([schemaPromise, globalPromise, projectPromise, runtimePromise]);
   return {
     global,
     project,
     schema: state,
+    schemaChanges: readSchemaChangeReport(),
+    runtime,
     issues: [
       ...issuesForInspection(global, schema, state.canWarnUnknown),
       ...issuesForInspection(project, schema, state.canWarnUnknown),

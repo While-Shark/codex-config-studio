@@ -423,3 +423,16 @@ input::placeholder { color: var(--muted2); }
 @media (max-width: 780px) {
   .overview-metrics { grid-template-columns: 1fr; }
 }
+
+
+.health-runtime { margin-top: 8px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel2); }
+.health-runtime span { font-family: var(--mono); font-size: 10px; color: var(--text); }
+.health-change-empty { margin-top: 8px; font-size: 10px; color: var(--muted2); }
+.schema-change-details ul { display: grid; gap: 5px; margin-top: 8px; padding: 0; list-style: none; }
+.schema-change-details li { display: grid; grid-template-columns: 18px minmax(0,1fr); gap: 6px; align-items: start; }
+.schema-change-details code { font-family: var(--mono); font-size: 10px; color: var(--text); overflow-wrap: anywhere; }
+.schema-change-kind { font-family: var(--mono); font-weight: 800; font-size: 11px; text-align: center; }
+.schema-change-kind.added { color: var(--ok); }
+.schema-change-kind.removed { color: var(--danger); }
+.schema-change-kind.changed { color: var(--warning); }
+.schema-change-details > small { display: block; margin-top: 6px; color: var(--muted2); font-size: 9px; }

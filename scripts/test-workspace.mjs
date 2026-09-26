@@ -123,3 +123,15 @@ test('tab arrow, Home and End navigation activate real adjacent controls',()=>{
   buttons[0].handlers.keydown({key:'End',preventDefault(){}});assert.equal(selected.pop(),'3');
   buttons[3].handlers.keydown({key:'Home',preventDefault(){}});assert.equal(selected.pop(),'0');
 });
+
+
+test('native health plumbing registers Codex version detection and packaged CSP permits only official schema hosts',()=>{
+  const lib=readFileSync(resolve(root,'src-tauri/src/lib.rs'),'utf8');
+  const tauri=JSON.parse(readFileSync(resolve(root,'src-tauri/tauri.conf.json'),'utf8'));
+  assert.match(lib,/async fn get_codex_runtime_info\(\)/);
+  assert.match(lib,/get_codex_runtime_info,/);
+  const csp=tauri.app.security.csp;
+  assert.match(csp,/https:\/\/raw\.githubusercontent\.com/);
+  assert.match(csp,/https:\/\/developers\.openai\.com/);
+  assert.doesNotMatch(csp,/connect-src[^;]*\*/);
+});
