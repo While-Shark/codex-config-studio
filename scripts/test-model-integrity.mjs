@@ -9,18 +9,18 @@ const integrity=loadTypeScript(resolve(root,'src/model-integrity.ts'));
 
 test('global integrity target uses the global managed values',()=>{
   assert.deepEqual(
-    integrity.resolveIntegrityTarget({model:'gpt-6-luna',modelReasoningEffort:'xhigh'},'global',null),
+    JSON.parse(JSON.stringify(integrity.resolveIntegrityTarget({model:'gpt-6-luna',modelReasoningEffort:'xhigh'},'global',null))),
     {model:'gpt-6-luna',reasoning:'xhigh'},
   );
 });
 
 test('project target resolves inheritance field by field',()=>{
   assert.deepEqual(
-    integrity.resolveIntegrityTarget(
+    JSON.parse(JSON.stringify(integrity.resolveIntegrityTarget(
       {model:'gpt-6-sol',modelReasoningEffort:'high'},
       'project',
       {model:null,modelReasoningEffort:'xhigh'},
-    ),
+    ))),
     {model:'gpt-6-sol',reasoning:'xhigh'},
   );
 });
