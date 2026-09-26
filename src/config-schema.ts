@@ -100,8 +100,10 @@ function storeAuthoritativeChanges(next:CachedSchema):void {
     if(baseline&&baseline.fetchedAt!==next.fetchedAt){
       const report:SchemaChangeReport={fromFetchedAt:baseline.fetchedAt,toFetchedAt:next.fetchedAt,changes:compareSchemas(baseline.schema,next.schema)};
       localStorage.setItem(CHANGE_REPORT_KEY,JSON.stringify(report));
-      localStorage.setItem(PREVIOUS_AUTHORITY_KEY,JSON.stringify(baseline));
     }
+    // Keep the last authoritative snapshot independently from the active cache.
+    // A temporary fallback refresh must not erase the comparison baseline.
+    localStorage.setItem(PREVIOUS_AUTHORITY_KEY,JSON.stringify(next));
   }catch{/* optional telemetry cache */}
 }
 export function readSchemaChangeReport():SchemaChangeReport|null {
