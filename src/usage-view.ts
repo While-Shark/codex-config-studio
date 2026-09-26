@@ -111,6 +111,15 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
       }).join('') + '</div><p class="usage-panel-note">' + esc(copy.modelTrendHint) + '</p>'
     : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
 
+  const rerouteHtml = summary.rerouteEvents.length
+    ? '<div class="reroute-list">' + summary.rerouteEvents.slice(0,20).map(event => {
+        const agent = event.isSubagent ? (event.agentRole || copy.uncategorizedAgent) : copy.rootAgent;
+        return '<div class="reroute-row"><div class="reroute-main"><strong><code>' + esc(event.fromModel) + '</code><span>→</span><code>' +
+          esc(event.toModel) + '</code></strong><small>' + esc(dateLabel(event.timestamp, options.locale)) + ' · ' + esc(agent) +
+          '</small></div><div class="reroute-reason">' + esc(event.reason) + '</div></div>';
+      }).join('') + '</div><p class="usage-panel-note">' + esc(copy.rerouteTimelineHint) + '</p>'
+    : '<div class="empty-state">' + esc(copy.noReroutes) + '</div><p class="usage-panel-note">' + esc(copy.rerouteTimelineHint) + '</p>';
+
   const rootAverage = summary.rootSessions > 0 ? summary.rootUsage / summary.rootSessions : 0;
   const subagentAverage = summary.subagentSessions > 0 ? summary.subagentUsage / summary.subagentSessions : 0;
   const agentRoleHtml = summary.agentRoles.length
@@ -150,6 +159,7 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
     '<div class="usage-metrics">' + metricHtml + '</div>' +
     '<section class="usage-panel"><h3>' + esc(copy.dailyTrend) + '</h3>' + trendHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.modelTrend) + '</h3>' + modelTrendHtml + '</section>' +
+    '<section class="usage-panel"><h3>' + esc(copy.rerouteTimeline) + '</h3>' + rerouteHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.agentAnalysis) + '</h3>' + agentAnalysisHtml + '</section>' +
     '<div class="usage-panels"><section class="usage-panel"><h3>' + esc(copy.modelUsage) + '</h3><div class="usage-model-list">' + modelHtml + '</div></section>' +
     '<section class="usage-panel"><h3>' + esc(copy.agentUsage) + '</h3>' + agentHtml + '</section></div>' +
