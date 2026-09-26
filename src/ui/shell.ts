@@ -42,6 +42,7 @@ export function renderShell({ projectPath, accent }: ShellOptions): string {
           <p id="createNotice" class="create-notice hidden">${copy.autoCreate}</p>
         </section>
         <section id="healthCard" class="health-card" aria-live="polite"></section>
+        <section id="integrityCard" class="integrity-card" aria-live="polite"></section>
         <section class="review-card">
           <div class="rail-title"><h3>${previewText(getLocale()).title}</h3><span id="changeCount" class="count-badge">0</span></div>
           <p id="previewSummary" class="rail-help" aria-live="polite"></p>
