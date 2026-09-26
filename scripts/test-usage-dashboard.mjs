@@ -5,6 +5,7 @@ import { dirname, resolve } from 'node:path';
 import { loadTypeScript } from './helpers/load-typescript.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const usage=loadTypeScript(resolve(root,'src/usage-dashboard.ts'));
+const pricing=loadTypeScript(resolve(root,'src/pricing-catalog.ts'));
 
 test('usage summary aggregates sessions, agents and models without losing token categories',()=>{
   const report={source:'x',filesScanned:2,filesMatched:2,parseErrors:0,skippedLargeFiles:0,truncated:false,sessions:[
@@ -93,4 +94,32 @@ test('observable reroute timeline is sorted newest first and keeps session conte
   const events=JSON.parse(JSON.stringify(usage.summarizeUsage(report).rerouteEvents));
   assert.equal(events.length,2);assert.equal(events[0].threadId,'child');assert.equal(events[0].agentRole,'worker');
   assert.equal(events[1].threadId,'root');assert.equal(events[1].isSubagent,false);
+});
+
+test('reference cost avoids double charging cached input and includes reasoning inside output',()=>{
+  const row={model:'gpt-6-luna',reasoning:'xhigh',responses:1,usage:{
+    inputTokens:1000000,cachedInputTokens:400000,cacheWriteInputTokens:0,
+    outputTokens:200000,reasoningOutputTokens:50000,totalTokens:1200000
+  }};
+  const cost=pricing.estimateModelCost(row);
+  // 600k ordinary input * $0.10 + 400k cached * $0.01 + 200k output * $0.50
+  assert.equal(Number(cost.toFixed(6)),0.164);
+});
+
+test('reference cost reports pricing coverage and unknown models without inventing rates',()=>{
+  const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
+  const rows=[
+    {model:'gpt-6-sol',reasoning:'high',responses:1,usage:tokens(100)},
+    {model:'custom-local-model',reasoning:null,responses:1,usage:tokens(300)}
+  ];
+  const result=JSON.parse(JSON.stringify(pricing.estimateUsageCost(rows,400)));
+  assert.equal(result.coveredTokens,100);assert.equal(result.totalTokens,400);assert.equal(result.coverage,0.25);
+  assert.deepEqual(result.unpricedModels,['custom-local-model']);
+});
+
+test('reference pricing snapshot is versioned and staleness is deterministic',()=>{
+  assert.equal(pricing.CODEX_USD_REFERENCE_CATALOG.snapshotDate,'2026-09-26');
+  assert.equal(pricing.pricingSnapshotAgeDays(pricing.CODEX_USD_REFERENCE_CATALOG,Date.UTC(2026,8,26,12)),0);
+  assert.equal(pricing.pricingSnapshotAgeDays(pricing.CODEX_USD_REFERENCE_CATALOG,Date.UTC(2026,9,28,12)),32);
+  assert.equal(pricing.formatUsd(0.12345),'$0.1235');
 });
