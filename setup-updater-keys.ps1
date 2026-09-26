@@ -1,6 +1,7 @@
 param(
   [string]$Repository = "While-Shark/codex-config-studio",
-  [string]$KeyPath = "$HOME\.tauri\codex-config-studio.key"
+  [string]$KeyPath = "$HOME\.tauri\codex-config-studio.key",
+  [string]$Password = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,7 +12,7 @@ if ((Test-Path $KeyPath) -or (Test-Path "$KeyPath.pub")) {
   throw "Key already exists at $KeyPath. Refusing to overwrite it."
 }
 
-npm run tauri signer generate -- --ci -w $KeyPath
+npm run tauri signer generate -- -p $Password -w $KeyPath
 
 $pubPath = "$KeyPath.pub"
 if (!(Test-Path $pubPath)) { throw "Public key was not created at $pubPath" }
@@ -22,11 +23,13 @@ $private = (Get-Content -Raw $KeyPath).Trim()
 if (Get-Command gh -ErrorAction SilentlyContinue) {
   $private | gh secret set TAURI_SIGNING_PRIVATE_KEY --repo $Repository
   gh secret set TAURI_UPDATER_PUBKEY --repo $Repository --body $pub
+  gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --repo $Repository --body $Password
   Write-Host "GitHub updater secrets configured for $Repository."
 } else {
   Write-Host "GitHub CLI was not found. Add these repository secrets manually:"
   Write-Host "  TAURI_SIGNING_PRIVATE_KEY = contents of $KeyPath"
   Write-Host "  TAURI_UPDATER_PUBKEY      = contents of $pubPath"
+  Write-Host "  TAURI_SIGNING_PRIVATE_KEY_PASSWORD = the password passed to this script (empty by default)"
 }
 
 Write-Host ""
