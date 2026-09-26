@@ -132,8 +132,9 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
   const unpriced = cost.unpricedModels.length
     ? '<p class="cost-unpriced"><strong>' + esc(copy.unpricedModels) + ':</strong> ' + esc(cost.unpricedModels.join(', ')) + '</p>'
     : '';
+  const costDisplay = cost.coverage <= 0 ? '—' : (cost.coverage < 0.999999 ? '≥' : '') + formatUsd(cost.usd);
   const costHtml =
-    '<div class="cost-summary"><div><span>' + esc(copy.referenceCost) + '</span><strong>' + esc(formatUsd(cost.usd)) +
+    '<div class="cost-summary"><div><span>' + esc(copy.referenceCost) + '</span><strong>' + esc(costDisplay) +
     '</strong></div><div><span>' + esc(copy.priceCoverage) + '</span><strong>' + (cost.coverage*100).toFixed(1) +
     '%</strong></div></div>' + costRows +
     '<div class="cost-meta"><span>' + esc(copy.pricingSnapshot) + ': ' + esc(CODEX_USD_REFERENCE_CATALOG.snapshotDate) +
