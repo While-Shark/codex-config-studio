@@ -853,7 +853,7 @@ function askConfirm(spec:ConfirmSpec):Promise<boolean> {
 function finishConfirm(value:boolean):void { const modal=document.querySelector<HTMLElement>('#confirmModal');modal?.classList.add('hidden');const r=confirmResolver;confirmResolver=null;setModalActive(false);r?.(value); }
 
 function bindStaticEvents():void {
-  document.querySelector<HTMLButtonElement>('#updateCheckBtn')?.addEventListener('click',()=>{if(updateState.status==='available'){void runUpdateCheck(false);}else void runUpdateCheck(false);});
+  document.querySelector<HTMLButtonElement>('#updateCheckBtn')?.addEventListener('click',()=>{void runUpdateCheck(false);});
   $<HTMLSelectElement>('#languageSelect').onchange=e=>{if(busy||confirmResolver||!validateModelPickers(document)){(e.currentTarget as HTMLSelectElement).value=getLocale();return;}setLocale((e.currentTarget as HTMLSelectElement).value as Locale);document.documentElement.lang=getLocale();renderApp();};
   $<HTMLSelectElement>('#themeMode').value=themeMode;
   $<HTMLSelectElement>('#themeMode').onchange=e=>{themeMode=(e.currentTarget as HTMLSelectElement).value as ThemeMode;safeSet('codex-config-studio.theme.mode',themeMode);applyTheme();};
