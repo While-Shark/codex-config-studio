@@ -32,6 +32,16 @@ import { icon } from './ui/icons';
 import { bindTabs, bindModalKeyboard, setModalActive, closePopovers } from './ui/interactions';
 import { inspectHealth, type ConfigHealthState, type HealthIssue } from './config-health';
 import { healthText } from './config-schema';
+import {
+  integrityScopeKey,
+  integrityText,
+  loadIntegrityLock,
+  removeIntegrityLock,
+  resolveIntegrityTarget,
+  sameIntegrityTarget,
+  saveIntegrityLock,
+  type IntegrityTarget,
+} from './model-integrity';
 
 type ScopeKind = 'global' | 'project';
 type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'history';
@@ -92,6 +102,8 @@ let viewedPresetVersion = CURRENT_PRESET_VERSION;
 let draftPresetSource: PresetReference | null = null;
 let values = structuredClone(presets[2].values);
 let lastSnapshot: ConfigSnapshot | null = null;
+let globalSnapshot: ConfigSnapshot | null = null;
+let globalIntegrityLoading = false;
 let currentStatus: { key: StatusKey; ok: boolean } = { key: 'status.unread', ok: false };
 let activeTaskMode: TaskModeId = loadActiveTaskMode();
 let taskPreferences = loadTaskPreferences();
@@ -294,7 +306,7 @@ function renderRightRail():void {
   const restore=document.querySelector<HTMLButtonElement>('#restoreBtn');if(restore)restore.disabled=busy||!lastSnapshot?.originalBackupExists;
   const clear=document.querySelector<HTMLButtonElement>('#clearBtn');if(clear)clear.disabled=busy||!lastSnapshot;
   const editor=document.querySelector<HTMLElement>('#leftContent');if(editor)editor.inert=busy||currentStatus.key==='status.reading';
-  renderConfigHealth();renderChanges();renderHistory();renderPresetOrigin();renderStatus();
+  renderConfigHealth();renderModelIntegrity();renderChanges();renderHistory();renderPresetOrigin();renderStatus();
 }
 function renderChanges():void {
   const copy=previewText(getLocale());
@@ -320,6 +332,72 @@ function renderChanges():void {
   }
   // Show every field here; getChanges() remains the source of the confirmation diff.
   list.innerHTML=notice+renderPreviewRows(rows,copy);
+}
+
+function currentIntegrityKey():string {
+  return integrityScopeKey(scope, projectPath);
+}
+function effectiveIntegrityTarget(snapshotValues:ManagedConfig|null=lastSnapshot?.values??null):IntegrityTarget|null {
+  if(scope==='global') return resolveIntegrityTarget(snapshotValues,'global',null);
+  return resolveIntegrityTarget(globalSnapshot?.values??null,'project',snapshotValues);
+}
+function draftIntegrityTarget(draft:ManagedConfig=values):IntegrityTarget|null {
+  if(scope==='global') return resolveIntegrityTarget(draft,'global',null);
+  return resolveIntegrityTarget(globalSnapshot?.values??null,'project',draft);
+}
+function integrityTargetLabel(target:IntegrityTarget|null):string {
+  if(!target) return '—';
+  return `${target.model??'—'} · ${target.reasoning??'—'}`;
+}
+async function loadGlobalIntegritySnapshot():Promise<void> {
+  if(scope!=='project'||globalIntegrityLoading)return;
+  globalIntegrityLoading=true;
+  try{
+    const snapshot=await safeInvoke<ConfigSnapshot>('read_config',{scope:{kind:'global',projectPath:null}},6000);
+    if(scope==='project'){globalSnapshot=snapshot;renderModelIntegrity();}
+  }catch(error){console.warn('model integrity global config',error);}
+  finally{globalIntegrityLoading=false;}
+}
+function renderModelIntegrity():void {
+  const host=document.querySelector<HTMLElement>('#integrityCard');if(!host)return;
+  const copy=integrityText(getLocale());
+  if(!hasScope()||!lastSnapshot){
+    host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${esc(copy.title)}</h3><span class="integrity-badge">${esc(copy.unlocked)}</span></div><p class="rail-help">${esc(copy.scopeNote)}</p>`;
+    return;
+  }
+  if(scope==='project'&&!globalSnapshot&&!globalIntegrityLoading)void loadGlobalIntegritySnapshot();
+  const key=currentIntegrityKey();
+  const lock=loadIntegrityLock(key);
+  const effective=effectiveIntegrityTarget();
+  const draft=draftIntegrityTarget();
+  const drift=!!lock&&!sameIntegrityTarget(lock,effective);
+  const draftChangesLock=!!lock&&!!draft&&!sameIntegrityTarget(lock,draft);
+  host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${esc(copy.title)}</h3><span class="integrity-badge ${lock?'locked':''}">${esc(lock?copy.locked:copy.unlocked)}</span></div>
+    <div class="integrity-grid">
+      ${lock?`<div class="integrity-row"><span>${esc(copy.target)}</span><code>${esc(integrityTargetLabel(lock))}</code></div>`:''}
+      <div class="integrity-row"><span>${esc(copy.effective)}</span><code>${esc(integrityTargetLabel(effective))}</code></div>
+      <div class="integrity-row"><span>${esc(copy.runtime)}</span><code>${esc(copy.runtimeUnknown)}</code></div>
+    </div>
+    ${lock?`<p class="integrity-state ${drift?'warn':'ok'}">${drift?'⚠':'✓'} ${esc(drift?copy.drift:copy.healthy)}</p>`:''}
+    ${draftChangesLock?`<p class="rail-help">${esc(copy.pendingChange)}</p>`:''}
+    <div class="integrity-actions">
+      ${lock?`<button id="restoreIntegrityTarget" class="text-button" ${drift?'':'disabled'}>${esc(copy.restoreTarget)}</button><button id="unlockIntegrity" class="text-button danger-text">${esc(copy.unlock)}</button>`:`<button id="lockIntegrity" class="text-button" ${effective?.model?'':'disabled'}>${esc(copy.lockCurrent)}</button>`}
+    </div>
+    <p class="rail-help">${esc(copy.scopeNote)}</p>`;
+  document.querySelector<HTMLButtonElement>('#lockIntegrity')?.addEventListener('click',()=>{
+    const target=effectiveIntegrityTarget();
+    if(!target?.model){toast(copy.noModel,true);return;}
+    saveIntegrityLock(key,target);toast(copy.enabled);renderModelIntegrity();
+  });
+  document.querySelector<HTMLButtonElement>('#unlockIntegrity')?.addEventListener('click',()=>{
+    removeIntegrityLock(key);toast(copy.disabled);renderModelIntegrity();
+  });
+  document.querySelector<HTMLButtonElement>('#restoreIntegrityTarget')?.addEventListener('click',()=>{
+    const target=loadIntegrityLock(key);if(!target)return;
+    values.model=target.model;values.modelReasoningEffort=target.reasoning;
+    draftPresetSource=null;activePreset='';
+    renderWorkspace();renderRightRail();
+  });
 }
 
 function healthScopeLabel(kind:'global'|'project'):string {
@@ -507,12 +585,13 @@ async function loadConfig():Promise<void> {
   try{
     const snap=await safeInvoke<ConfigSnapshot>('read_config',{scope:requestScope()});
     if(request!==configReadId||target!==JSON.stringify(requestScope()))return;
+    if(scope==='project')globalSnapshot=null;
     applySnapshot(snap);setStatus(snap.exists?'status.read':'status.missing',true);
-  }catch(e){if(request===configReadId){lastSnapshot=null;setStatus('status.readFailed',false);toast(String(e),true);}}
+  }catch(e){if(request===configReadId){lastSnapshot=null;if(scope==='project')globalSnapshot=null;setStatus('status.readFailed',false);toast(String(e),true);}}
   finally{if(request===configReadId){renderRightRail();void loadConfigHealth(false);}}
 }
 function applySnapshot(snapshot:ConfigSnapshot):void {
-  lastSnapshot=snapshot;values=clone(snapshot.values);draftPresetSource=null;
+  lastSnapshot=snapshot;if(scope==='global')globalSnapshot=snapshot;values=clone(snapshot.values);draftPresetSource=null;
   const match=matchPresetVersion(presets,snapshot.values);
   activePreset=match?.presetId??'';activePresetVersion=match?.versionId??CURRENT_PRESET_VERSION;
   if(match)viewedPresetVersion=match.versionId;
@@ -563,12 +642,31 @@ async function applyChanges():Promise<void> {
   const pending=clone(values), originalDraft=values, target=requestScope(), snapshot=lastSnapshot;
   const archived=reference!==null && presetVersion(reference.versionId)?.archived===true;
   const copy=presetVersionText(getLocale());
+  const integrityCopy=integrityText(getLocale());
+  const lockKey=currentIntegrityKey();
+  const lock=loadIntegrityLock(lockKey);
+  const pendingTarget=draftIntegrityTarget(pending);
+  const changesLockedTarget=!!lock&&!!pendingTarget&&!sameIntegrityTarget(lock,pendingTarget);
   const detail=(snapshot.exists?snapshot.path:t('status.missing')+'\n'+snapshot.path)+(reference?'\n'+presetReferenceLabel(reference,getLocale(),presetText):'');
-  const ok=await askConfirm({title:t('confirm.apply.title'),message:t('confirm.apply.message')+(archived?'\n\n'+copy.warning:''),detail,confirmText:t('action.apply'),changes:changes.map(c=>({label:fieldLabel(c.field),from:c.from,to:c.to}))});
+  const ok=await askConfirm({
+    title:changesLockedTarget?integrityCopy.changeTitle:t('confirm.apply.title'),
+    message:(changesLockedTarget?integrityCopy.changeBody:t('confirm.apply.message'))+(archived?'\n\n'+copy.warning:''),
+    detail,
+    confirmText:changesLockedTarget?integrityCopy.changeConfirm:t('action.apply'),
+    changes:changes.map(c=>({label:fieldLabel(c.field),from:c.from,to:c.to}))
+  });
   if(!ok||busy)return;
   if(values!==originalDraft || lastSnapshot!==snapshot || JSON.stringify(target)!==JSON.stringify(requestScope())){toast(copy.changedScope,true);return;}
   setBusy(true);
-  try{const snap=await safeInvoke<ConfigSnapshot>('apply_config',{scope:target,values:pending,source:presetSource(reference)});applySnapshot(snap);setStatus('status.read',true);await loadHistoryAfterWrite();toast(t('toast.applied'));}
+  try{
+    const snap=await safeInvoke<ConfigSnapshot>('apply_config',{scope:target,values:pending,source:presetSource(reference)});
+    applySnapshot(snap);
+    if(changesLockedTarget){
+      const appliedTarget=effectiveIntegrityTarget(snap.values);
+      if(appliedTarget)saveIntegrityLock(lockKey,appliedTarget);
+    }
+    setStatus('status.read',true);await loadHistoryAfterWrite();toast(t('toast.applied'));
+  }
   catch(e){toast(t('error.applyFailed',{error:String(e)}),true);}
   finally{setBusy(false);renderWorkspace();renderRightRail();}
 }

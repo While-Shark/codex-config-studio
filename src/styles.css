@@ -254,3 +254,18 @@ input::placeholder { color: var(--muted2); }
 .health-issue .danger-text { color: var(--danger); justify-self: start; padding: 3px 0; }
 .health-schema { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 9px; padding-top: 7px; border-top: 1px dashed var(--border); }
 .health-schema span { font-size: 10px; color: var(--muted2); }
+
+
+.integrity-card { padding: 14px 18px; border-bottom: 1px solid var(--border); background: color-mix(in srgb,var(--panel) 97%,var(--accent) 3%); }
+.integrity-card .rail-title h3 { font-size: 12px; }
+.integrity-badge { font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+.integrity-badge.locked { color: var(--ok); border-color: color-mix(in srgb,var(--ok) 45%,var(--border)); background: color-mix(in srgb,var(--ok) 8%,transparent); }
+.integrity-grid { display: grid; gap: 7px; margin-top: 10px; }
+.integrity-row { display: grid; grid-template-columns: 88px minmax(0,1fr); gap: 8px; align-items: start; font-size: 10px; }
+.integrity-row > span { color: var(--muted2); }
+.integrity-row code { font-family: var(--mono); color: var(--text); font-size: 10px; overflow-wrap: anywhere; }
+.integrity-state { margin-top: 9px; font-size: 11px; }
+.integrity-state.ok { color: var(--ok); }
+.integrity-state.warn { color: var(--warning); }
+.integrity-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+.integrity-card .rail-help { margin-top: 7px; }
