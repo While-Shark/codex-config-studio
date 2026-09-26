@@ -23,9 +23,10 @@ const settings={model:'gpt-6-luna',modelReasoningEffort:null,planModeReasoningEf
 function scopeFixture(extra={}) {
   const calls=[],input={value:'/new'};
   const ctx={scope:'project',projectPath:'/a',activeTab:'presets',busy:false,confirmResolver:null,configReadId:0,usageRequestId:0,usageReport:null,usageLoadError:'',lastSnapshot:{values:settings,path:'/a/.codex/config.toml'},draftPresetSource:null,
+    runtimeIntegrity:null,runtimeIntegrityRequestId:0,
     getChanges:()=>[{field:'model'}],workspaceText:ui.workspaceText,getLocale:()=> 'en',
     askConfirm:async spec=>{calls.push(['confirm',spec]);return false;},
-    loadConfig:async()=>calls.push(['load']),loadConfigHealth:async()=>{},loadProjectUsage:async()=>calls.push(['usage']),document:{querySelector:()=>input},...extra};
+    loadConfig:async()=>calls.push(['load']),loadConfigHealth:async()=>{},loadRuntimeIntegrityEvidence:async()=>{},loadProjectUsage:async()=>calls.push(['usage']),document:{querySelector:()=>input},...extra};
   return {ctx,calls,input};
 }
 test('shell has exactly six accessible tabs, one apply action and an isolated dock',()=>{
