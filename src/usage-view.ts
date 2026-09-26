@@ -87,6 +87,17 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
   const agentTotal = summary.rootUsage + summary.subagentUsage;
   const rootShare = agentTotal > 0 ? summary.rootUsage / agentTotal : 0;
   const subShare = agentTotal > 0 ? summary.subagentUsage / agentTotal : 0;
+
+  const trendHtml = summary.dailyTrend.length
+    ? '<div class="usage-trend" role="list">' + summary.dailyTrend.map(day => {
+        const width = Math.max(1, Math.min(100, day.share * 100));
+        return '<div class="usage-trend-row" role="listitem"><div class="usage-trend-label"><span>' + esc(day.day) + '</span>' +
+          (day.estimated ? '<small title="' + esc(copy.estimatedDay) + '">~</small>' : '') +
+          '</div><div class="usage-trend-bar"><i style="width:' + width + '%"></i></div><strong>' +
+          esc(formatTokens(day.usage.totalTokens)) + '</strong></div>';
+      }).join('') + '</div><p class="usage-panel-note">' + esc(copy.trendHint) + '</p>'
+    : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
+
   const agentHtml =
     '<div class="usage-agent-split">' +
       '<div class="usage-agent-row"><div><span>' + esc(copy.rootAgent) + '</span><strong>' + esc(formatTokens(summary.rootUsage)) + ' · ' + (rootShare*100).toFixed(1) + '%</strong></div><div class="usage-bar"><i style="width:' + (summary.rootUsage?Math.max(1,rootShare*100):0) + '%"></i></div></div>' +
@@ -107,6 +118,7 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
   host.innerHTML = '<section class="usage-workspace">' + head +
     warnings.map(value => '<div class="usage-warning">' + esc(value) + '</div>').join('') +
     '<div class="usage-metrics">' + metricHtml + '</div>' +
+    '<section class="usage-panel"><h3>' + esc(copy.dailyTrend) + '</h3>' + trendHtml + '</section>' +
     '<div class="usage-panels"><section class="usage-panel"><h3>' + esc(copy.modelUsage) + '</h3><div class="usage-model-list">' + modelHtml + '</div></section>' +
     '<section class="usage-panel"><h3>' + esc(copy.agentUsage) + '</h3>' + agentHtml + '</section></div>' +
     '<section class="usage-panel"><h3>' + esc(copy.latestSessions) + '</h3><div class="usage-session-list">' + sessionHtml + '</div></section>' +
