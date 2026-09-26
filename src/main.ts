@@ -46,6 +46,7 @@ import { periodSinceDay, periodSinceMs, type UsagePeriod, type UsageReport } fro
 import { renderUsageView } from './usage-view';
 import { recentProjectsFromHistory, type ProjectsUsageOverviewReport, type RecentProject } from './project-overview';
 import { renderProjectOverviewView } from './project-overview-view';
+import { checkStableUpdate, openStableReleasePage, updateText, type UpdateState } from './update-checker';
 
 type ScopeKind = 'global' | 'project';
 type WorkspaceTab = 'overview' | 'presets' | 'task' | 'advanced' | 'usage' | 'history';
@@ -132,6 +133,8 @@ let busy = false;
 let configHealthState: ConfigHealthState | null = null;
 let configHealthLoading = false;
 let configHealthRequestId = 0;
+let updateState: UpdateState = {status:'idle'};
+let updateRequestId = 0;
 let confirmResolver: ((value: boolean) => void) | null = null;
 let themeMode = (safeGet('codex-config-studio.theme.mode') as ThemeMode | null) ?? 'system';
 let accent = (safeGet('codex-config-studio.theme.accent') as Accent | null) ?? 'violet';
@@ -214,6 +217,44 @@ function toast(text:string,error=false):void {
   setTimeout(()=>{ if(e.textContent===text)e.className='toast'; },2800);
 }
 function setStatus(key:StatusKey,ok=true):void { currentStatus={key,ok}; renderStatus(); }
+function renderUpdateStatus():void {
+  const button=document.querySelector<HTMLButtonElement>('#updateCheckBtn');if(!button)return;
+  const copy=updateText(getLocale());
+  const label=button.querySelector('span');
+  button.classList.remove('available','ok','error');
+  button.disabled=updateState.status==='checking';
+  if(updateState.status==='checking'){if(label)label.textContent=copy.checking;return;}
+  if(updateState.status==='available'){
+    button.classList.add('available');
+    if(label)label.textContent=`${copy.available} · v${updateState.latestVersion}`;
+    button.title=`${copy.currentVersion}: ${updateState.currentVersion} · ${copy.latestVersion}: ${updateState.latestVersion}`;
+    return;
+  }
+  if(updateState.status==='current'){button.classList.add('ok');if(label)label.textContent=copy.current;button.title=`v${updateState.currentVersion}`;return;}
+  if(updateState.status==='error'){button.classList.add('error');if(label)label.textContent=copy.check;button.title=`${copy.failed}: ${updateState.message}`;return;}
+  if(label)label.textContent=copy.check;button.title='';
+}
+async function runUpdateCheck(silent=false):Promise<void> {
+  if(updateState.status==='checking')return;
+  const request=++updateRequestId;
+  updateState={status:'checking'};renderUpdateStatus();
+  const next=await checkStableUpdate();
+  if(request!==updateRequestId)return;
+  updateState=next;renderUpdateStatus();
+  if(next.status==='available'&&!silent){
+    const copy=updateText(getLocale());
+    const openRelease=await askConfirm({
+      title:copy.available,
+      message:`${copy.currentVersion}: ${next.currentVersion}\n${copy.latestVersion}: ${next.latestVersion}`,
+      detail:next.notes||undefined,
+      confirmText:copy.openRelease,
+      readOnly:true,
+    });
+    if(openRelease)try{await openStableReleasePage();}catch(error){toast(String(error),true);}
+  }else if(next.status==='current'&&!silent)toast(copy.current);
+  else if(next.status==='error'&&!silent)toast(`${updateText(getLocale()).failed}: ${next.message}`,true);
+}
+
 function renderStatus():void {
   const e=document.querySelector<HTMLElement>('#saveState');if(!e)return;
   const dirty=getChanges().length>0,copy=workspaceText(getLocale());
@@ -228,6 +269,7 @@ function renderApp():void {
   renderWorkspace();
   renderRightRail();
   renderStatus();
+  renderUpdateStatus();
   applyTheme();
 }
 
@@ -803,6 +845,7 @@ function askConfirm(spec:ConfirmSpec):Promise<boolean> {
 function finishConfirm(value:boolean):void { const modal=document.querySelector<HTMLElement>('#confirmModal');modal?.classList.add('hidden');const r=confirmResolver;confirmResolver=null;setModalActive(false);r?.(value); }
 
 function bindStaticEvents():void {
+  document.querySelector<HTMLButtonElement>('#updateCheckBtn')?.addEventListener('click',()=>{if(updateState.status==='available'){void openStableReleasePage().catch(error=>toast(String(error),true));}else void runUpdateCheck(false);});
   $<HTMLSelectElement>('#languageSelect').onchange=e=>{if(busy||confirmResolver||!validateModelPickers(document)){(e.currentTarget as HTMLSelectElement).value=getLocale();return;}setLocale((e.currentTarget as HTMLSelectElement).value as Locale);document.documentElement.lang=getLocale();renderApp();};
   $<HTMLSelectElement>('#themeMode').value=themeMode;
   $<HTMLSelectElement>('#themeMode').onchange=e=>{themeMode=(e.currentTarget as HTMLSelectElement).value as ThemeMode;safeSet('codex-config-studio.theme.mode',themeMode);applyTheme();};
@@ -830,4 +873,4 @@ matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{if(th
 document.documentElement.lang=getLocale();
 applyTheme();
 renderApp();
-Promise.all([loadConfig(),loadHistory()]);
+Promise.all([loadConfig(),loadHistory(),runUpdateCheck(true)]);
