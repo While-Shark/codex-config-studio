@@ -1,5 +1,6 @@
 import { icon } from './ui/icons';
 import { formatTokens, summarizeUsage, usageText, type UsagePeriod, type UsageReport } from './usage-dashboard';
+import { CODEX_USD_REFERENCE_CATALOG, estimateUsageCost, formatUsd, pricingSnapshotAgeDays } from './pricing-catalog';
 
 export type UsageViewOptions = {
   locale: string;
@@ -120,6 +121,26 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
       }).join('') + '</div><p class="usage-panel-note">' + esc(copy.rerouteTimelineHint) + '</p>'
     : '<div class="empty-state">' + esc(copy.noReroutes) + '</div><p class="usage-panel-note">' + esc(copy.rerouteTimelineHint) + '</p>';
 
+  const cost = estimateUsageCost(summary.modelRows, summary.usage.totalTokens);
+  const priceAgeDays = pricingSnapshotAgeDays();
+  const costRows = cost.modelRows.length
+    ? '<div class="cost-model-list">' + cost.modelRows.slice(0,8).map(row =>
+        '<div class="cost-model-row"><div><code>' + esc(row.model) + '</code><small>' + esc(row.reasoning ?? '—') +
+        '</small></div><strong>' + esc(formatUsd(row.usd)) + '</strong></div>'
+      ).join('') + '</div>'
+    : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
+  const unpriced = cost.unpricedModels.length
+    ? '<p class="cost-unpriced"><strong>' + esc(copy.unpricedModels) + ':</strong> ' + esc(cost.unpricedModels.join(', ')) + '</p>'
+    : '';
+  const costHtml =
+    '<div class="cost-summary"><div><span>' + esc(copy.referenceCost) + '</span><strong>' + esc(formatUsd(cost.usd)) +
+    '</strong></div><div><span>' + esc(copy.priceCoverage) + '</span><strong>' + (cost.coverage*100).toFixed(1) +
+    '%</strong></div></div>' + costRows +
+    '<div class="cost-meta"><span>' + esc(copy.pricingSnapshot) + ': ' + esc(CODEX_USD_REFERENCE_CATALOG.snapshotDate) +
+    '</span><span>' + esc(CODEX_USD_REFERENCE_CATALOG.sourceLabel) + '</span></div>' + unpriced +
+    (priceAgeDays>30?'<div class="usage-warning">' + esc(copy.pricingStale) + '</div>':'') +
+    '<p class="usage-panel-note">' + esc(copy.referenceCostHint) + '</p>';
+
   const rootAverage = summary.rootSessions > 0 ? summary.rootUsage / summary.rootSessions : 0;
   const subagentAverage = summary.subagentSessions > 0 ? summary.subagentUsage / summary.subagentSessions : 0;
   const agentRoleHtml = summary.agentRoles.length
@@ -160,6 +181,7 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
     '<section class="usage-panel"><h3>' + esc(copy.dailyTrend) + '</h3>' + trendHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.modelTrend) + '</h3>' + modelTrendHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.rerouteTimeline) + '</h3>' + rerouteHtml + '</section>' +
+    '<section class="usage-panel"><h3>' + esc(copy.referenceCost) + '</h3>' + costHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.agentAnalysis) + '</h3>' + agentAnalysisHtml + '</section>' +
     '<div class="usage-panels"><section class="usage-panel"><h3>' + esc(copy.modelUsage) + '</h3><div class="usage-model-list">' + modelHtml + '</div></section>' +
     '<section class="usage-panel"><h3>' + esc(copy.agentUsage) + '</h3>' + agentHtml + '</section></div>' +
