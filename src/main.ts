@@ -251,7 +251,7 @@ async function runUpdateCheck(silent=false):Promise<void> {
       readOnly:true,
     });
     if(openRelease)try{await openStableReleasePage();}catch(error){toast(String(error),true);}
-  }else if(next.status==='current'&&!silent)toast(copy.current);
+  }else if(next.status==='current'&&!silent)toast(updateText(getLocale()).current);
   else if(next.status==='error'&&!silent)toast(`${updateText(getLocale()).failed}: ${next.message}`,true);
 }
 
