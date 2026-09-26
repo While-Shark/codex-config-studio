@@ -23,7 +23,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost https://raw.githubusercontent.com https://developers.openai.com; img-src 'self' data:"
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost https://raw.githubusercontent.com https://developers.openai.com https://api.github.com; img-src 'self' data:"
     }
   },
   "bundle": {
