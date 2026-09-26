@@ -515,6 +515,17 @@ function renderConfigHealth():void {
   const state=configHealthState;
   const schemaText=state.schema.status==='fresh'?copy.fresh:state.schema.status==='stale'?copy.stale:copy.unavailable;
   const issueCount=state.issues.length;
+  const runtimeText=state.runtime?.installed
+    ? `${copy.codexVersion}: ${state.runtime.version??state.runtime.rawVersion??'—'}`
+    : copy.codexMissing;
+  const changes=state.schemaChanges?.changes??[];
+  const added=changes.filter(change=>change.kind==='added').length;
+  const removed=changes.filter(change=>change.kind==='removed').length;
+  const changed=changes.filter(change=>change.kind==='changed').length;
+  const changeSummary=changes.length
+    ? `${copy.ruleChanges}: +${added} ${copy.fieldsAdded} · -${removed} ${copy.fieldsRemoved} · ~${changed} ${copy.fieldsChanged}`
+    : copy.noRuleChanges;
+  const changeDetails=changes.slice(0,12).map(change=>`<li><span class="schema-change-kind ${change.kind}">${change.kind==='added'?'+':change.kind==='removed'?'-':'~'}</span><code>${esc(change.path)}</code></li>`).join('');
   const issueDetails=state.issues.map((issue,index)=>`<div class="health-issue">
     <div><strong>${esc(copy.unknown)}</strong><span>${esc(healthScopeLabel(issue.scopeKind))}</span></div>
     <code>${esc(issue.keyLabel)}</code>
@@ -525,7 +536,10 @@ function renderConfigHealth():void {
   const rows=[state.global?healthStatusLine(state.global,'global'):'',state.project?healthStatusLine(state.project,'project'):''].filter(Boolean);
   host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${copy.title}</h3><span class="health-status-dot ${issueCount?'warn':'ok'}"></span></div>
     <div class="health-summary">${rows.map(row=>`<p>${esc(row)}</p>`).join('')}<p class="${issueCount?'warning-text':'ok-text'}">${issueCount?`⚠ ${issueCount} ${copy.issues}`:`✓ ${copy.healthy}`}</p></div>
+    <div class="health-runtime"><span>${esc(runtimeText)}</span></div>
     <details class="health-details" ${issueCount?'':'hidden'}><summary>${copy.viewProblems}</summary>${issueDetails}</details>
+    <details class="health-details schema-change-details" ${changes.length?'':'hidden'}><summary>${esc(changeSummary)}</summary><ul>${changeDetails}</ul>${changes.length>12?`<small>+${changes.length-12}</small>`:''}</details>
+    ${changes.length?'' : `<p class="health-change-empty">${esc(changeSummary)}</p>`}
     <div class="health-schema"><span>${esc(schemaText)}</span><button id="refreshHealthRules" class="text-button">${copy.refreshRules}</button></div>
     <p class="rail-help">${esc(copy.preserved)}</p><p class="rail-help">${esc(copy.sessionNote)}</p>`;
   bindHealthActions();
