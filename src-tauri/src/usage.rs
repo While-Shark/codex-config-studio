@@ -759,7 +759,7 @@ fn best_overview_project(builder: &SessionBuilder, projects: &[OverviewProject])
             };
             if normalized_path_is_within(cwd, root) {
                 let specificity = normalize_path_text(root).len();
-                if best.is_none_or(|(_, current)| specificity > current) {
+                if best.map_or(true, |(_, current)| specificity > current) {
                     best = Some((index, specificity));
                 }
             }
