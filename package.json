@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run test:preview && npm run test:history && npm run test:models && npm run test:presets && npm run test:workspace && npm run test:health && npm run test:integrity && npm run test:usage && npm run test:overview && tsc && vite build",
+    "build": "npm run test:preview && npm run test:history && npm run test:models && npm run test:presets && npm run test:workspace && npm run test:health && npm run test:integrity && npm run test:usage && npm run test:overview && npm run test:updates && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
@@ -19,7 +19,8 @@
     "test:health": "node --test scripts/test-config-health.mjs",
     "test:integrity": "node --test scripts/test-model-integrity.mjs",
     "test:usage": "node --test scripts/test-usage-dashboard.mjs",
-    "test:overview": "node --test scripts/test-project-overview.mjs"
+    "test:overview": "node --test scripts/test-project-overview.mjs",
+    "test:updates": "node --test scripts/test-update-checker.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
