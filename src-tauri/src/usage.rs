@@ -685,6 +685,11 @@ mod tests {
         assert_eq!(session.models.iter().map(|item| item.usage.total_tokens).sum::<i64>(), 185);
         assert_eq!(session.models[0].model, "gpt-6-luna");
         assert_eq!(session.models[1].model, "gpt-6-sol");
+        assert_eq!(session.daily_usage.len(), 1);
+        assert_eq!(session.daily_usage[0].day, "2026-09-26");
+        assert_eq!(session.daily_usage[0].responses, 2);
+        assert_eq!(session.daily_usage[0].usage.total_tokens, 185);
+        assert!(!session.daily_usage[0].estimated);
     }
 
     #[test]
@@ -701,6 +706,18 @@ mod tests {
         assert_eq!(session.usage_source, "legacy_session_total");
         assert_eq!(session.usage.total_tokens, 100);
         assert_eq!(session.models[0].model, "gpt-5.6-luna");
+        assert_eq!(session.daily_usage.len(), 1);
+        assert_eq!(session.daily_usage[0].day, "2026-09-26");
+        assert_eq!(session.daily_usage[0].usage.total_tokens, 100);
+        assert!(session.daily_usage[0].estimated);
+    }
+
+    #[test]
+    fn invalid_or_short_timestamps_do_not_create_daily_buckets() {
+        assert_eq!(utc_day(""), None);
+        assert_eq!(utc_day("2026-9-2"), None);
+        assert_eq!(utc_day("2026/09/26T01:00:00Z"), None);
+        assert_eq!(utc_day("2026-09-26T01:00:00Z"), Some("2026-09-26".to_string()));
     }
 
     #[test]
