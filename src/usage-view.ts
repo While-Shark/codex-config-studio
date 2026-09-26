@@ -111,6 +111,23 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
       }).join('') + '</div><p class="usage-panel-note">' + esc(copy.modelTrendHint) + '</p>'
     : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
 
+  const rootAverage = summary.rootSessions > 0 ? summary.rootUsage / summary.rootSessions : 0;
+  const subagentAverage = summary.subagentSessions > 0 ? summary.subagentUsage / summary.subagentSessions : 0;
+  const agentRoleHtml = summary.agentRoles.length
+    ? '<div class="agent-role-list">' + summary.agentRoles.map(row =>
+        '<div class="agent-role-row"><div><strong>' + esc(row.role === '__unclassified__' ? copy.uncategorizedAgent : row.role) +
+        '</strong><small>' + row.sessions + ' ' + esc(copy.sessions) + ' · ' + row.turns + ' ' + esc(copy.turns) +
+        '</small></div><div class="usage-bar"><i style="width:' + Math.max(1,Math.min(100,row.share*100)) +
+        '%"></i></div><span>' + esc(formatTokens(row.usage.totalTokens)) + '</span><em>' + (row.share*100).toFixed(1) + '%</em></div>'
+      ).join('') + '</div>'
+    : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
+  const agentAnalysisHtml =
+    '<div class="agent-analysis-metrics"><div><span>' + esc(copy.rootAgent) + '</span><strong>' + summary.rootSessions +
+    '</strong><small>' + esc(copy.avgPerSession) + ' ' + esc(formatTokens(rootAverage)) + '</small></div>' +
+    '<div><span>' + esc(copy.subagents) + '</span><strong>' + summary.subagentSessions +
+    '</strong><small>' + esc(copy.avgPerSession) + ' ' + esc(formatTokens(subagentAverage)) + '</small></div></div>' +
+    agentRoleHtml + '<p class="usage-panel-note">' + esc(copy.agentAnalysisHint) + '</p>';
+
   const agentHtml =
     '<div class="usage-agent-split">' +
       '<div class="usage-agent-row"><div><span>' + esc(copy.rootAgent) + '</span><strong>' + esc(formatTokens(summary.rootUsage)) + ' · ' + (rootShare*100).toFixed(1) + '%</strong></div><div class="usage-bar"><i style="width:' + (summary.rootUsage?Math.max(1,rootShare*100):0) + '%"></i></div></div>' +
@@ -133,6 +150,7 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
     '<div class="usage-metrics">' + metricHtml + '</div>' +
     '<section class="usage-panel"><h3>' + esc(copy.dailyTrend) + '</h3>' + trendHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.modelTrend) + '</h3>' + modelTrendHtml + '</section>' +
+    '<section class="usage-panel"><h3>' + esc(copy.agentAnalysis) + '</h3>' + agentAnalysisHtml + '</section>' +
     '<div class="usage-panels"><section class="usage-panel"><h3>' + esc(copy.modelUsage) + '</h3><div class="usage-model-list">' + modelHtml + '</div></section>' +
     '<section class="usage-panel"><h3>' + esc(copy.agentUsage) + '</h3>' + agentHtml + '</section></div>' +
     '<section class="usage-panel"><h3>' + esc(copy.latestSessions) + '</h3><div class="usage-session-list">' + sessionHtml + '</div></section>' +
