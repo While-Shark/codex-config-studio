@@ -28,9 +28,9 @@ function scopeFixture(extra={}) {
     loadConfig:async()=>calls.push(['load']),loadConfigHealth:async()=>{},document:{querySelector:()=>input},...extra};
   return {ctx,calls,input};
 }
-test('shell has exactly four accessible tabs, one apply action and an isolated dock',()=>{
+test('shell has exactly five accessible tabs, one apply action and an isolated dock',()=>{
   const html=shell.renderShell({projectPath:'/test',accent:'violet'});
-  assert.equal((html.match(/role="tab"/g)||[]).length,4);
+  assert.equal((html.match(/role="tab"/g)||[]).length,5);
   assert.equal((html.match(/id="applyBtn"/g)||[]).length,1);
   assert.ok(html.includes('role="tabpanel"'));assert.ok(html.includes('class="apply-dock"'));
   assert.ok(!html.slice(html.indexOf('<aside'),html.indexOf('</aside>')).includes('historyList'));
