@@ -24,6 +24,18 @@ jobs:
         with:
           ref: feature/signed-updater
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Generate required Tauri icons
+        run: npm run tauri icon src-tauri/icons/icon.svg
+
       - name: Install Linux system dependencies
         run: |
           sudo apt-get update
