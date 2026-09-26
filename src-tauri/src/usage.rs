@@ -65,6 +65,17 @@ pub(crate) struct DailyUsage {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct DailyModelUsage {
+    pub day: String,
+    pub model: String,
+    pub reasoning: Option<String>,
+    pub responses: u64,
+    pub usage: UsageTokens,
+    pub estimated: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct UsageSession {
     pub thread_id: String,
     pub session_id: String,
@@ -81,6 +92,7 @@ pub(crate) struct UsageSession {
     pub usage: UsageTokens,
     pub models: Vec<ModelUsage>,
     pub daily_usage: Vec<DailyUsage>,
+    pub daily_model_usage: Vec<DailyModelUsage>,
     pub reroutes: Vec<ModelReroute>,
 }
 
@@ -122,6 +134,7 @@ struct SessionBuilder {
     has_exact_records: bool,
     model_usage: BTreeMap<(String, Option<String>), (u64, UsageTokens)>,
     daily_usage: BTreeMap<String, (u64, UsageTokens)>,
+    daily_model_usage: BTreeMap<(String, String, Option<String>), (u64, UsageTokens)>,
     legacy_total: Option<UsageTokens>,
     reroutes: Vec<ModelReroute>,
 }
@@ -205,12 +218,22 @@ impl SessionBuilder {
                 model: "unknown".to_string(),
                 reasoning: None,
             });
+        let model_key = (selection.model.clone(), selection.reasoning.clone());
         let entry = self
             .model_usage
-            .entry((selection.model, selection.reasoning))
+            .entry(model_key)
             .or_insert_with(|| (0, UsageTokens::default()));
         entry.0 += 1;
         entry.1.add_assign(&usage);
+
+        if let Some(day) = utc_day(timestamp) {
+            let entry = self
+                .daily_model_usage
+                .entry((day, selection.model, selection.reasoning))
+                .or_insert_with(|| (0, UsageTokens::default()));
+            entry.0 += 1;
+            entry.1.add_assign(&usage);
+        }
     }
 
     fn observe_reroute(&mut self, timestamp: &str, payload: &Value) {
@@ -298,10 +321,36 @@ impl SessionBuilder {
                 estimated: false,
             })
             .collect::<Vec<_>>();
+        let mut daily_model_usage = self
+            .daily_model_usage
+            .into_iter()
+            .map(|((day, model, reasoning), (responses, usage))| DailyModelUsage {
+                day,
+                model,
+                reasoning,
+                responses,
+                usage,
+                estimated: false,
+            })
+            .collect::<Vec<_>>();
         if !exact && usage.total_tokens > 0 && daily_usage.is_empty() {
             if let Some(day) = utc_day(&self.updated_at).or_else(|| utc_day(&self.started_at)) {
                 daily_usage.push(DailyUsage {
+                    day: day.clone(),
+                    responses: 0,
+                    usage: usage.clone(),
+                    estimated: true,
+                });
+                let selection = models.first().cloned().unwrap_or(ModelUsage {
+                    model: "unknown".to_string(),
+                    reasoning: None,
+                    responses: 0,
+                    usage: usage.clone(),
+                });
+                daily_model_usage.push(DailyModelUsage {
                     day,
+                    model: selection.model,
+                    reasoning: selection.reasoning,
                     responses: 0,
                     usage: usage.clone(),
                     estimated: true,
@@ -345,6 +394,7 @@ impl SessionBuilder {
             usage,
             models,
             daily_usage,
+            daily_model_usage,
             reroutes: self.reroutes,
         }
     }
@@ -698,6 +748,8 @@ mod tests {
         assert_eq!(session.daily_usage[0].responses, 2);
         assert_eq!(session.daily_usage[0].usage.total_tokens, 185);
         assert!(!session.daily_usage[0].estimated);
+        assert_eq!(session.daily_model_usage.len(), 2);
+        assert_eq!(session.daily_model_usage.iter().map(|item| item.usage.total_tokens).sum::<i64>(), 185);
     }
 
     #[test]
@@ -737,6 +789,9 @@ mod tests {
         assert_eq!(session.daily_usage[0].day, "2026-09-26");
         assert_eq!(session.daily_usage[0].usage.total_tokens, 100);
         assert!(session.daily_usage[0].estimated);
+        assert_eq!(session.daily_model_usage.len(), 1);
+        assert_eq!(session.daily_model_usage[0].model, "gpt-5.6-luna");
+        assert!(session.daily_model_usage[0].estimated);
     }
 
     #[test]
