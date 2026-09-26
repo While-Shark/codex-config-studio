@@ -741,6 +741,23 @@ fn restore_original_inner(scope: ScopeRequest) -> Result<ConfigSnapshot, String>
 }
 
 #[tauri::command]
+async fn get_projects_usage_overview(
+    project_paths: Vec<String>,
+    since_ms: Option<u64>,
+    since_day: Option<String>,
+    max_files: Option<usize>,
+) -> Result<usage::ProjectsUsageOverviewReport, String> {
+    if project_paths.len() > 20 {
+        return Err("Project overview accepts at most 20 project paths".to_string());
+    }
+    tauri::async_runtime::spawn_blocking(move || {
+        usage::collect_projects_usage_overview(project_paths, since_ms, since_day, max_files)
+    })
+    .await
+    .map_err(|e| format!("Project overview task failed: {e}"))?
+}
+
+#[tauri::command]
 async fn get_project_usage(
     project_path: Option<String>,
     since_ms: Option<u64>,
@@ -909,6 +926,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             inspect_config,
             get_project_usage,
+            get_projects_usage_overview,
             remove_config_key,
             read_config,
             apply_config,

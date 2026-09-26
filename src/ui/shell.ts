@@ -3,6 +3,7 @@ import { workspaceText } from '../i18n/workspace';
 import { historyText } from '../history-tab';
 import { previewText } from '../i18n/preview';
 import { usageText } from '../usage-dashboard';
+import { overviewText } from '../project-overview';
 import { escapeHtml as esc, icon } from './icons';
 
 export type ShellOptions = { projectPath: string; accent: string };
@@ -10,6 +11,7 @@ export type ShellOptions = { projectPath: string; accent: string };
 export function renderShell({ projectPath, accent }: ShellOptions): string {
   const copy = workspaceText(getLocale());
   const tabs = [
+    ['overview', 'grid', overviewText(getLocale()).tab],
     ['presets', 'grid', t('tab.presets')], ['task', 'bolt', t('tab.task')],
     ['advanced', 'sliders', t('tab.advanced')], ['usage', 'grid', usageText(getLocale()).tab], ['history', 'history', historyText(getLocale()).tab],
   ] as const;

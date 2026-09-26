@@ -44,9 +44,11 @@ import {
 } from './model-integrity';
 import { periodSinceDay, periodSinceMs, type UsagePeriod, type UsageReport } from './usage-dashboard';
 import { renderUsageView } from './usage-view';
+import { recentProjectsFromHistory, type ProjectsUsageOverviewReport, type RecentProject } from './project-overview';
+import { renderProjectOverviewView } from './project-overview-view';
 
 type ScopeKind = 'global' | 'project';
-type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'usage' | 'history';
+type WorkspaceTab = 'overview' | 'presets' | 'task' | 'advanced' | 'usage' | 'history';
 type ThemeMode = 'system' | 'dark' | 'light';
 type Accent = 'violet' | 'blue' | 'emerald' | 'amber' | 'rose';
 type ManagedConfig = {
@@ -117,6 +119,11 @@ let usageReport: UsageReport | null = null;
 let usageLoading = false;
 let usageLoadError = '';
 let usageRequestId = 0;
+let overviewRecent: RecentProject[] = [];
+let overviewReport: ProjectsUsageOverviewReport | null = null;
+let overviewLoading = false;
+let overviewLoadError = '';
+let overviewRequestId = 0;
 let configReadId = 0;
 let historyLoading = false;
 let historyLoadError = false;
@@ -231,12 +238,56 @@ function renderWorkspace():void {
   });
   document.querySelector('#leftContent')?.setAttribute('aria-labelledby',`tab-${activeTab}`);
   const host=$<HTMLElement>('#leftContent');
-  if(activeTab==='presets') renderPresets(host);
+  if(activeTab==='overview') renderOverviewPage(host);
+  else if(activeTab==='presets') renderPresets(host);
   else if(activeTab==='task') renderTask(host);
   else if(activeTab==='usage') renderUsagePage(host);
   else if(activeTab==='history') renderHistoryPage(host);
   else renderAdvanced(host);
 }
+function renderOverviewPage(host:HTMLElement):void {
+  renderProjectOverviewView(host,{
+    locale:getLocale(),
+    recent:overviewRecent,
+    report:overviewReport,
+    loading:overviewLoading,
+    error:overviewLoadError,
+    onRefresh:()=>{void loadProjectOverview();},
+    onOpenProject:path=>{void openOverviewProject(path);},
+  });
+}
+async function openOverviewProject(path:string):Promise<void> {
+  if(busy||confirmResolver)return;
+  await changeScope('project',path);
+  if(scope!=='project'||projectPath!==path)return;
+  activeTab='usage';renderWorkspace();void loadProjectUsage();
+}
+async function loadProjectOverview():Promise<void> {
+  if(activeTab!=='overview'||overviewLoading||busy)return;
+  const request=++overviewRequestId;
+  overviewLoading=true;overviewLoadError='';renderWorkspace();
+  try{
+    const entries=await safeInvoke<HistoryEntry[]>('list_history',{limit:300},6000);
+    if(request!==overviewRequestId)return;
+    historyEntries=entries;
+    overviewRecent=recentProjectsFromHistory(entries,12);
+    if(overviewRecent.length===0){overviewReport=null;return;}
+    const report=await safeInvoke<ProjectsUsageOverviewReport>('get_projects_usage_overview',{
+      projectPaths:overviewRecent.map(project=>project.path),
+      sinceMs:periodSinceMs('7d'),
+      sinceDay:periodSinceDay('7d'),
+      maxFiles:8000,
+    },30000);
+    if(request!==overviewRequestId)return;
+    overviewReport=report;
+  }catch(error){
+    if(request!==overviewRequestId)return;
+    overviewReport=null;overviewLoadError=String(error);
+  }finally{
+    if(request===overviewRequestId){overviewLoading=false;renderWorkspace();}
+  }
+}
+
 function renderPresets(host:HTMLElement):void {
   renderPresetWorkspace(host, {
     current: presets, viewedVersion: viewedPresetVersion, selectedVersion: activePresetVersion,
@@ -742,7 +793,7 @@ function bindStaticEvents():void {
   $<HTMLSelectElement>('#themeMode').value=themeMode;
   $<HTMLSelectElement>('#themeMode').onchange=e=>{themeMode=(e.currentTarget as HTMLSelectElement).value as ThemeMode;safeSet('codex-config-studio.theme.mode',themeMode);applyTheme();};
   document.querySelectorAll<HTMLButtonElement>('[data-accent]').forEach(btn=>btn.onclick=()=>{accent=btn.dataset.accent as Accent;safeSet('codex-config-studio.theme.accent',accent);applyTheme();document.querySelectorAll('[data-accent]').forEach(x=>{x.classList.toggle('active',(x as HTMLElement).dataset.accent===accent);x.setAttribute('aria-pressed',String((x as HTMLElement).dataset.accent===accent));});});
-  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>btn.onclick=()=>{if(busy||confirmResolver||!validateModelPickers(document))return;activeTab=btn.dataset.tab as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();if(activeTab==='usage')void loadProjectUsage();});
+  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>btn.onclick=()=>{if(busy||confirmResolver||!validateModelPickers(document))return;activeTab=btn.dataset.tab as WorkspaceTab;renderWorkspace();if(activeTab==='overview')void loadProjectOverview();if(activeTab==='history')void loadHistory();if(activeTab==='usage')void loadProjectUsage();});
   document.querySelectorAll<HTMLButtonElement>('.scope-tab').forEach(btn=>btn.onclick=()=>void changeScope(btn.dataset.scope as ScopeKind));
   $('#chooseProject').addEventListener('click',async()=>{if(busy||confirmResolver)return;try{const p=await open({directory:true,multiple:false,title:t('scope.dialogTitle')});if(typeof p==='string')await changeScope('project',p);}catch(e){toast(String(e),true);}});
   $<HTMLInputElement>('#projectPath').onchange=e=>{const path=(e.currentTarget as HTMLInputElement).value.trim();void changeScope('project',path);};
@@ -751,7 +802,7 @@ function bindStaticEvents():void {
   $('#confirmCancel').addEventListener('click',()=>finishConfirm(false));$('#confirmOk').addEventListener('click',()=>{if(!$<HTMLButtonElement>('#confirmOk').disabled)finishConfirm(true);});
   $('#confirmClose').addEventListener('click',()=>finishConfirm(false));
   bindModalKeyboard(()=>finishConfirm(false));
-  bindTabs(document,id=>{if(busy||confirmResolver||!validateModelPickers(document))return false;activeTab=id as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();if(activeTab==='usage')void loadProjectUsage();});
+  bindTabs(document,id=>{if(busy||confirmResolver||!validateModelPickers(document))return false;activeTab=id as WorkspaceTab;renderWorkspace();if(activeTab==='overview')void loadProjectOverview();if(activeTab==='history')void loadHistory();if(activeTab==='usage')void loadProjectUsage();});
   $('#confirmModal').addEventListener('click',e=>{if(e.target===e.currentTarget)finishConfirm(false);});
 }
 

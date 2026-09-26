@@ -108,6 +108,30 @@ pub(crate) struct UsageReport {
     pub truncated: bool,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ProjectUsageOverview {
+    pub project_path: String,
+    pub available: bool,
+    pub sessions: usize,
+    pub turns: usize,
+    pub responses: u64,
+    pub usage: UsageTokens,
+    pub models: Vec<ModelUsage>,
+    pub reroutes: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ProjectsUsageOverviewReport {
+    pub source: String,
+    pub projects: Vec<ProjectUsageOverview>,
+    pub files_scanned: usize,
+    pub parse_errors: usize,
+    pub skipped_large_files: usize,
+    pub truncated: bool,
+}
+
 #[derive(Debug, Clone, Default)]
 struct TurnModel {
     model: String,
@@ -634,6 +658,188 @@ fn collect_rollout_files(root: &Path, output: &mut Vec<RolloutFile>) -> Result<(
     Ok(())
 }
 
+#[derive(Debug)]
+struct OverviewProject {
+    requested: String,
+    canonical: Option<String>,
+}
+
+#[derive(Debug, Default)]
+struct OverviewAccumulator {
+    sessions: usize,
+    turns: usize,
+    responses: u64,
+    usage: UsageTokens,
+    models: BTreeMap<(String, Option<String>), (u64, UsageTokens)>,
+    reroutes: usize,
+}
+
+impl OverviewAccumulator {
+    fn add_session(&mut self, session: UsageSession) {
+        self.sessions += 1;
+        self.turns += session.turns;
+        self.responses += session.responses;
+        self.usage.add_assign(&session.usage);
+        self.reroutes += session.reroutes.len();
+        for row in session.models {
+            let entry = self
+                .models
+                .entry((row.model, row.reasoning))
+                .or_insert_with(|| (0, UsageTokens::default()));
+            entry.0 += row.responses;
+            entry.1.add_assign(&row.usage);
+        }
+    }
+
+    fn finish(self, project_path: String, available: bool) -> ProjectUsageOverview {
+        let mut models = self
+            .models
+            .into_iter()
+            .map(|((model, reasoning), (responses, usage))| ModelUsage {
+                model,
+                reasoning,
+                responses,
+                usage,
+            })
+            .collect::<Vec<_>>();
+        models.sort_by(|a, b| {
+            b.usage
+                .total_tokens
+                .cmp(&a.usage.total_tokens)
+                .then_with(|| a.model.cmp(&b.model))
+        });
+        ProjectUsageOverview {
+            project_path,
+            available,
+            sessions: self.sessions,
+            turns: self.turns,
+            responses: self.responses,
+            usage: self.usage,
+            models,
+            reroutes: self.reroutes,
+        }
+    }
+}
+
+fn overview_projects(project_paths: Vec<String>) -> Vec<OverviewProject> {
+    let mut seen = HashSet::new();
+    project_paths
+        .into_iter()
+        .filter_map(|raw| {
+            let requested = raw.trim().to_string();
+            if requested.is_empty() || !seen.insert(normalize_path_text(&requested)) {
+                return None;
+            }
+            let path = PathBuf::from(&requested);
+            let canonical = if path.exists() && path.is_dir() {
+                Some(
+                    path.canonicalize()
+                        .unwrap_or(path)
+                        .to_string_lossy()
+                        .to_string(),
+                )
+            } else {
+                None
+            };
+            Some(OverviewProject {
+                requested,
+                canonical,
+            })
+        })
+        .take(20)
+        .collect()
+}
+
+fn best_overview_project(builder: &SessionBuilder, projects: &[OverviewProject]) -> Option<usize> {
+    let mut best: Option<(usize, usize)> = None;
+    for cwd in &builder.observed_cwds {
+        for (index, project) in projects.iter().enumerate() {
+            let Some(root) = project.canonical.as_deref() else {
+                continue;
+            };
+            if normalized_path_is_within(cwd, root) {
+                let specificity = normalize_path_text(root).len();
+                if best.map_or(true, |(_, current)| specificity > current) {
+                    best = Some((index, specificity));
+                }
+            }
+        }
+    }
+    best.map(|(index, _)| index)
+}
+
+pub(crate) fn collect_projects_usage_overview(
+    project_paths: Vec<String>,
+    since_ms: Option<u64>,
+    since_day: Option<String>,
+    max_files: Option<usize>,
+) -> Result<ProjectsUsageOverviewReport, String> {
+    let projects = overview_projects(project_paths);
+    let sessions_root = codex_home()?.join("sessions");
+    let mut files = Vec::new();
+    collect_rollout_files(&sessions_root, &mut files)?;
+    files.sort_by(|a, b| b.modified_ms.cmp(&a.modified_ms));
+    if let Some(since_ms) = since_ms {
+        files.retain(|file| file.modified_ms == 0 || file.modified_ms >= since_ms);
+    }
+
+    let max_files = max_files
+        .unwrap_or(DEFAULT_MAX_FILES)
+        .clamp(100, MAX_MAX_FILES);
+    let truncated = files.len() > max_files;
+    files.truncate(max_files);
+    let files_scanned = files.len();
+
+    let mut accumulators = (0..projects.len())
+        .map(|_| OverviewAccumulator::default())
+        .collect::<Vec<_>>();
+    let mut parse_errors = 0usize;
+    let mut skipped_large_files = 0usize;
+
+    for file in files {
+        if file.len > MAX_ROLLOUT_BYTES {
+            skipped_large_files += 1;
+            continue;
+        }
+        let reader = match File::open(&file.path) {
+            Ok(reader) => reader,
+            Err(_) => {
+                parse_errors += 1;
+                continue;
+            }
+        };
+        let (builder, errors) = parse_rollout(reader, since_day.as_deref());
+        parse_errors += errors;
+        if builder.thread_id.is_empty() && builder.session_id.is_empty() {
+            continue;
+        }
+        if since_day.is_some() && builder.has_exact_records && builder.exact_responses == 0 {
+            continue;
+        }
+        let Some(index) = best_overview_project(&builder, &projects) else {
+            continue;
+        };
+        accumulators[index].add_session(builder.finish());
+    }
+
+    let projects = projects
+        .into_iter()
+        .zip(accumulators)
+        .map(|(project, accumulator)| {
+            accumulator.finish(project.requested, project.canonical.is_some())
+        })
+        .collect();
+
+    Ok(ProjectsUsageOverviewReport {
+        source: "codex_rollout_jsonl".to_string(),
+        projects,
+        files_scanned,
+        parse_errors,
+        skipped_large_files,
+        truncated,
+    })
+}
+
 pub(crate) fn collect_project_usage(
     project_path: Option<String>,
     since_ms: Option<u64>,
@@ -820,6 +1026,31 @@ mod tests {
         assert_eq!(utc_day("2026-9-2"), None);
         assert_eq!(utc_day("2026/09/26T01:00:00Z"), None);
         assert_eq!(utc_day("2026-09-26T01:00:00Z"), Some("2026-09-26".to_string()));
+    }
+
+    #[test]
+    fn overview_prefers_the_most_specific_matching_project_root() {
+        let mut builder = SessionBuilder::default();
+        builder.observe_cwd("/work/demo/nested/src");
+        let projects = vec![
+            OverviewProject { requested: "/work/demo".to_string(), canonical: Some("/work/demo".to_string()) },
+            OverviewProject { requested: "/work/demo/nested".to_string(), canonical: Some("/work/demo/nested".to_string()) },
+        ];
+        assert_eq!(best_overview_project(&builder, &projects), Some(1));
+    }
+
+    #[test]
+    fn overview_accumulator_keeps_model_usage_and_session_totals() {
+        let (builder, errors) = parse_rollout(Cursor::new(sample_rollout()), None);
+        assert_eq!(errors, 0);
+        let mut accumulator = OverviewAccumulator::default();
+        accumulator.add_session(builder.finish());
+        let overview = accumulator.finish("/work/demo".to_string(), true);
+        assert_eq!(overview.sessions, 1);
+        assert_eq!(overview.responses, 2);
+        assert_eq!(overview.usage.total_tokens, 185);
+        assert_eq!(overview.models.len(), 2);
+        assert_eq!(overview.reroutes, 1);
     }
 
     #[test]
