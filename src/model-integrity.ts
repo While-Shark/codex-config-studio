@@ -35,6 +35,9 @@ export type IntegrityCopy = {
   runtimeHealthy: string;
   runtimeDrift: string;
   runtimeReroute: string;
+  runtimeHistory: string;
+  runtimeHistoryMatch: string;
+  runtimeHistoryDrift: string;
   healthy: string;
   drift: string;
   pendingChange: string;
@@ -64,6 +67,9 @@ const copies: Record<string, IntegrityCopy> = {
     runtimeHealthy: 'Latest runtime matches the locked target',
     runtimeDrift: 'Latest runtime differs from the locked target',
     runtimeReroute: 'Observed reroutes in latest session: {count}',
+    runtimeHistory: 'Recent runtime evidence',
+    runtimeHistoryMatch: 'Matched lock',
+    runtimeHistoryDrift: 'Drift',
     healthy: 'No observable config drift',
     drift: 'Configuration drift detected',
     pendingChange: 'Pending model change will update the lock after confirmation.',
@@ -74,7 +80,7 @@ const copies: Record<string, IntegrityCopy> = {
     changeTitle: 'Change the locked model?',
     changeBody: 'Strict lock is active. Applying this draft changes the locked model or reasoning level. Confirm to update the lock target after the configuration is written.',
     changeConfirm: 'Apply and update lock',
-    scopeNote: 'Checks Studio-visible configuration layers. CLI flags, an already-running session, and server-side routing are outside this local check.',
+    scopeNote: 'Checks Studio-visible configuration plus runtime evidence recorded in local Codex rollouts. CLI-only overrides and unobservable server-side routing remain outside this local check.',
   },
   'zh-CN': {
     title: '模型完整性',
@@ -91,6 +97,9 @@ const copies: Record<string, IntegrityCopy> = {
     runtimeHealthy: '最近运行时与锁定目标一致',
     runtimeDrift: '最近运行时与锁定目标不一致',
     runtimeReroute: '最近会话可观测 reroute：{count} 次',
+    runtimeHistory: '最近运行时证据',
+    runtimeHistoryMatch: '与锁定一致',
+    runtimeHistoryDrift: '存在偏移',
     healthy: '未发现可观测的配置降级',
     drift: '检测到模型配置偏移',
     pendingChange: '待应用的模型变更会在确认后同步更新锁定目标。',
@@ -101,7 +110,7 @@ const copies: Record<string, IntegrityCopy> = {
     changeTitle: '修改已锁定的模型？',
     changeBody: '严格锁定已开启。当前草稿会改变锁定的模型或思考等级。确认后会先写入配置，再同步更新锁定目标。',
     changeConfirm: '应用并更新锁定',
-    scopeNote: '这里只检查 Studio 可见的配置层；CLI 参数、已运行会话以及服务端内部路由不在本地校验范围内。',
+    scopeNote: '这里检查 Studio 可见配置和本机 Codex rollout 已记录的运行时证据；仅 CLI 临时覆盖和不可观测的服务端内部路由仍不在本地校验范围内。',
   },
   'zh-TW': {
     title: '模型完整性',
@@ -118,6 +127,9 @@ const copies: Record<string, IntegrityCopy> = {
     runtimeHealthy: '最近執行階段與鎖定目標一致',
     runtimeDrift: '最近執行階段與鎖定目標不一致',
     runtimeReroute: '最近工作階段可觀測 reroute：{count} 次',
+    runtimeHistory: '最近執行階段證據',
+    runtimeHistoryMatch: '與鎖定一致',
+    runtimeHistoryDrift: '存在偏移',
     healthy: '未發現可觀測的設定降級',
     drift: '偵測到模型設定偏移',
     pendingChange: '待套用的模型變更會在確認後同步更新鎖定目標。',
@@ -128,7 +140,7 @@ const copies: Record<string, IntegrityCopy> = {
     changeTitle: '修改已鎖定的模型？',
     changeBody: '嚴格鎖定已開啟。目前草稿會改變鎖定的模型或思考等級。確認後會先寫入設定，再同步更新鎖定目標。',
     changeConfirm: '套用並更新鎖定',
-    scopeNote: '這裡只檢查 Studio 可見的設定層；CLI 參數、已執行工作階段與服務端內部路由不在本地校驗範圍內。',
+    scopeNote: '這裡檢查 Studio 可見設定與本機 Codex rollout 已記錄的執行階段證據；僅 CLI 臨時覆寫與不可觀測的服務端內部路由仍不在本地校驗範圍內。',
   },
   ja: {
     title: 'Model Integrity',
@@ -145,6 +157,9 @@ const copies: Record<string, IntegrityCopy> = {
     runtimeHealthy: '最新の実行時モデルはロック対象と一致しています',
     runtimeDrift: '最新の実行時モデルはロック対象と一致しません',
     runtimeReroute: '最新セッションで観測された reroute: {count}',
+    runtimeHistory: '最近の実行時証拠',
+    runtimeHistoryMatch: 'ロックと一致',
+    runtimeHistoryDrift: 'ドリフト',
     healthy: '観測可能な設定ドリフトはありません',
     drift: 'モデル設定のドリフトを検出しました',
     pendingChange: '保留中のモデル変更は確認後にロック対象へ反映されます。',
@@ -155,7 +170,7 @@ const copies: Record<string, IntegrityCopy> = {
     changeTitle: 'ロック中のモデルを変更しますか？',
     changeBody: '厳格ロックが有効です。この下書きはロック中のモデルまたは推論レベルを変更します。確認すると設定を書き込み、その後ロック対象も更新します。',
     changeConfirm: '適用してロック更新',
-    scopeNote: 'Studio から見える設定レイヤーのみ確認します。CLI フラグ、既存セッション、サーバー内部ルーティングはこのローカル確認の対象外です。',
+    scopeNote: 'Studio から見える設定とローカル Codex rollout に記録された実行時証拠を確認します。CLI の一時上書きと観測不能なサーバー内部ルーティングは対象外です。',
   },
   ko: {
     title: 'Model Integrity',
@@ -172,6 +187,9 @@ const copies: Record<string, IntegrityCopy> = {
     runtimeHealthy: '최근 런타임이 잠금 대상과 일치합니다',
     runtimeDrift: '최근 런타임이 잠금 대상과 다릅니다',
     runtimeReroute: '최근 세션에서 관찰된 reroute: {count}',
+    runtimeHistory: '최근 런타임 증거',
+    runtimeHistoryMatch: '잠금과 일치',
+    runtimeHistoryDrift: '드리프트',
     healthy: '관찰 가능한 설정 드리프트가 없습니다',
     drift: '모델 설정 드리프트를 감지했습니다',
     pendingChange: '대기 중인 모델 변경은 확인 후 잠금 대상에도 반영됩니다.',
@@ -182,7 +200,7 @@ const copies: Record<string, IntegrityCopy> = {
     changeTitle: '잠긴 모델을 변경할까요?',
     changeBody: '엄격 잠금이 활성화되어 있습니다. 이 초안은 잠긴 모델 또는 추론 수준을 변경합니다. 확인하면 설정을 쓴 뒤 잠금 대상도 갱신합니다.',
     changeConfirm: '적용 후 잠금 갱신',
-    scopeNote: 'Studio에서 보이는 설정 계층만 확인합니다. CLI 플래그, 이미 실행 중인 세션, 서버 내부 라우팅은 이 로컬 검사 범위 밖입니다.',
+    scopeNote: 'Studio에서 보이는 설정과 로컬 Codex rollout에 기록된 런타임 증거를 확인합니다. CLI 임시 재정의와 관찰할 수 없는 서버 내부 라우팅은 검사 범위 밖입니다.',
   },
 };
 

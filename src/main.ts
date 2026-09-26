@@ -112,6 +112,7 @@ let lastSnapshot: ConfigSnapshot | null = null;
 let globalSnapshot: ConfigSnapshot | null = null;
 let globalIntegrityLoading = false;
 let runtimeIntegrity: RuntimeIntegrityEvidence | null = null;
+let runtimeIntegrityHistory: RuntimeIntegrityEvidence[] = [];
 let runtimeIntegrityLoading = false;
 let runtimeIntegrityRequestId = 0;
 let currentStatus: { key: StatusKey; ok: boolean } = { key: 'status.unread', ok: false };
@@ -508,20 +509,25 @@ async function loadGlobalIntegritySnapshot():Promise<void> {
   finally{globalIntegrityLoading=false;}
 }
 
+function runtimeEvidenceHistory(report:UsageReport,limit=5):RuntimeIntegrityEvidence[] {
+  return report.sessions
+    .filter((item:UsageSession)=>!item.isSubagent&&!!item.lastModel&&item.lastModel!=='unknown')
+    .slice(0,limit)
+    .map(session=>({
+      model:session.lastModel,
+      reasoning:session.lastReasoning,
+      threadId:session.threadId,
+      updatedAt:session.updatedAt,
+      reroutes:session.reroutes.length,
+    }));
+}
 function latestRuntimeEvidence(report:UsageReport):RuntimeIntegrityEvidence|null {
-  const session=report.sessions.find((item:UsageSession)=>!item.isSubagent&&!!item.lastModel&&item.lastModel!=='unknown');
-  if(!session?.lastModel)return null;
-  return {
-    model:session.lastModel,
-    reasoning:session.lastReasoning,
-    threadId:session.threadId,
-    updatedAt:session.updatedAt,
-    reroutes:session.reroutes.length,
-  };
+  return runtimeEvidenceHistory(report,1)[0]??null;
 }
 async function loadRuntimeIntegrityEvidence():Promise<void> {
   const request=++runtimeIntegrityRequestId;
   runtimeIntegrity=null;
+  runtimeIntegrityHistory=[];
   if(!hasScope()||!lastSnapshot){runtimeIntegrityLoading=false;renderModelIntegrity();return;}
   runtimeIntegrityLoading=true;renderModelIntegrity();
   try{
@@ -532,7 +538,8 @@ async function loadRuntimeIntegrityEvidence():Promise<void> {
       maxFiles:1200,
     },15000);
     if(request!==runtimeIntegrityRequestId)return;
-    runtimeIntegrity=latestRuntimeEvidence(report);
+    runtimeIntegrityHistory=runtimeEvidenceHistory(report,5);
+    runtimeIntegrity=runtimeIntegrityHistory[0]??null;
   }catch(error){
     if(request===runtimeIntegrityRequestId)console.warn('model integrity runtime evidence',error);
   }finally{
@@ -556,6 +563,13 @@ function renderModelIntegrity():void {
   const runtimeStatus=runtimeIntegrityStatus(runtimeIntegrity,lock);
   const runtimeDrift=runtimeStatus==='model-drift'||runtimeStatus==='reasoning-drift';
   const runtimeLabel=runtimeIntegrityLoading?copy.runtimeLoading:runtimeIntegrity?integrityTargetLabel(runtimeIntegrity):copy.runtimeNone;
+  const runtimeHistoryHtml=lock&&runtimeIntegrityHistory.length?runtimeIntegrityHistory.map(item=>{
+    const status=runtimeIntegrityStatus(item,lock);
+    const drift=status==='model-drift'||status==='reasoning-drift';
+    const timestamp=Date.parse(item.updatedAt);
+    const timeLabel=Number.isFinite(timestamp)?formatTime(timestamp):item.updatedAt||'—';
+    return `<li class="${drift?'warn':'ok'}"><div><strong>${esc(integrityTargetLabel(item))}</strong><small>${esc(timeLabel)} · ${esc(drift?copy.runtimeHistoryDrift:copy.runtimeHistoryMatch)}</small></div><span>${item.reroutes?`↪ ${item.reroutes}`:''}</span></li>`;
+  }).join(''):'';
   host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${esc(copy.title)}</h3><span class="integrity-badge ${lock?'locked':''}">${esc(lock?copy.locked:copy.unlocked)}</span></div>
     <div class="integrity-grid">
       ${lock?`<div class="integrity-row"><span>${esc(copy.target)}</span><code>${esc(integrityTargetLabel(lock))}</code></div>`:''}
@@ -565,6 +579,7 @@ function renderModelIntegrity():void {
     ${lock?`<p class="integrity-state ${drift?'warn':'ok'}">${drift?'⚠':'✓'} ${esc(drift?copy.drift:copy.healthy)}</p>`:''}
     ${lock&&runtimeStatus!=='unknown'?`<p class="integrity-state ${runtimeDrift?'warn':'ok'}">${runtimeDrift?'⚠':'✓'} ${esc(runtimeDrift?copy.runtimeDrift:copy.runtimeHealthy)}</p>`:''}
     ${runtimeIntegrity?.reroutes?`<p class="integrity-state warn">↪ ${esc(copy.runtimeReroute.replace('{count}',String(runtimeIntegrity.reroutes)))}</p>`:''}
+    ${runtimeHistoryHtml?`<details class="integrity-history"><summary>${esc(copy.runtimeHistory)}</summary><ul>${runtimeHistoryHtml}</ul></details>`:''}
     ${draftChangesLock?`<p class="rail-help">${esc(copy.pendingChange)}</p>`:''}
     <div class="integrity-actions">
       ${lock?`<button id="restoreIntegrityTarget" class="text-button" ${drift?'':'disabled'}>${esc(copy.restoreTarget)}</button><button id="unlockIntegrity" class="text-button danger-text">${esc(copy.unlock)}</button>`:`<button id="lockIntegrity" class="text-button" ${effective?.model?'':'disabled'}>${esc(copy.lockCurrent)}</button>`}
@@ -779,7 +794,7 @@ async function reloadConfig():Promise<void> {
 async function loadConfig():Promise<void> {
   if(busy)return;
   const request=++configReadId,target=JSON.stringify(requestScope());
-  draftPresetSource=null;lastSnapshot=null;runtimeIntegrity=null;++runtimeIntegrityRequestId;
+  draftPresetSource=null;lastSnapshot=null;runtimeIntegrity=null;runtimeIntegrityHistory=[];++runtimeIntegrityRequestId;
   const result=document.querySelector<HTMLElement>('#applyResult');result?.classList.add('hidden');
   if(scope==='project'&&!projectPath){setStatus('status.selectProject',false);renderRightRail();void loadConfigHealth(false);return;}
   setStatus('status.reading',true);renderRightRail();

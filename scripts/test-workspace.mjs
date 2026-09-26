@@ -23,7 +23,7 @@ const settings={model:'gpt-6-luna',modelReasoningEffort:null,planModeReasoningEf
 function scopeFixture(extra={}) {
   const calls=[],input={value:'/new'};
   const ctx={scope:'project',projectPath:'/a',activeTab:'presets',busy:false,confirmResolver:null,configReadId:0,usageRequestId:0,usageReport:null,usageLoadError:'',lastSnapshot:{values:settings,path:'/a/.codex/config.toml'},draftPresetSource:null,
-    runtimeIntegrity:null,runtimeIntegrityRequestId:0,
+    runtimeIntegrity:null,runtimeIntegrityHistory:[],runtimeIntegrityRequestId:0,
     getChanges:()=>[{field:'model'}],workspaceText:ui.workspaceText,getLocale:()=> 'en',
     askConfirm:async spec=>{calls.push(['confirm',spec]);return false;},
     loadConfig:async()=>calls.push(['load']),loadConfigHealth:async()=>{},loadRuntimeIntegrityEvidence:async()=>{},loadProjectUsage:async()=>calls.push(['usage']),document:{querySelector:()=>input},...extra};
@@ -143,4 +143,19 @@ test('shell exposes one update control and CSP permits the stable GitHub release
   assert.equal((html.match(/id="updateCheckBtn"/g)||[]).length,1);
   const tauri=JSON.parse(readFileSync(resolve(root,'src-tauri/tauri.conf.json'),'utf8'));
   assert.match(tauri.app.security.csp,/https:\/\/api\.github\.com/);
+});
+
+
+test('runtime integrity history keeps recent root sessions and ignores subagents or unknown models',()=>{
+  const report={sessions:[
+    {threadId:'root-new',isSubagent:false,lastModel:'gpt-6-sol',lastReasoning:'high',updatedAt:'2026-09-26T10:00:00Z',reroutes:[{}]},
+    {threadId:'sub',isSubagent:true,lastModel:'gpt-6-luna',lastReasoning:'xhigh',updatedAt:'2026-09-26T09:00:00Z',reroutes:[]},
+    {threadId:'unknown',isSubagent:false,lastModel:'unknown',lastReasoning:null,updatedAt:'2026-09-26T08:00:00Z',reroutes:[]},
+    {threadId:'root-old',isSubagent:false,lastModel:'gpt-6-luna',lastReasoning:'xhigh',updatedAt:'2026-09-26T07:00:00Z',reroutes:[]},
+  ]};
+  const result=execute(['runtimeEvidenceHistory'],{report},'runtimeEvidenceHistory(report,5)');
+  assert.deepEqual(plain(result),[
+    {model:'gpt-6-sol',reasoning:'high',threadId:'root-new',updatedAt:'2026-09-26T10:00:00Z',reroutes:1},
+    {model:'gpt-6-luna',reasoning:'xhigh',threadId:'root-old',updatedAt:'2026-09-26T07:00:00Z',reroutes:0},
+  ]);
 });
