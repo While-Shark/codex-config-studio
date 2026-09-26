@@ -2,6 +2,8 @@
 
 ## 简体中文
 
+- 🔄 **稳定版更新与签名原地升级**：应用会检查 GitHub 最新稳定版；正式签名构建可在应用内下载、校验签名并安装更新，Windows 使用 NSIS，Linux 会按 AppImage / deb 安装来源匹配更新包，macOS 使用签名更新包并在安装后重启。Nightly / 本地未签名构建继续回退到 GitHub Release 页面，不会因为缺少签名密钥而影响开发构建。
+
 - **工作台 UI/UX 重构**：简洁双栏布局、固定应用区、分组高级设置、项目/方案历史子页与只读预览；加入草稿放弃确认、弹窗焦点管理和键盘导航。五语言、深浅主题、完整预览、继承配置和历史方案提示均保留。写入较慢时不再提前解锁，避免重复提交。
 - **方案版本 · v0.4.0**: 历史快照保留原有模型、思考等级和子 Agent 参数，不随新版推荐变动。 确认后只载入预览，不会立即写入配置。
 - **GPT-6 快捷方案**：内置方案与新用户任务推荐改用 GPT-6 Luna / Sol / Astra；日常开发使用 GPT-6 Luna。思考等级和并发数不变，不自动覆盖已有项目配置、历史或已保存的任务偏好。Release 标题仅显示版本标签，开发版显示 `nightly`。
@@ -19,6 +21,8 @@
 
 ## 繁體中文
 
+- 🔄 **穩定版更新與簽名原地升級**：應用會檢查 GitHub 最新穩定版；正式簽名建置可在應用內下載、驗證簽名並安裝更新，Windows 使用 NSIS，Linux 依 AppImage / deb 安裝來源配對更新包，macOS 使用簽名更新包並於安裝後重新啟動。Nightly / 本機未簽名建置仍會回退到 GitHub Release 頁面，不會因缺少簽名金鑰而影響開發建置。
+
 - **工作台 UI/UX 重構**：簡潔雙欄佈局、固定套用區、分組進階設定、專案/方案歷史分頁與唯讀預覽；新增放棄草稿確認、對話框焦點管理與鍵盤導覽。保留五語言、深淺主題、繼承設定與舊方案提示。寫入完成前不會提前解鎖。
 - **方案版本 · v0.4.0**: 歷史快照保留原有模型、思考等級與子 Agent 參數，不隨新版推薦變動。 確認後只載入預覽，不會立即寫入設定。
 - **GPT-6 快捷方案**：內建方案與新使用者任務推薦改用 GPT-6 Luna / Sol / Astra；日常開發使用 GPT-6 Luna。思考等級與並行數不變，不自動覆寫既有專案設定、歷史或已儲存的任務偏好。Release 標題只顯示版本標籤，開發版顯示 `nightly`。
@@ -32,6 +36,8 @@
 - 🛡️ **設定安全**：持續支援全域/專案級 Codex 設定、逐項繼承、安全備份、歷史備份與原始設定還原。
 
 ## English
+
+- 🔄 **Stable update checks and signed in-place upgrades**: The app checks the latest stable GitHub release. Formal signed builds can download, verify, and install updates in-app: NSIS on Windows, installer-matched AppImage/deb packages on Linux, and signed updater bundles on macOS with restart after installation. Unsigned Nightly/local builds keep the GitHub Release-page fallback, so development builds do not depend on signing secrets.
 
 - **Workspace UI/UX redesign**: Clean split layout, pinned apply controls, grouped advanced settings, project/profile history views and read-only previews. Added unsaved-draft confirmation, accessible modal focus handling and keyboard tabs. Preserved five languages, themes, complete configuration previews, inheritance and archived-profile warnings. Slow writes keep their lock until the native operation actually finishes.
 - **Profile version · v0.4.0**: Archived snapshots retain their original models, reasoning levels and sub-agent settings; new recommendations never rewrite them. Confirming only loads a preview; it does not write configuration.
@@ -50,6 +56,8 @@
 
 ## 日本語
 
+- 🔄 **安定版チェックと署名付きアプリ内更新**：GitHub の最新安定版を確認し、正式な署名付きビルドではアプリ内で更新をダウンロード、署名検証、インストールできます。Windows は NSIS、Linux は AppImage / deb のインストール元に一致する更新パッケージ、macOS は署名付き更新パッケージを使用し、インストール後に再起動します。未署名の Nightly / ローカルビルドは GitHub Release ページへフォールバックします。
+
 - **UI/UX を刷新**：二列レイアウト、固定適用ボタン、設定のグループ化、プロジェクト/プロファイル履歴と読み取り専用プレビュー。草稿破棄の確認、フォーカス管理、キーボード操作を追加。多言語、テーマ、継承と履歴警告を維持し、書き込み完了前のロック解除を防止。
 - **プロファイルの版 · v0.4.0**: 履歴には元のモデル、思考レベル、サブ Agent 設定を保存し、新しい推奨値で上書きしません。 確認後はプレビューのみで、設定は書き込みません。
 - **GPT-6 プロファイル**：内蔵設定と新規タスクの推奨値を GPT-6 Luna / Sol / Astra へ更新し、日常開発は GPT-6 Luna を使用します。思考レベルと並列数は変更せず、既存の設定・履歴・保存済み選択を上書きしません。Release タイトルはバージョンタグのみ、開発版は `nightly` と表示します。
@@ -63,6 +71,8 @@
 - 🛡️ **安全な設定管理**：グローバル/プロジェクト設定、項目単位の継承、元設定バックアップ、履歴バックアップ、復元機能を引き続き提供します。
 
 ## 한국어
+
+- 🔄 **안정 버전 확인 및 서명된 인앱 업데이트**: GitHub 최신 안정 버전을 확인하고, 정식 서명 빌드에서는 앱 안에서 업데이트를 다운로드하고 서명을 검증한 뒤 설치할 수 있습니다. Windows는 NSIS, Linux는 설치 출처에 맞는 AppImage/deb 패키지, macOS는 서명된 업데이트 패키지를 사용하며 설치 후 재시작합니다. 서명되지 않은 Nightly/로컬 빌드는 GitHub Release 페이지로 안전하게 폴백합니다.
 
 - **UI/UX 개선**: 두 열 레이아웃, 고정 적용 영역, 설정 그룹, 프로젝트/프로필 기록 및 읽기 전용 미리보기. 초안 폐기 확인, 포커스 관리 및 키보드 탭 조작을 추가했습니다. 다국어, 테마, 상속, 보관 프로필 경고를 유지하며 쓰기 완료 전 잠금을 해제하지 않습니다.
 - **프로필 버전 · v0.4.0**: 보관된 스냅샷은 원래 모델, 사고 수준 및 서브 Agent 설정을 유지하며 새 추천값으로 덮어쓰지 않습니다. 확인하면 미리보기만 불러오며 설정 파일에 쓰지 않습니다.
