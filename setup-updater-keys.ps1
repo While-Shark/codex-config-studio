@@ -12,7 +12,11 @@ if ((Test-Path $KeyPath) -or (Test-Path "$KeyPath.pub")) {
   throw "Key already exists at $KeyPath. Refusing to overwrite it."
 }
 
-npm run tauri signer generate -- --ci -p $Password -w $KeyPath
+if ($Password.Length -gt 0) {
+  npm run tauri signer generate -- --ci -p $Password -w $KeyPath
+} else {
+  npm run tauri signer generate -- --ci -w $KeyPath
+}
 
 $pubPath = "$KeyPath.pub"
 if (!(Test-Path $pubPath)) { throw "Public key was not created at $pubPath" }
