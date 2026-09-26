@@ -254,7 +254,11 @@ async function runUpdateCheck(silent=false):Promise<void> {
     if(proceed){
       if(signedUpdaterReady){
         toast(copy.installing);
-        try{await installSignedUpdate();}catch(error){toast(String(error),true);}
+        try{await installSignedUpdate();}
+        catch(error){
+          toast(String(error),true);
+          try{await openStableReleasePage();}catch(openError){console.warn('open stable release fallback',openError);}
+        }
       }else{
         try{await openStableReleasePage();}catch(error){toast(String(error),true);}
       }
