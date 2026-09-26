@@ -119,6 +119,7 @@ struct SessionBuilder {
     last_model: Option<TurnModel>,
     exact_usage: UsageTokens,
     exact_responses: u64,
+    has_exact_records: bool,
     model_usage: BTreeMap<(String, Option<String>), (u64, UsageTokens)>,
     daily_usage: BTreeMap<String, (u64, UsageTokens)>,
     legacy_total: Option<UsageTokens>,
@@ -169,10 +170,16 @@ impl SessionBuilder {
         }
     }
 
-    fn observe_usage_record(&mut self, timestamp: &str, payload: &Value) {
+    fn observe_usage_record(&mut self, timestamp: &str, payload: &Value, since_day: Option<&str>) {
+        self.has_exact_records = true;
         let Some(usage) = parse_tokens(payload.get("usage")) else {
             return;
         };
+        if let (Some(day), Some(cutoff)) = (utc_day(timestamp), since_day) {
+            if day.as_str() < cutoff {
+                return;
+            }
+        }
         let turn_id = string_value(payload.get("turn_id"));
         if let Some(turn_id) = turn_id.as_deref() {
             self.turns.insert(turn_id.to_string());
@@ -245,7 +252,7 @@ impl SessionBuilder {
     }
 
     fn finish(self) -> UsageSession {
-        let exact = self.exact_responses > 0;
+        let exact = self.has_exact_records;
         let usage = if exact {
             self.exact_usage.clone()
         } else {
@@ -392,7 +399,7 @@ fn parse_tokens(value: Option<&Value>) -> Option<UsageTokens> {
     })
 }
 
-fn parse_rollout<R: Read>(reader: R) -> (SessionBuilder, usize) {
+fn parse_rollout<R: Read>(reader: R, since_day: Option<&str>) -> (SessionBuilder, usize) {
     let mut builder = SessionBuilder::default();
     let mut errors = 0usize;
     let mut reader = BufReader::new(reader);
@@ -449,7 +456,7 @@ fn parse_rollout<R: Read>(reader: R) -> (SessionBuilder, usize) {
                     optional_label(payload.get("effort")),
                 );
             }
-            "token_usage_record" => builder.observe_usage_record(timestamp, payload),
+            "token_usage_record" => builder.observe_usage_record(timestamp, payload, since_day),
             "event_msg" => {
                 let event_type = payload.get("type").and_then(Value::as_str).unwrap_or_default();
                 match event_type {
@@ -580,6 +587,7 @@ fn collect_rollout_files(root: &Path, output: &mut Vec<RolloutFile>) -> Result<(
 pub(crate) fn collect_project_usage(
     project_path: Option<String>,
     since_ms: Option<u64>,
+    since_day: Option<String>,
     max_files: Option<usize>,
 ) -> Result<UsageReport, String> {
     let project = match project_path {
@@ -630,7 +638,7 @@ pub(crate) fn collect_project_usage(
                 continue;
             }
         };
-        let (builder, errors) = parse_rollout(reader);
+        let (builder, errors) = parse_rollout(reader, since_day.as_deref());
         parse_errors += errors;
         if builder.thread_id.is_empty() && builder.session_id.is_empty() {
             continue;
@@ -673,7 +681,7 @@ mod tests {
 
     #[test]
     fn parses_exact_usage_and_reroutes_without_double_counting_cumulative_totals() {
-        let (builder, errors) = parse_rollout(Cursor::new(sample_rollout()));
+        let (builder, errors) = parse_rollout(Cursor::new(sample_rollout()), None);
         assert_eq!(errors, 0);
         let session = builder.finish();
         assert_eq!(session.thread_id, "thread-1");
@@ -693,6 +701,25 @@ mod tests {
     }
 
     #[test]
+    fn exact_usage_respects_day_cutoff_without_falling_back_to_legacy_totals() {
+        let text = [
+            r#"{"timestamp":"2026-09-20T01:00:00Z","type":"session_meta","payload":{"id":"cutoff","cwd":"/work/demo"}}"#,
+            r#"{"timestamp":"2026-09-20T01:00:01Z","type":"turn_context","payload":{"turn_id":"t","cwd":"/work/demo","model":"gpt-6-luna","effort":"xhigh"}}"#,
+            r#"{"timestamp":"2026-09-20T01:00:02Z","type":"token_usage_record","payload":{"thread_id":"cutoff","turn_id":"t","session_id":"cutoff","root_turn_id":"t","response_id":"old","usage":{"input_tokens":90,"cached_input_tokens":0,"output_tokens":10,"reasoning_output_tokens":0,"total_tokens":100},"turn_token_usage":{"total_tokens":100},"thread_token_usage":{"total_tokens":100}}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:02Z","type":"token_usage_record","payload":{"thread_id":"cutoff","turn_id":"t","session_id":"cutoff","root_turn_id":"t","response_id":"new","usage":{"input_tokens":45,"cached_input_tokens":0,"output_tokens":5,"reasoning_output_tokens":0,"total_tokens":50},"turn_token_usage":{"total_tokens":150},"thread_token_usage":{"total_tokens":150}}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:03Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":135,"cached_input_tokens":0,"output_tokens":15,"reasoning_output_tokens":0,"total_tokens":150},"last_token_usage":{"total_tokens":50},"model_context_window":200000},"rate_limits":null}}"#,
+        ].join("\n");
+        let (builder, errors) = parse_rollout(Cursor::new(text), Some("2026-09-25"));
+        assert_eq!(errors, 0);
+        let session = builder.finish();
+        assert_eq!(session.usage_source, "response_records");
+        assert_eq!(session.responses, 1);
+        assert_eq!(session.usage.total_tokens, 50);
+        assert_eq!(session.daily_usage.len(), 1);
+        assert_eq!(session.daily_usage[0].day, "2026-09-26");
+    }
+
+    #[test]
     fn legacy_token_count_is_used_only_when_exact_response_records_are_absent() {
         let text = [
             r#"{"timestamp":"2026-09-26T01:00:00Z","type":"session_meta","payload":{"id":"legacy","cwd":"/work/demo"}}"#,
@@ -700,7 +727,7 @@ mod tests {
             r#"{"timestamp":"2026-09-26T01:00:02Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":80,"cached_input_tokens":10,"output_tokens":20,"reasoning_output_tokens":5,"total_tokens":100},"last_token_usage":{"total_tokens":100},"model_context_window":200000},"rate_limits":null}}"#,
         ]
         .join("\n");
-        let (builder, errors) = parse_rollout(Cursor::new(text));
+        let (builder, errors) = parse_rollout(Cursor::new(text), None);
         assert_eq!(errors, 0);
         let session = builder.finish();
         assert_eq!(session.usage_source, "legacy_session_total");
