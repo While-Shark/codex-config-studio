@@ -340,3 +340,22 @@ input::placeholder { color: var(--muted2); }
   .model-trend-row { grid-template-columns: minmax(110px,1.2fr) minmax(70px,1fr) 58px; }
   .model-trend-row > span { display: none; }
 }
+
+
+.agent-analysis-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
+.agent-analysis-metrics > div { padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel2); }
+.agent-analysis-metrics span { display: block; color: var(--muted); font-size: 10px; }
+.agent-analysis-metrics strong { display: block; margin-top: 5px; font-size: 18px; }
+.agent-analysis-metrics small { display: block; margin-top: 3px; color: var(--muted2); font-size: 10px; }
+.agent-role-list { display: grid; gap: 8px; }
+.agent-role-row { display: grid; grid-template-columns: minmax(140px,1.4fr) minmax(90px,1fr) 70px 48px; gap: 9px; align-items: center; font-size: 10px; }
+.agent-role-row > div:first-child { min-width: 0; }
+.agent-role-row strong { display: block; overflow-wrap: anywhere; }
+.agent-role-row small { display: block; margin-top: 3px; color: var(--muted2); }
+.agent-role-row > span { text-align: right; font-family: var(--mono); }
+.agent-role-row > em { text-align: right; color: var(--muted); font-style: normal; }
+@media (max-width: 780px) {
+  .agent-analysis-metrics { grid-template-columns: 1fr; }
+  .agent-role-row { grid-template-columns: minmax(120px,1.3fr) minmax(70px,1fr) 60px; }
+  .agent-role-row > em { display: none; }
+}
