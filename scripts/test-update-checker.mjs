@@ -40,6 +40,7 @@ test('signed updater stays behind compile-time public key and fixed latest manif
   assert.match(rust,/download_and_install/);
   assert.match(rust,/app\.restart\(\)/);
   assert.equal(config.plugins.updater.pubkey,'');
+  assert.equal(config.plugins.updater.requireSignedVersion,true);
   assert.deepEqual(config.plugins.updater.endpoints,[
     'https://github.com/While-Shark/codex-config-studio/releases/latest/download/latest.json'
   ]);
