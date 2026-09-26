@@ -582,9 +582,11 @@ function renderModelIntegrity():void {
     ${runtimeHistoryHtml?`<details class="integrity-history"><summary>${esc(copy.runtimeHistory)}</summary><ul>${runtimeHistoryHtml}</ul></details>`:''}
     ${draftChangesLock?`<p class="rail-help">${esc(copy.pendingChange)}</p>`:''}
     <div class="integrity-actions">
+      <button id="refreshRuntimeIntegrity" class="text-button" ${runtimeIntegrityLoading?'disabled':''}>${esc(copy.refreshRuntime)}</button>
       ${lock?`<button id="restoreIntegrityTarget" class="text-button" ${drift?'':'disabled'}>${esc(copy.restoreTarget)}</button><button id="unlockIntegrity" class="text-button danger-text">${esc(copy.unlock)}</button>`:`<button id="lockIntegrity" class="text-button" ${effective?.model?'':'disabled'}>${esc(copy.lockCurrent)}</button>`}
     </div>
     <p class="rail-help">${esc(copy.scopeNote)}</p>`;
+  document.querySelector<HTMLButtonElement>('#refreshRuntimeIntegrity')?.addEventListener('click',()=>{void loadRuntimeIntegrityEvidence();});
   document.querySelector<HTMLButtonElement>('#lockIntegrity')?.addEventListener('click',()=>{
     const target=effectiveIntegrityTarget();
     if(!target?.model){toast(copy.noModel,true);return;}
