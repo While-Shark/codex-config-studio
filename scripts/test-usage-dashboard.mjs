@@ -13,12 +13,14 @@ test('usage summary aggregates sessions, agents and models without losing token 
   ]};
   const summary=JSON.parse(JSON.stringify(usage.summarizeUsage(report)));
   assert.equal(summary.usage.totalTokens,185);assert.equal(summary.usage.cachedInputTokens,50);
-  assert.equal(summary.rootUsage,120);assert.equal(summary.subagentUsage,65);assert.equal(summary.reroutes,1);
+  assert.equal(summary.rootUsage,120);assert.equal(summary.subagentUsage,65);assert.equal(summary.rootSessions,1);assert.equal(summary.subagentSessions,1);assert.equal(summary.reroutes,1);
   assert.equal(summary.modelRows.length,1);assert.equal(summary.modelRows[0].usage.totalTokens,185);
   assert.equal(summary.dailyTrend.length,2);assert.equal(summary.dailyTrend[0].day,'2026-09-25');
   assert.equal(summary.dailyTrend[1].share,65/120);
   assert.equal(summary.modelTrend.length,2);assert.equal(summary.modelTrend[0].rows[0].model,'luna');
   assert.equal(summary.modelTrend[0].rows[0].share,1);
+  assert.equal(summary.agentRoles.length,1);assert.equal(summary.agentRoles[0].role,'worker');
+  assert.equal(summary.agentRoles[0].usage.totalTokens,65);assert.equal(summary.agentRoles[0].share,1);
 });
 
 test('period windows and token formatting are deterministic',()=>{
@@ -62,4 +64,19 @@ test('model trend keeps daily model shares separate and carries estimate flags',
   assert.equal(trend.length,1);assert.equal(trend[0].totalTokens,100);assert.equal(trend[0].estimated,true);
   assert.equal(trend[0].rows[0].model,'luna');assert.equal(trend[0].rows[0].share,0.7);
   assert.equal(trend[0].rows[1].model,'sol');assert.equal(trend[0].rows[1].share,0.3);
+});
+
+test('agent role analysis groups sub-agent sessions without treating root sessions as a role',()=>{
+  const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
+  const mk=(id,role,total)=>({threadId:id,sessionId:id,cwd:'/p',startedAt:'',updatedAt:'',parentThreadId:role?'root':null,agentRole:role,agentPath:role?id:null,isSubagent:!!role,turns:1,responses:1,usageSource:'response_records',usage:tokens(total),models:[],dailyUsage:[],dailyModelUsage:[],reroutes:[]});
+  const report={source:'x',filesScanned:4,filesMatched:4,parseErrors:0,skippedLargeFiles:0,truncated:false,sessions:[
+    mk('root',null,100),mk('a','worker',70),mk('b','worker',30),mk('c','reviewer',20)
+  ]};
+  const summary=JSON.parse(JSON.stringify(usage.summarizeUsage(report)));
+  assert.equal(summary.rootSessions,1);assert.equal(summary.subagentSessions,3);
+  assert.equal(summary.rootUsage,100);assert.equal(summary.subagentUsage,120);
+  assert.equal(summary.agentRoles.length,2);
+  assert.equal(summary.agentRoles[0].role,'worker');assert.equal(summary.agentRoles[0].sessions,2);
+  assert.equal(summary.agentRoles[0].usage.totalTokens,100);assert.equal(summary.agentRoles[0].share,100/120);
+  assert.equal(summary.agentRoles[1].role,'reviewer');assert.equal(summary.agentRoles[1].usage.totalTokens,20);
 });
