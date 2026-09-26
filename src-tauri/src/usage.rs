@@ -56,6 +56,15 @@ pub(crate) struct ModelReroute {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct DailyUsage {
+    pub day: String,
+    pub responses: u64,
+    pub usage: UsageTokens,
+    pub estimated: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct UsageSession {
     pub thread_id: String,
     pub session_id: String,
@@ -71,6 +80,7 @@ pub(crate) struct UsageSession {
     pub usage_source: String,
     pub usage: UsageTokens,
     pub models: Vec<ModelUsage>,
+    pub daily_usage: Vec<DailyUsage>,
     pub reroutes: Vec<ModelReroute>,
 }
 
@@ -110,6 +120,7 @@ struct SessionBuilder {
     exact_usage: UsageTokens,
     exact_responses: u64,
     model_usage: BTreeMap<(String, Option<String>), (u64, UsageTokens)>,
+    daily_usage: BTreeMap<String, (u64, UsageTokens)>,
     legacy_total: Option<UsageTokens>,
     reroutes: Vec<ModelReroute>,
 }
@@ -158,7 +169,7 @@ impl SessionBuilder {
         }
     }
 
-    fn observe_usage_record(&mut self, payload: &Value) {
+    fn observe_usage_record(&mut self, timestamp: &str, payload: &Value) {
         let Some(usage) = parse_tokens(payload.get("usage")) else {
             return;
         };
@@ -169,6 +180,14 @@ impl SessionBuilder {
         }
         self.exact_usage.add_assign(&usage);
         self.exact_responses += 1;
+        if let Some(day) = utc_day(timestamp) {
+            let entry = self
+                .daily_usage
+                .entry(day)
+                .or_insert_with(|| (0, UsageTokens::default()));
+            entry.0 += 1;
+            entry.1.add_assign(&usage);
+        }
 
         let selection = turn_id
             .as_deref()
@@ -262,6 +281,27 @@ impl SessionBuilder {
                 .then_with(|| a.model.cmp(&b.model))
         });
 
+        let mut daily_usage = self
+            .daily_usage
+            .into_iter()
+            .map(|(day, (responses, usage))| DailyUsage {
+                day,
+                responses,
+                usage,
+                estimated: false,
+            })
+            .collect::<Vec<_>>();
+        if !exact && usage.total_tokens > 0 && daily_usage.is_empty() {
+            if let Some(day) = utc_day(&self.updated_at).or_else(|| utc_day(&self.started_at)) {
+                daily_usage.push(DailyUsage {
+                    day,
+                    responses: 0,
+                    usage: usage.clone(),
+                    estimated: true,
+                });
+            }
+        }
+
         let thread_id = if self.thread_id.is_empty() {
             self.session_id.clone()
         } else {
@@ -297,6 +337,7 @@ impl SessionBuilder {
             },
             usage,
             models,
+            daily_usage,
             reroutes: self.reroutes,
         }
     }
@@ -322,6 +363,21 @@ fn optional_label(value: Option<&Value>) -> Option<String> {
 
 fn int_value(object: &serde_json::Map<String, Value>, key: &str) -> i64 {
     object.get(key).and_then(Value::as_i64).unwrap_or(0).max(0)
+}
+
+fn utc_day(timestamp: &str) -> Option<String> {
+    let bytes = timestamp.as_bytes();
+    if bytes.len() < 10
+        || bytes.get(4) != Some(&b'-')
+        || bytes.get(7) != Some(&b'-')
+        || !bytes[..10]
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| index == 4 || index == 7 || byte.is_ascii_digit())
+    {
+        return None;
+    }
+    Some(timestamp[..10].to_string())
 }
 
 fn parse_tokens(value: Option<&Value>) -> Option<UsageTokens> {
@@ -393,7 +449,7 @@ fn parse_rollout<R: Read>(reader: R) -> (SessionBuilder, usize) {
                     optional_label(payload.get("effort")),
                 );
             }
-            "token_usage_record" => builder.observe_usage_record(payload),
+            "token_usage_record" => builder.observe_usage_record(timestamp, payload),
             "event_msg" => {
                 let event_type = payload.get("type").and_then(Value::as_str).unwrap_or_default();
                 match event_type {
