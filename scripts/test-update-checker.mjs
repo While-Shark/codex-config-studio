@@ -6,7 +6,7 @@ import { dirname, resolve } from 'node:path';
 import { loadTypeScript } from './helpers/load-typescript.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const updates=loadTypeScript(resolve(root,'src/update-checker.ts'));
+const updates=loadTypeScript(resolve(root,'src/update-version.ts'));
 
 test('semantic version comparison handles normal release versions',()=>{
   assert.equal(updates.compareVersions('0.5.0','0.5.0'),0);
