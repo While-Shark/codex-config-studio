@@ -696,6 +696,12 @@ pub(crate) fn collect_project_usage(
         if !builder.matches_project(project.as_deref()) {
             continue;
         }
+        // With exact response records, a period view should count only sessions that
+        // actually produced a model response inside the requested UTC-day window.
+        // A recently modified rollout may still contain only older responses.
+        if since_day.is_some() && builder.has_exact_records && builder.exact_responses == 0 {
+            continue;
+        }
         sessions.push(builder.finish());
     }
 
@@ -769,6 +775,20 @@ mod tests {
         assert_eq!(session.usage.total_tokens, 50);
         assert_eq!(session.daily_usage.len(), 1);
         assert_eq!(session.daily_usage[0].day, "2026-09-26");
+    }
+
+    #[test]
+    fn period_filter_can_identify_exact_sessions_with_no_in_window_responses() {
+        let text = [
+            r#"{"timestamp":"2026-09-20T01:00:00Z","type":"session_meta","payload":{"id":"old-only","cwd":"/work/demo"}}"#,
+            r#"{"timestamp":"2026-09-20T01:00:01Z","type":"turn_context","payload":{"turn_id":"t","cwd":"/work/demo","model":"gpt-6-luna","effort":"xhigh"}}"#,
+            r#"{"timestamp":"2026-09-20T01:00:02Z","type":"token_usage_record","payload":{"thread_id":"old-only","turn_id":"t","session_id":"old-only","root_turn_id":"t","response_id":"old","usage":{"input_tokens":90,"cached_input_tokens":0,"output_tokens":10,"reasoning_output_tokens":0,"total_tokens":100},"turn_token_usage":{"total_tokens":100},"thread_token_usage":{"total_tokens":100}}}"#,
+        ].join("\n");
+        let (builder, errors) = parse_rollout(Cursor::new(text), Some("2026-09-25"));
+        assert_eq!(errors, 0);
+        assert!(builder.has_exact_records);
+        assert_eq!(builder.exact_responses, 0);
+        assert_eq!(builder.exact_usage.total_tokens, 0);
     }
 
     #[test]
