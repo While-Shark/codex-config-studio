@@ -609,7 +609,8 @@ async function changeScope(kind:ScopeKind,path=projectPath):Promise<void> {
     const input=document.querySelector<HTMLInputElement>('#projectPath');if(input)input.value=projectPath;
     return;
   }
-  scope=kind;projectPath=path;await loadConfig();
+  scope=kind;projectPath=path;usageReport=null;usageLoadError='';++usageRequestId;await loadConfig();
+  if(activeTab==='usage')void loadProjectUsage();
 }
 async function reloadConfig():Promise<void> {
   if(await approveDraftDiscard())await loadConfig();
@@ -741,7 +742,7 @@ function bindStaticEvents():void {
   $<HTMLSelectElement>('#themeMode').value=themeMode;
   $<HTMLSelectElement>('#themeMode').onchange=e=>{themeMode=(e.currentTarget as HTMLSelectElement).value as ThemeMode;safeSet('codex-config-studio.theme.mode',themeMode);applyTheme();};
   document.querySelectorAll<HTMLButtonElement>('[data-accent]').forEach(btn=>btn.onclick=()=>{accent=btn.dataset.accent as Accent;safeSet('codex-config-studio.theme.accent',accent);applyTheme();document.querySelectorAll('[data-accent]').forEach(x=>{x.classList.toggle('active',(x as HTMLElement).dataset.accent===accent);x.setAttribute('aria-pressed',String((x as HTMLElement).dataset.accent===accent));});});
-  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>btn.onclick=()=>{if(busy||confirmResolver||!validateModelPickers(document))return;activeTab=btn.dataset.tab as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();});
+  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>btn.onclick=()=>{if(busy||confirmResolver||!validateModelPickers(document))return;activeTab=btn.dataset.tab as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();if(activeTab==='usage')void loadProjectUsage();});
   document.querySelectorAll<HTMLButtonElement>('.scope-tab').forEach(btn=>btn.onclick=()=>void changeScope(btn.dataset.scope as ScopeKind));
   $('#chooseProject').addEventListener('click',async()=>{if(busy||confirmResolver)return;try{const p=await open({directory:true,multiple:false,title:t('scope.dialogTitle')});if(typeof p==='string')await changeScope('project',p);}catch(e){toast(String(e),true);}});
   $<HTMLInputElement>('#projectPath').onchange=e=>{const path=(e.currentTarget as HTMLInputElement).value.trim();void changeScope('project',path);};
@@ -750,7 +751,7 @@ function bindStaticEvents():void {
   $('#confirmCancel').addEventListener('click',()=>finishConfirm(false));$('#confirmOk').addEventListener('click',()=>{if(!$<HTMLButtonElement>('#confirmOk').disabled)finishConfirm(true);});
   $('#confirmClose').addEventListener('click',()=>finishConfirm(false));
   bindModalKeyboard(()=>finishConfirm(false));
-  bindTabs(document,id=>{if(busy||confirmResolver||!validateModelPickers(document))return false;activeTab=id as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();});
+  bindTabs(document,id=>{if(busy||confirmResolver||!validateModelPickers(document))return false;activeTab=id as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();if(activeTab==='usage')void loadProjectUsage();});
   $('#confirmModal').addEventListener('click',e=>{if(e.target===e.currentTarget)finishConfirm(false);});
 }
 
