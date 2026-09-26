@@ -71,6 +71,8 @@ export type UsageSession = {
   isSubagent: boolean;
   turns: number;
   responses: number;
+  lastModel: string | null;
+  lastReasoning: string | null;
   usageSource: 'response_records' | 'legacy_session_total' | 'none' | string;
   usage: UsageTokens;
   models: ModelUsage[];

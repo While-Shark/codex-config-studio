@@ -46,3 +46,17 @@ test('integrity copy is complete in five languages',()=>{
     assert.ok(Object.values(copy).every(value=>typeof value==='string'&&value.trim()));
   }
 });
+
+
+test('runtime integrity distinguishes model drift from reasoning drift',()=>{
+  const target={model:'gpt-6-luna',reasoning:'xhigh'};
+  assert.equal(integrity.runtimeIntegrityStatus({model:'gpt-6-luna',reasoning:'xhigh'},target),'match');
+  assert.equal(integrity.runtimeIntegrityStatus({model:'gpt-6-sol',reasoning:'xhigh'},target),'model-drift');
+  assert.equal(integrity.runtimeIntegrityStatus({model:'gpt-6-luna',reasoning:'high'},target),'reasoning-drift');
+});
+
+test('missing runtime reasoning does not create a false drift signal',()=>{
+  const target={model:'gpt-6-luna',reasoning:'xhigh'};
+  assert.equal(integrity.runtimeIntegrityStatus({model:'gpt-6-luna',reasoning:null},target),'match');
+  assert.equal(integrity.runtimeIntegrityStatus(null,target),'unknown');
+});

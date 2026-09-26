@@ -12,6 +12,14 @@ export type IntegrityLock = IntegrityTarget & {
   updatedAt: number;
 };
 
+export type RuntimeIntegrityEvidence = IntegrityTarget & {
+  threadId: string;
+  updatedAt: string;
+  reroutes: number;
+};
+
+export type RuntimeIntegrityStatus = 'unknown' | 'match' | 'model-drift' | 'reasoning-drift';
+
 export type IntegrityCopy = {
   title: string;
   locked: string;
@@ -22,6 +30,11 @@ export type IntegrityCopy = {
   effective: string;
   runtime: string;
   runtimeUnknown: string;
+  runtimeLoading: string;
+  runtimeNone: string;
+  runtimeHealthy: string;
+  runtimeDrift: string;
+  runtimeReroute: string;
   healthy: string;
   drift: string;
   pendingChange: string;
@@ -46,6 +59,11 @@ const copies: Record<string, IntegrityCopy> = {
     effective: 'Effective config',
     runtime: 'Runtime session',
     runtimeUnknown: 'Not verified (config level only)',
+    runtimeLoading: 'Reading recent runtime evidence…',
+    runtimeNone: 'No recent root-session model evidence',
+    runtimeHealthy: 'Latest runtime matches the locked target',
+    runtimeDrift: 'Latest runtime differs from the locked target',
+    runtimeReroute: 'Observed reroutes in latest session: {count}',
     healthy: 'No observable config drift',
     drift: 'Configuration drift detected',
     pendingChange: 'Pending model change will update the lock after confirmation.',
@@ -68,6 +86,11 @@ const copies: Record<string, IntegrityCopy> = {
     effective: '当前有效配置',
     runtime: '运行中会话',
     runtimeUnknown: '暂未验证（当前仅检查配置层）',
+    runtimeLoading: '正在读取最近运行时证据…',
+    runtimeNone: '最近没有找到主会话模型证据',
+    runtimeHealthy: '最近运行时与锁定目标一致',
+    runtimeDrift: '最近运行时与锁定目标不一致',
+    runtimeReroute: '最近会话可观测 reroute：{count} 次',
     healthy: '未发现可观测的配置降级',
     drift: '检测到模型配置偏移',
     pendingChange: '待应用的模型变更会在确认后同步更新锁定目标。',
@@ -90,6 +113,11 @@ const copies: Record<string, IntegrityCopy> = {
     effective: '目前有效設定',
     runtime: '執行中工作階段',
     runtimeUnknown: '尚未驗證（目前僅檢查設定層）',
+    runtimeLoading: '正在讀取最近執行階段證據…',
+    runtimeNone: '最近找不到主工作階段模型證據',
+    runtimeHealthy: '最近執行階段與鎖定目標一致',
+    runtimeDrift: '最近執行階段與鎖定目標不一致',
+    runtimeReroute: '最近工作階段可觀測 reroute：{count} 次',
     healthy: '未發現可觀測的設定降級',
     drift: '偵測到模型設定偏移',
     pendingChange: '待套用的模型變更會在確認後同步更新鎖定目標。',
@@ -112,6 +140,11 @@ const copies: Record<string, IntegrityCopy> = {
     effective: '有効な設定',
     runtime: '実行中セッション',
     runtimeUnknown: '未検証（現在は設定レイヤーのみ）',
+    runtimeLoading: '最近の実行時証拠を読み込み中…',
+    runtimeNone: '最近のルートセッションのモデル証拠がありません',
+    runtimeHealthy: '最新の実行時モデルはロック対象と一致しています',
+    runtimeDrift: '最新の実行時モデルはロック対象と一致しません',
+    runtimeReroute: '最新セッションで観測された reroute: {count}',
     healthy: '観測可能な設定ドリフトはありません',
     drift: 'モデル設定のドリフトを検出しました',
     pendingChange: '保留中のモデル変更は確認後にロック対象へ反映されます。',
@@ -134,6 +167,11 @@ const copies: Record<string, IntegrityCopy> = {
     effective: '현재 유효 설정',
     runtime: '실행 중 세션',
     runtimeUnknown: '검증되지 않음(현재는 설정 계층만 확인)',
+    runtimeLoading: '최근 런타임 증거를 읽는 중…',
+    runtimeNone: '최근 루트 세션 모델 증거가 없습니다',
+    runtimeHealthy: '최근 런타임이 잠금 대상과 일치합니다',
+    runtimeDrift: '최근 런타임이 잠금 대상과 다릅니다',
+    runtimeReroute: '최근 세션에서 관찰된 reroute: {count}',
     healthy: '관찰 가능한 설정 드리프트가 없습니다',
     drift: '모델 설정 드리프트를 감지했습니다',
     pendingChange: '대기 중인 모델 변경은 확인 후 잠금 대상에도 반영됩니다.',
@@ -219,4 +257,15 @@ export function removeIntegrityLock(scopeKey: string): void {
   const locks = readLocks();
   delete locks[scopeKey];
   writeLocks(locks);
+}
+
+
+export function runtimeIntegrityStatus(
+  runtime: IntegrityTarget | null,
+  target: IntegrityTarget | null,
+): RuntimeIntegrityStatus {
+  if (!runtime?.model || !target?.model) return 'unknown';
+  if (runtime.model !== target.model) return 'model-drift';
+  if (runtime.reasoning && target.reasoning && runtime.reasoning !== target.reasoning) return 'reasoning-drift';
+  return 'match';
 }
