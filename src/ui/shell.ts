@@ -20,7 +20,7 @@ export function renderShell({ projectPath, accent }: ShellOptions): string {
     <header class="topbar" id="appHeader">
       <div class="brand"><div class="logo">${icon('studio')}</div><div><h1>Codex Config Studio</h1><p>${t('app.subtitle')}</p></div></div>
       <div class="top-actions">
-        <button id="updateCheckBtn" class="text-button update-check-button" type="button">${icon('refresh')}<span>${updateText(getLocale()).check}</span></button>
+        <button id="updateCheckBtn" class="text-button update-check-button" type="button">${icon('history')}<span>${updateText(getLocale()).check}</span></button>
         <span id="saveState" class="status-pill" role="status"></span>
         <label class="compact-select language-select">${icon('globe')}<span class="sr-only">${t('language.label')}</span><select id="languageSelect">${localeOptions.map(x => `<option value="${x.value}" ${x.value === getLocale() ? 'selected' : ''}>${x.label}</option>`).join('')}</select></label>
         <details class="popover appearance-panel"><summary title="${esc(copy.appearance)}" aria-label="${esc(copy.appearance)}">${icon('sliders')}</summary><div class="popover-content"><h3>${copy.appearance}</h3>
