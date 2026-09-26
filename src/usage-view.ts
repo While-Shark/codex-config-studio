@@ -98,6 +98,19 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
       }).join('') + '</div><p class="usage-panel-note">' + esc(copy.trendHint) + '</p>'
     : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
 
+  const modelTrendHtml = summary.modelTrend.length
+    ? '<div class="model-trend-list">' + summary.modelTrend.map(day => {
+        const rows = day.rows.slice(0,4);
+        return '<div class="model-trend-day"><div class="model-trend-day-head"><strong>' + esc(day.day) + '</strong>' +
+          (day.estimated ? '<small title="' + esc(copy.estimatedDay) + '">~ ' + esc(copy.estimatedDay) + '</small>' : '') +
+          '<span>' + esc(formatTokens(day.totalTokens)) + '</span></div><div class="model-trend-rows">' +
+          rows.map(row => '<div class="model-trend-row"><div><code>' + esc(row.model || copy.unknownModel) + '</code><small>' +
+            esc(row.reasoning ?? '—') + '</small></div><div class="usage-bar"><i style="width:' + Math.max(1,Math.min(100,row.share*100)) + '%"></i></div><strong>' +
+            esc(formatTokens(row.usage.totalTokens)) + '</strong><span>' + (row.share*100).toFixed(1) + '%</span></div>').join('') +
+          '</div></div>';
+      }).join('') + '</div><p class="usage-panel-note">' + esc(copy.modelTrendHint) + '</p>'
+    : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
+
   const agentHtml =
     '<div class="usage-agent-split">' +
       '<div class="usage-agent-row"><div><span>' + esc(copy.rootAgent) + '</span><strong>' + esc(formatTokens(summary.rootUsage)) + ' · ' + (rootShare*100).toFixed(1) + '%</strong></div><div class="usage-bar"><i style="width:' + (summary.rootUsage?Math.max(1,rootShare*100):0) + '%"></i></div></div>' +
@@ -119,6 +132,7 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
     warnings.map(value => '<div class="usage-warning">' + esc(value) + '</div>').join('') +
     '<div class="usage-metrics">' + metricHtml + '</div>' +
     '<section class="usage-panel"><h3>' + esc(copy.dailyTrend) + '</h3>' + trendHtml + '</section>' +
+    '<section class="usage-panel"><h3>' + esc(copy.modelTrend) + '</h3>' + modelTrendHtml + '</section>' +
     '<div class="usage-panels"><section class="usage-panel"><h3>' + esc(copy.modelUsage) + '</h3><div class="usage-model-list">' + modelHtml + '</div></section>' +
     '<section class="usage-panel"><h3>' + esc(copy.agentUsage) + '</h3>' + agentHtml + '</section></div>' +
     '<section class="usage-panel"><h3>' + esc(copy.latestSessions) + '</h3><div class="usage-session-list">' + sessionHtml + '</div></section>' +
