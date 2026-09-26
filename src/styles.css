@@ -373,3 +373,19 @@ input::placeholder { color: var(--muted2); }
   .reroute-row { grid-template-columns: 1fr; }
   .reroute-reason { max-width: none; text-align: left; }
 }
+
+
+.cost-summary { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
+.cost-summary > div { padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel2); }
+.cost-summary span { display: block; color: var(--muted); font-size: 10px; }
+.cost-summary strong { display: block; margin-top: 5px; font-family: var(--mono); font-size: 18px; }
+.cost-model-list { display: grid; gap: 7px; }
+.cost-model-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--panel2); }
+.cost-model-row code { display: block; font-family: var(--mono); font-size: 10px; overflow-wrap: anywhere; }
+.cost-model-row small { display: block; margin-top: 2px; color: var(--muted2); font-size: 9px; }
+.cost-model-row strong { font-family: var(--mono); font-size: 10px; color: var(--accent); }
+.cost-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 10px; color: var(--muted2); font-size: 9px; }
+.cost-unpriced { margin-top: 9px; color: var(--warning); font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+@media (max-width: 780px) {
+  .cost-summary { grid-template-columns: 1fr; }
+}
