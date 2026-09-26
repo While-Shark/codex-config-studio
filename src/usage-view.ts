@@ -1,5 +1,6 @@
 import { icon } from './ui/icons';
 import { formatTokens, summarizeUsage, usageText, type UsagePeriod, type UsageReport } from './usage-dashboard';
+import { CODEX_USD_REFERENCE_CATALOG, estimateUsageCost, formatUsd, pricingSnapshotAgeDays } from './pricing-catalog';
 
 export type UsageViewOptions = {
   locale: string;
@@ -98,6 +99,66 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
       }).join('') + '</div><p class="usage-panel-note">' + esc(copy.trendHint) + '</p>'
     : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
 
+  const modelTrendHtml = summary.modelTrend.length
+    ? '<div class="model-trend-list">' + summary.modelTrend.map(day => {
+        const rows = day.rows.slice(0,4);
+        return '<div class="model-trend-day"><div class="model-trend-day-head"><strong>' + esc(day.day) + '</strong>' +
+          (day.estimated ? '<small title="' + esc(copy.estimatedDay) + '">~ ' + esc(copy.estimatedDay) + '</small>' : '') +
+          '<span>' + esc(formatTokens(day.totalTokens)) + '</span></div><div class="model-trend-rows">' +
+          rows.map(row => '<div class="model-trend-row"><div><code>' + esc(row.model || copy.unknownModel) + '</code><small>' +
+            esc(row.reasoning ?? '—') + '</small></div><div class="usage-bar"><i style="width:' + Math.max(1,Math.min(100,row.share*100)) + '%"></i></div><strong>' +
+            esc(formatTokens(row.usage.totalTokens)) + '</strong><span>' + (row.share*100).toFixed(1) + '%</span></div>').join('') +
+          '</div></div>';
+      }).join('') + '</div><p class="usage-panel-note">' + esc(copy.modelTrendHint) + '</p>'
+    : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
+
+  const rerouteHtml = summary.rerouteEvents.length
+    ? '<div class="reroute-list">' + summary.rerouteEvents.slice(0,20).map(event => {
+        const agent = event.isSubagent ? (event.agentRole || copy.uncategorizedAgent) : copy.rootAgent;
+        return '<div class="reroute-row"><div class="reroute-main"><strong><code>' + esc(event.fromModel) + '</code><span>→</span><code>' +
+          esc(event.toModel) + '</code></strong><small>' + esc(dateLabel(event.timestamp, options.locale)) + ' · ' + esc(agent) +
+          '</small></div><div class="reroute-reason">' + esc(event.reason) + '</div></div>';
+      }).join('') + '</div><p class="usage-panel-note">' + esc(copy.rerouteTimelineHint) + '</p>'
+    : '<div class="empty-state">' + esc(copy.noReroutes) + '</div><p class="usage-panel-note">' + esc(copy.rerouteTimelineHint) + '</p>';
+
+  const cost = estimateUsageCost(summary.modelRows, summary.usage.totalTokens);
+  const priceAgeDays = pricingSnapshotAgeDays();
+  const costRows = cost.modelRows.length
+    ? '<div class="cost-model-list">' + cost.modelRows.slice(0,8).map(row =>
+        '<div class="cost-model-row"><div><code>' + esc(row.model) + '</code><small>' + esc(row.reasoning ?? '—') +
+        '</small></div><strong>' + esc(formatUsd(row.usd)) + '</strong></div>'
+      ).join('') + '</div>'
+    : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
+  const unpriced = cost.unpricedModels.length
+    ? '<p class="cost-unpriced"><strong>' + esc(copy.unpricedModels) + ':</strong> ' + esc(cost.unpricedModels.join(', ')) + '</p>'
+    : '';
+  const costDisplay = cost.coverage <= 0 ? '—' : (cost.coverage < 0.999999 ? '≥' : '') + formatUsd(cost.usd);
+  const costHtml =
+    '<div class="cost-summary"><div><span>' + esc(copy.referenceCost) + '</span><strong>' + esc(costDisplay) +
+    '</strong></div><div><span>' + esc(copy.priceCoverage) + '</span><strong>' + (cost.coverage*100).toFixed(1) +
+    '%</strong></div></div>' + costRows +
+    '<div class="cost-meta"><span>' + esc(copy.pricingSnapshot) + ': ' + esc(CODEX_USD_REFERENCE_CATALOG.snapshotDate) +
+    '</span><span>' + esc(CODEX_USD_REFERENCE_CATALOG.sourceLabel) + '</span></div>' + unpriced +
+    (priceAgeDays>30?'<div class="usage-warning">' + esc(copy.pricingStale) + '</div>':'') +
+    '<p class="usage-panel-note">' + esc(copy.referenceCostHint) + '</p>';
+
+  const rootAverage = summary.rootSessions > 0 ? summary.rootUsage / summary.rootSessions : 0;
+  const subagentAverage = summary.subagentSessions > 0 ? summary.subagentUsage / summary.subagentSessions : 0;
+  const agentRoleHtml = summary.agentRoles.length
+    ? '<div class="agent-role-list">' + summary.agentRoles.map(row =>
+        '<div class="agent-role-row"><div><strong>' + esc(row.role === '__unclassified__' ? copy.uncategorizedAgent : row.role) +
+        '</strong><small>' + row.sessions + ' ' + esc(copy.sessions) + ' · ' + row.turns + ' ' + esc(copy.turns) +
+        '</small></div><div class="usage-bar"><i style="width:' + Math.max(1,Math.min(100,row.share*100)) +
+        '%"></i></div><span>' + esc(formatTokens(row.usage.totalTokens)) + '</span><em>' + (row.share*100).toFixed(1) + '%</em></div>'
+      ).join('') + '</div>'
+    : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
+  const agentAnalysisHtml =
+    '<div class="agent-analysis-metrics"><div><span>' + esc(copy.rootAgent) + '</span><strong>' + summary.rootSessions +
+    '</strong><small>' + esc(copy.avgPerSession) + ' ' + esc(formatTokens(rootAverage)) + '</small></div>' +
+    '<div><span>' + esc(copy.subagents) + '</span><strong>' + summary.subagentSessions +
+    '</strong><small>' + esc(copy.avgPerSession) + ' ' + esc(formatTokens(subagentAverage)) + '</small></div></div>' +
+    agentRoleHtml + '<p class="usage-panel-note">' + esc(copy.agentAnalysisHint) + '</p>';
+
   const agentHtml =
     '<div class="usage-agent-split">' +
       '<div class="usage-agent-row"><div><span>' + esc(copy.rootAgent) + '</span><strong>' + esc(formatTokens(summary.rootUsage)) + ' · ' + (rootShare*100).toFixed(1) + '%</strong></div><div class="usage-bar"><i style="width:' + (summary.rootUsage?Math.max(1,rootShare*100):0) + '%"></i></div></div>' +
@@ -119,6 +180,10 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
     warnings.map(value => '<div class="usage-warning">' + esc(value) + '</div>').join('') +
     '<div class="usage-metrics">' + metricHtml + '</div>' +
     '<section class="usage-panel"><h3>' + esc(copy.dailyTrend) + '</h3>' + trendHtml + '</section>' +
+    '<section class="usage-panel"><h3>' + esc(copy.modelTrend) + '</h3>' + modelTrendHtml + '</section>' +
+    '<section class="usage-panel"><h3>' + esc(copy.rerouteTimeline) + '</h3>' + rerouteHtml + '</section>' +
+    '<section class="usage-panel"><h3>' + esc(copy.referenceCost) + '</h3>' + costHtml + '</section>' +
+    '<section class="usage-panel"><h3>' + esc(copy.agentAnalysis) + '</h3>' + agentAnalysisHtml + '</section>' +
     '<div class="usage-panels"><section class="usage-panel"><h3>' + esc(copy.modelUsage) + '</h3><div class="usage-model-list">' + modelHtml + '</div></section>' +
     '<section class="usage-panel"><h3>' + esc(copy.agentUsage) + '</h3>' + agentHtml + '</section></div>' +
     '<section class="usage-panel"><h3>' + esc(copy.latestSessions) + '</h3><div class="usage-session-list">' + sessionHtml + '</div></section>' +
