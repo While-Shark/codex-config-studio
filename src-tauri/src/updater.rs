@@ -48,7 +48,9 @@ pub async fn install_signed_update(app: AppHandle) -> Result<String, String> {
         return Err("No signed update is available".to_string());
     };
 
+    #[cfg(target_os = "windows")]
     let version = update.version.clone();
+
     update
         .download_and_install(|_, _| {}, || {})
         .await
