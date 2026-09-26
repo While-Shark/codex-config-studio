@@ -42,9 +42,11 @@ import {
   saveIntegrityLock,
   type IntegrityTarget,
 } from './model-integrity';
+import { periodSinceMs, type UsagePeriod, type UsageReport } from './usage-dashboard';
+import { renderUsageView } from './usage-view';
 
 type ScopeKind = 'global' | 'project';
-type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'history';
+type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'usage' | 'history';
 type ThemeMode = 'system' | 'dark' | 'light';
 type Accent = 'violet' | 'blue' | 'emerald' | 'amber' | 'rose';
 type ManagedConfig = {
@@ -110,6 +112,11 @@ let taskPreferences = loadTaskPreferences();
 let historyEntries: HistoryEntry[] = [];
 let historySearch = '';
 let historyView: 'projects' | 'presets' = 'projects';
+let usagePeriod: UsagePeriod = '30d';
+let usageReport: UsageReport | null = null;
+let usageLoading = false;
+let usageLoadError = '';
+let usageRequestId = 0;
 let configReadId = 0;
 let historyLoading = false;
 let historyLoadError = false;
@@ -226,6 +233,7 @@ function renderWorkspace():void {
   const host=$<HTMLElement>('#leftContent');
   if(activeTab==='presets') renderPresets(host);
   else if(activeTab==='task') renderTask(host);
+  else if(activeTab==='usage') renderUsagePage(host);
   else if(activeTab==='history') renderHistoryPage(host);
   else renderAdvanced(host);
 }
