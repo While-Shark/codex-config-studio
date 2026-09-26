@@ -2,6 +2,7 @@ import { getLocale, localeOptions, t } from '../i18n';
 import { workspaceText } from '../i18n/workspace';
 import { historyText } from '../history-tab';
 import { previewText } from '../i18n/preview';
+import { usageText } from '../usage-dashboard';
 import { escapeHtml as esc, icon } from './icons';
 
 export type ShellOptions = { projectPath: string; accent: string };
@@ -10,7 +11,7 @@ export function renderShell({ projectPath, accent }: ShellOptions): string {
   const copy = workspaceText(getLocale());
   const tabs = [
     ['presets', 'grid', t('tab.presets')], ['task', 'bolt', t('tab.task')],
-    ['advanced', 'sliders', t('tab.advanced')], ['history', 'history', historyText(getLocale()).tab],
+    ['advanced', 'sliders', t('tab.advanced')], ['usage', 'grid', usageText(getLocale()).tab], ['history', 'history', historyText(getLocale()).tab],
   ] as const;
   return `<div class="app-shell">
     <header class="topbar" id="appHeader">
