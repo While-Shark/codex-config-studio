@@ -38,6 +38,7 @@ export type IntegrityCopy = {
   runtimeHistory: string;
   runtimeHistoryMatch: string;
   runtimeHistoryDrift: string;
+  refreshRuntime: string;
   healthy: string;
   drift: string;
   pendingChange: string;
@@ -70,6 +71,7 @@ const copies: Record<string, IntegrityCopy> = {
     runtimeHistory: 'Recent runtime evidence',
     runtimeHistoryMatch: 'Matched lock',
     runtimeHistoryDrift: 'Drift',
+    refreshRuntime: 'Refresh runtime evidence',
     healthy: 'No observable config drift',
     drift: 'Configuration drift detected',
     pendingChange: 'Pending model change will update the lock after confirmation.',
@@ -100,6 +102,7 @@ const copies: Record<string, IntegrityCopy> = {
     runtimeHistory: '最近运行时证据',
     runtimeHistoryMatch: '与锁定一致',
     runtimeHistoryDrift: '存在偏移',
+    refreshRuntime: '刷新运行时证据',
     healthy: '未发现可观测的配置降级',
     drift: '检测到模型配置偏移',
     pendingChange: '待应用的模型变更会在确认后同步更新锁定目标。',
@@ -130,6 +133,7 @@ const copies: Record<string, IntegrityCopy> = {
     runtimeHistory: '最近執行階段證據',
     runtimeHistoryMatch: '與鎖定一致',
     runtimeHistoryDrift: '存在偏移',
+    refreshRuntime: '重新整理執行階段證據',
     healthy: '未發現可觀測的設定降級',
     drift: '偵測到模型設定偏移',
     pendingChange: '待套用的模型變更會在確認後同步更新鎖定目標。',
@@ -160,6 +164,7 @@ const copies: Record<string, IntegrityCopy> = {
     runtimeHistory: '最近の実行時証拠',
     runtimeHistoryMatch: 'ロックと一致',
     runtimeHistoryDrift: 'ドリフト',
+    refreshRuntime: '実行時証拠を更新',
     healthy: '観測可能な設定ドリフトはありません',
     drift: 'モデル設定のドリフトを検出しました',
     pendingChange: '保留中のモデル変更は確認後にロック対象へ反映されます。',
@@ -190,6 +195,7 @@ const copies: Record<string, IntegrityCopy> = {
     runtimeHistory: '최근 런타임 증거',
     runtimeHistoryMatch: '잠금과 일치',
     runtimeHistoryDrift: '드리프트',
+    refreshRuntime: '런타임 증거 새로고침',
     healthy: '관찰 가능한 설정 드리프트가 없습니다',
     drift: '모델 설정 드리프트를 감지했습니다',
     pendingChange: '대기 중인 모델 변경은 확인 후 잠금 대상에도 반영됩니다.',
