@@ -51,5 +51,17 @@ test('release workflow requires updater secrets and publishes manifest plus sign
   assert.match(workflow,/build-updater-manifest\.mjs/);
   assert.match(workflow,/\.app\.tar\.gz\.sig/);
   assert.match(workflow,/\.AppImage\.sig/);
+  assert.match(workflow,/\.deb\.sig/);
   assert.match(workflow,/setup\.exe\.sig/);
+});
+
+
+test('updater manifest maps installer-specific targets to matching packages',()=>{
+  const source=readFileSync(resolve(root,'scripts/build-updater-manifest.mjs'),'utf8');
+  assert.match(source,/windows-x86_64-nsis/);
+  assert.match(source,/linux-x86_64-appimage/);
+  assert.match(source,/linux-x86_64-deb/);
+  assert.match(source,/darwin-x86_64-app/);
+  assert.match(source,/darwin-aarch64-app/);
+  assert.match(source,/\.deb\.sig/);
 });
