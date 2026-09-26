@@ -213,6 +213,11 @@ export function periodSinceMs(period: UsagePeriod, now=Date.now()): number | nul
   return now-(period==='7d'?7:30)*24*60*60*1000;
 }
 
+export function periodSinceDay(period: UsagePeriod, now=Date.now()): string | null {
+  const since=periodSinceMs(period,now);
+  return since===null?null:new Date(since).toISOString().slice(0,10);
+}
+
 export function formatTokens(value:number):string {
   if(value>=1_000_000_000)return `${(value/1_000_000_000).toFixed(value>=10_000_000_000?1:2)}B`;
   if(value>=1_000_000)return `${(value/1_000_000).toFixed(value>=10_000_000?1:2)}M`;
