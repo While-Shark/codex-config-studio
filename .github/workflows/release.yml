@@ -117,6 +117,7 @@ jobs:
               src-tauri/target/release/bundle/appimage/*.AppImage
               src-tauri/target/release/bundle/appimage/*.AppImage.sig
               src-tauri/target/release/bundle/deb/*.deb
+              src-tauri/target/release/bundle/deb/*.deb.sig
 
           - name: macos-universal
             os: macos-latest
@@ -259,6 +260,7 @@ jobs:
             -name "*.AppImage" -o \
             -name "*.AppImage.sig" -o \
             -name "*.deb" -o \
+            -name "*.deb.sig" -o \
             -name "*.dmg" -o \
             -name "*.app.tar.gz" -o \
             -name "*.app.tar.gz.sig" \
