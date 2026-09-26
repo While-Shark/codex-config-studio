@@ -42,7 +42,7 @@ import {
   saveIntegrityLock,
   type IntegrityTarget,
 } from './model-integrity';
-import { periodSinceMs, type UsagePeriod, type UsageReport } from './usage-dashboard';
+import { periodSinceDay, periodSinceMs, type UsagePeriod, type UsageReport } from './usage-dashboard';
 import { renderUsageView } from './usage-view';
 
 type ScopeKind = 'global' | 'project';
@@ -307,7 +307,7 @@ async function loadProjectUsage():Promise<void> {
   if(scope!=='project'||!projectPath){usageReport=null;usageLoading=false;renderWorkspace();return;}
   usageLoading=true;renderWorkspace();
   try{
-    const report=await safeInvoke<UsageReport>('get_project_usage',{projectPath,sinceMs:periodSinceMs(usagePeriod),maxFiles:8000},30000);
+    const report=await safeInvoke<UsageReport>('get_project_usage',{projectPath,sinceMs:periodSinceMs(usagePeriod),sinceDay:periodSinceDay(usagePeriod),maxFiles:8000},30000);
     if(request!==usageRequestId)return;
     usageReport=report;
   }catch(error){
