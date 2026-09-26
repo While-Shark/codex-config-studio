@@ -6,7 +6,6 @@ on:
       - feature/signed-updater
     paths:
       - "src-tauri/Cargo.toml"
-      - "src-tauri/src/updater.rs"
       - ".github/workflows/refresh-updater-lock.yml"
 
 permissions:
@@ -24,42 +23,10 @@ jobs:
         with:
           ref: feature/signed-updater
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install frontend dependencies
-        run: npm ci
-
-      - name: Generate required Tauri icons
-        run: npm run tauri icon src-tauri/icons/icon.svg
-
-      - name: Install Linux system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libxdo-dev \
-            libssl-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            libfuse2
-
       - uses: dtolnay/rust-toolchain@stable
 
-      - uses: swatinem/rust-cache@v2
-        with:
-          workspaces: "./src-tauri -> target"
-          key: updater-lock
-
-      - name: Resolve updater dependency and compile
-        run: cargo check --manifest-path src-tauri/Cargo.toml
+      - name: Resolve updater dependencies
+        run: cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
 
       - name: Commit lockfile when changed
         shell: bash
