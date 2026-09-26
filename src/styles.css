@@ -359,3 +359,17 @@ input::placeholder { color: var(--muted2); }
   .agent-role-row { grid-template-columns: minmax(120px,1.3fr) minmax(70px,1fr) 60px; }
   .agent-role-row > em { display: none; }
 }
+
+
+.reroute-list { display: grid; gap: 8px; }
+.reroute-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel2); }
+.reroute-main { min-width: 0; }
+.reroute-main strong { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.reroute-main code { font-family: var(--mono); font-size: 10px; overflow-wrap: anywhere; }
+.reroute-main span { color: var(--warning); }
+.reroute-main small { display: block; margin-top: 4px; color: var(--muted2); font-size: 10px; }
+.reroute-reason { max-width: 220px; color: var(--muted); font-family: var(--mono); font-size: 9px; overflow-wrap: anywhere; text-align: right; }
+@media (max-width: 780px) {
+  .reroute-row { grid-template-columns: 1fr; }
+  .reroute-reason { max-width: none; text-align: left; }
+}
