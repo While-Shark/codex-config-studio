@@ -69,7 +69,8 @@ jobs:
             exit 0
           fi
           cp src-tauri/Cargo.lock /tmp/Cargo.lock.updated
-          git checkout -- src-tauri/Cargo.lock
+          git reset --hard HEAD
+          git clean -fd
           git pull --rebase origin feature/signed-updater
           cp /tmp/Cargo.lock.updated src-tauri/Cargo.lock
           git config user.name "github-actions[bot]"
