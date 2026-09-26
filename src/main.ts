@@ -103,6 +103,7 @@ let draftPresetSource: PresetReference | null = null;
 let values = structuredClone(presets[2].values);
 let lastSnapshot: ConfigSnapshot | null = null;
 let globalSnapshot: ConfigSnapshot | null = null;
+let globalIntegrityLoading = false;
 let currentStatus: { key: StatusKey; ok: boolean } = { key: 'status.unread', ok: false };
 let activeTaskMode: TaskModeId = loadActiveTaskMode();
 let taskPreferences = loadTaskPreferences();
@@ -348,6 +349,15 @@ function integrityTargetLabel(target:IntegrityTarget|null):string {
   if(!target) return '—';
   return `${target.model??'—'} · ${target.reasoning??'—'}`;
 }
+async function loadGlobalIntegritySnapshot():Promise<void> {
+  if(scope!=='project'||globalIntegrityLoading)return;
+  globalIntegrityLoading=true;
+  try{
+    const snapshot=await safeInvoke<ConfigSnapshot>('read_config',{scope:{kind:'global',projectPath:null}},6000);
+    if(scope==='project'){globalSnapshot=snapshot;renderModelIntegrity();}
+  }catch(error){console.warn('model integrity global config',error);}
+  finally{globalIntegrityLoading=false;}
+}
 function renderModelIntegrity():void {
   const host=document.querySelector<HTMLElement>('#integrityCard');if(!host)return;
   const copy=integrityText(getLocale());
@@ -355,6 +365,7 @@ function renderModelIntegrity():void {
     host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${esc(copy.title)}</h3><span class="integrity-badge">${esc(copy.unlocked)}</span></div><p class="rail-help">${esc(copy.scopeNote)}</p>`;
     return;
   }
+  if(scope==='project'&&!globalSnapshot&&!globalIntegrityLoading)void loadGlobalIntegritySnapshot();
   const key=currentIntegrityKey();
   const lock=loadIntegrityLock(key);
   const effective=effectiveIntegrityTarget();
@@ -572,15 +583,9 @@ async function loadConfig():Promise<void> {
   if(scope==='project'&&!projectPath){setStatus('status.selectProject',false);renderRightRail();void loadConfigHealth(false);return;}
   setStatus('status.reading',true);renderRightRail();
   try{
-    const targetScope=requestScope();
-    const [snap,global]=await Promise.all([
-      safeInvoke<ConfigSnapshot>('read_config',{scope:targetScope}),
-      scope==='global'
-        ? Promise.resolve<ConfigSnapshot|null>(null)
-        : safeInvoke<ConfigSnapshot>('read_config',{scope:{kind:'global',projectPath:null}}),
-    ]);
+    const snap=await safeInvoke<ConfigSnapshot>('read_config',{scope:requestScope()});
     if(request!==configReadId||target!==JSON.stringify(requestScope()))return;
-    globalSnapshot=scope==='global'?snap:global;
+    if(scope==='project')globalSnapshot=null;
     applySnapshot(snap);setStatus(snap.exists?'status.read':'status.missing',true);
   }catch(e){if(request===configReadId){lastSnapshot=null;if(scope==='project')globalSnapshot=null;setStatus('status.readFailed',false);toast(String(e),true);}}
   finally{if(request===configReadId){renderRightRail();void loadConfigHealth(false);}}
