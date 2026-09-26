@@ -46,7 +46,7 @@ import { periodSinceDay, periodSinceMs, type UsagePeriod, type UsageReport } fro
 import { renderUsageView } from './usage-view';
 import { recentProjectsFromHistory, type ProjectsUsageOverviewReport, type RecentProject } from './project-overview';
 import { renderProjectOverviewView } from './project-overview-view';
-import { checkStableUpdate, openStableReleasePage, updateText, type UpdateState } from './update-checker';
+import { checkStableUpdate, installSignedUpdate, openStableReleasePage, signedUpdaterEnabled, updateText, type UpdateState } from './update-checker';
 
 type ScopeKind = 'global' | 'project';
 type WorkspaceTab = 'overview' | 'presets' | 'task' | 'advanced' | 'usage' | 'history';
@@ -135,6 +135,7 @@ let configHealthLoading = false;
 let configHealthRequestId = 0;
 let updateState: UpdateState = {status:'idle'};
 let updateRequestId = 0;
+let signedUpdaterReady = false;
 let confirmResolver: ((value: boolean) => void) | null = null;
 let themeMode = (safeGet('codex-config-studio.theme.mode') as ThemeMode | null) ?? 'system';
 let accent = (safeGet('codex-config-studio.theme.accent') as Accent | null) ?? 'violet';
@@ -243,14 +244,25 @@ async function runUpdateCheck(silent=false):Promise<void> {
   updateState=next;renderUpdateStatus();
   if(next.status==='available'&&!silent){
     const copy=updateText(getLocale());
-    const openRelease=await askConfirm({
+    const proceed=await askConfirm({
       title:copy.available,
       message:`${copy.currentVersion}: ${next.currentVersion}\n${copy.latestVersion}: ${next.latestVersion}`,
       detail:next.notes||undefined,
-      confirmText:copy.openRelease,
+      confirmText:signedUpdaterReady?copy.install:copy.openRelease,
       readOnly:true,
     });
-    if(openRelease)try{await openStableReleasePage();}catch(error){toast(String(error),true);}
+    if(proceed){
+      if(signedUpdaterReady){
+        toast(copy.installing);
+        try{await installSignedUpdate();}
+        catch(error){
+          toast(String(error),true);
+          try{await openStableReleasePage();}catch(openError){console.warn('open stable release fallback',openError);}
+        }
+      }else{
+        try{await openStableReleasePage();}catch(error){toast(String(error),true);}
+      }
+    }
   }else if(next.status==='current'&&!silent)toast(updateText(getLocale()).current);
   else if(next.status==='error'&&!silent)toast(`${updateText(getLocale()).failed}: ${next.message}`,true);
 }
@@ -845,7 +857,7 @@ function askConfirm(spec:ConfirmSpec):Promise<boolean> {
 function finishConfirm(value:boolean):void { const modal=document.querySelector<HTMLElement>('#confirmModal');modal?.classList.add('hidden');const r=confirmResolver;confirmResolver=null;setModalActive(false);r?.(value); }
 
 function bindStaticEvents():void {
-  document.querySelector<HTMLButtonElement>('#updateCheckBtn')?.addEventListener('click',()=>{if(updateState.status==='available'){void openStableReleasePage().catch(error=>toast(String(error),true));}else void runUpdateCheck(false);});
+  document.querySelector<HTMLButtonElement>('#updateCheckBtn')?.addEventListener('click',()=>{void runUpdateCheck(false);});
   $<HTMLSelectElement>('#languageSelect').onchange=e=>{if(busy||confirmResolver||!validateModelPickers(document)){(e.currentTarget as HTMLSelectElement).value=getLocale();return;}setLocale((e.currentTarget as HTMLSelectElement).value as Locale);document.documentElement.lang=getLocale();renderApp();};
   $<HTMLSelectElement>('#themeMode').value=themeMode;
   $<HTMLSelectElement>('#themeMode').onchange=e=>{themeMode=(e.currentTarget as HTMLSelectElement).value as ThemeMode;safeSet('codex-config-studio.theme.mode',themeMode);applyTheme();};
@@ -873,4 +885,4 @@ matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{if(th
 document.documentElement.lang=getLocale();
 applyTheme();
 renderApp();
-Promise.all([loadConfig(),loadHistory(),runUpdateCheck(true)]);
+Promise.all([loadConfig(),loadHistory(),signedUpdaterEnabled().then(enabled=>{signedUpdaterReady=enabled;}),runUpdateCheck(true)]);
