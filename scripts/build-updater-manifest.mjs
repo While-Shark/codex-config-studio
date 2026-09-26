@@ -20,7 +20,8 @@ const asset=(sigName)=>{
 };
 
 const windows=asset(pick('-setup.exe.sig'));
-const linux=asset(pick('.AppImage.sig'));
+const linuxAppImage=asset(pick('.AppImage.sig'));
+const linuxDeb=asset(pick('.deb.sig'));
 const mac=asset(pick('.app.tar.gz.sig'));
 
 const manifest={
@@ -28,8 +29,13 @@ const manifest={
   notes:`Codex Config Studio ${tagArg}`,
   pub_date:new Date().toISOString(),
   platforms:{
+    'windows-x86_64-nsis':windows,
     'windows-x86_64':windows,
-    'linux-x86_64':linux,
+    'linux-x86_64-appimage':linuxAppImage,
+    'linux-x86_64-deb':linuxDeb,
+    'linux-x86_64':linuxAppImage,
+    'darwin-x86_64-app':mac,
+    'darwin-aarch64-app':mac,
     'darwin-x86_64':mac,
     'darwin-aarch64':mac,
   },
