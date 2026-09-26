@@ -1,4 +1,5 @@
 mod usage;
+mod updater;
 
 use serde::{Deserialize, Serialize};
 use std::{
@@ -1054,10 +1055,13 @@ async fn restore_history_entry(id: String) -> Result<HistoryRestoreResult, Strin
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(updater::plugin())
         .invoke_handler(tauri::generate_handler![
             inspect_config,
             get_codex_runtime_info,
             open_stable_release_page,
+            updater::signed_updater_info,
+            updater::install_signed_update,
             get_project_usage,
             get_projects_usage_overview,
             remove_config_key,
