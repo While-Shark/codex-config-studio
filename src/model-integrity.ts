@@ -177,3 +177,42 @@ export function resolveIntegrityTarget(
 export function sameIntegrityTarget(a: IntegrityTarget | null, b: IntegrityTarget | null): boolean {
   return !!a && !!b && a.model === b.model && a.reasoning === b.reasoning;
 }
+
+const STORAGE_KEY = 'codex-config-studio.model-integrity.v1';
+
+function readLocks(): Record<string, IntegrityLock> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Record<string, IntegrityLock>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLocks(locks: Record<string, IntegrityLock>): void {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(locks)); } catch { /* optional local preference */ }
+}
+
+export function loadIntegrityLock(scopeKey: string): IntegrityLock | null {
+  const lock = readLocks()[scopeKey];
+  if (!lock || typeof lock.updatedAt !== 'number') return null;
+  return {
+    model: typeof lock.model === 'string' ? lock.model : null,
+    reasoning: typeof lock.reasoning === 'string' ? lock.reasoning : null,
+    updatedAt: lock.updatedAt,
+  };
+}
+
+export function saveIntegrityLock(scopeKey: string, target: IntegrityTarget): IntegrityLock {
+  const locks = readLocks();
+  const lock: IntegrityLock = { ...target, updatedAt: Date.now() };
+  locks[scopeKey] = lock;
+  writeLocks(locks);
+  return lock;
+}
+
+export function removeIntegrityLock(scopeKey: string): void {
+  const locks = readLocks();
+  delete locks[scopeKey];
+  writeLocks(locks);
+}
