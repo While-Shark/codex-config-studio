@@ -159,3 +159,20 @@ test('runtime integrity history keeps recent root sessions and ignores subagents
     {model:'gpt-6-luna',reasoning:'xhigh',threadId:'root-old',updatedAt:'2026-09-26T07:00:00Z',reroutes:0},
   ]);
 });
+
+
+test('runtime integrity refresh only reads usage evidence and does not reload configuration',async()=>{
+  const calls=[];
+  const ctx={
+    runtimeIntegrityRequestId:0,runtimeIntegrity:null,runtimeIntegrityHistory:[],runtimeIntegrityLoading:false,
+    hasScope:()=>true,lastSnapshot:{values:settings},scope:'project',projectPath:'/work/demo',
+    periodSinceMs:()=>123,periodSinceDay:()=> '2026-09-20',renderModelIntegrity(){},
+    safeInvoke:async(command,args)=>{calls.push([command,args]);return{sessions:[]};},
+    console,
+  };
+  await execute(['runtimeEvidenceHistory','loadRuntimeIntegrityEvidence'],ctx,'loadRuntimeIntegrityEvidence()');
+  assert.equal(calls.length,1);
+  assert.equal(calls[0][0],'get_project_usage');
+  assert.equal(calls[0][1].projectPath,'/work/demo');
+  assert.ok(!calls.some(([command])=>command==='read_config'));
+});
