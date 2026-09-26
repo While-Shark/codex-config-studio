@@ -446,3 +446,13 @@ input::placeholder { color: var(--muted2); }
 @media (max-width: 900px) {
   .update-check-button span { display: none; }
 }
+
+
+.integrity-history { margin-top: 8px; }
+.integrity-history summary { cursor: pointer; color: var(--muted); font-size: 10px; }
+.integrity-history ul { display: grid; gap: 5px; margin-top: 7px; padding: 0; list-style: none; }
+.integrity-history li { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px; align-items: center; padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel2); }
+.integrity-history li.warn { border-color: color-mix(in srgb,var(--warning) 32%,var(--border)); }
+.integrity-history strong { display: block; font-family: var(--mono); font-size: 9px; overflow-wrap: anywhere; }
+.integrity-history small { display: block; margin-top: 2px; color: var(--muted2); font-size: 8px; }
+.integrity-history li > span { color: var(--warning); font-family: var(--mono); font-size: 9px; }
