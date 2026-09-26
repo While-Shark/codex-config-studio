@@ -40,9 +40,11 @@ import {
   resolveIntegrityTarget,
   sameIntegrityTarget,
   saveIntegrityLock,
+  runtimeIntegrityStatus,
   type IntegrityTarget,
+  type RuntimeIntegrityEvidence,
 } from './model-integrity';
-import { periodSinceDay, periodSinceMs, type UsagePeriod, type UsageReport } from './usage-dashboard';
+import { periodSinceDay, periodSinceMs, type UsagePeriod, type UsageReport, type UsageSession } from './usage-dashboard';
 import { renderUsageView } from './usage-view';
 import { recentProjectsFromHistory, type ProjectsUsageOverviewReport, type RecentProject } from './project-overview';
 import { renderProjectOverviewView } from './project-overview-view';
@@ -109,6 +111,9 @@ let values = structuredClone(presets[2].values);
 let lastSnapshot: ConfigSnapshot | null = null;
 let globalSnapshot: ConfigSnapshot | null = null;
 let globalIntegrityLoading = false;
+let runtimeIntegrity: RuntimeIntegrityEvidence | null = null;
+let runtimeIntegrityLoading = false;
+let runtimeIntegrityRequestId = 0;
 let currentStatus: { key: StatusKey; ok: boolean } = { key: 'status.unread', ok: false };
 let activeTaskMode: TaskModeId = loadActiveTaskMode();
 let taskPreferences = loadTaskPreferences();
@@ -502,6 +507,38 @@ async function loadGlobalIntegritySnapshot():Promise<void> {
   }catch(error){console.warn('model integrity global config',error);}
   finally{globalIntegrityLoading=false;}
 }
+
+function latestRuntimeEvidence(report:UsageReport):RuntimeIntegrityEvidence|null {
+  const session=report.sessions.find((item:UsageSession)=>!item.isSubagent&&!!item.lastModel&&item.lastModel!=='unknown');
+  if(!session?.lastModel)return null;
+  return {
+    model:session.lastModel,
+    reasoning:session.lastReasoning,
+    threadId:session.threadId,
+    updatedAt:session.updatedAt,
+    reroutes:session.reroutes.length,
+  };
+}
+async function loadRuntimeIntegrityEvidence():Promise<void> {
+  const request=++runtimeIntegrityRequestId;
+  runtimeIntegrity=null;
+  if(!hasScope()||!lastSnapshot){runtimeIntegrityLoading=false;renderModelIntegrity();return;}
+  runtimeIntegrityLoading=true;renderModelIntegrity();
+  try{
+    const report=await safeInvoke<UsageReport>('get_project_usage',{
+      projectPath:scope==='project'?projectPath:null,
+      sinceMs:periodSinceMs('7d'),
+      sinceDay:periodSinceDay('7d'),
+      maxFiles:1200,
+    },15000);
+    if(request!==runtimeIntegrityRequestId)return;
+    runtimeIntegrity=latestRuntimeEvidence(report);
+  }catch(error){
+    if(request===runtimeIntegrityRequestId)console.warn('model integrity runtime evidence',error);
+  }finally{
+    if(request===runtimeIntegrityRequestId){runtimeIntegrityLoading=false;renderModelIntegrity();}
+  }
+}
 function renderModelIntegrity():void {
   const host=document.querySelector<HTMLElement>('#integrityCard');if(!host)return;
   const copy=integrityText(getLocale());
@@ -516,13 +553,18 @@ function renderModelIntegrity():void {
   const draft=draftIntegrityTarget();
   const drift=!!lock&&!sameIntegrityTarget(lock,effective);
   const draftChangesLock=!!lock&&!!draft&&!sameIntegrityTarget(lock,draft);
+  const runtimeStatus=runtimeIntegrityStatus(runtimeIntegrity,lock);
+  const runtimeDrift=runtimeStatus==='model-drift'||runtimeStatus==='reasoning-drift';
+  const runtimeLabel=runtimeIntegrityLoading?copy.runtimeLoading:runtimeIntegrity?integrityTargetLabel(runtimeIntegrity):copy.runtimeNone;
   host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${esc(copy.title)}</h3><span class="integrity-badge ${lock?'locked':''}">${esc(lock?copy.locked:copy.unlocked)}</span></div>
     <div class="integrity-grid">
       ${lock?`<div class="integrity-row"><span>${esc(copy.target)}</span><code>${esc(integrityTargetLabel(lock))}</code></div>`:''}
       <div class="integrity-row"><span>${esc(copy.effective)}</span><code>${esc(integrityTargetLabel(effective))}</code></div>
-      <div class="integrity-row"><span>${esc(copy.runtime)}</span><code>${esc(copy.runtimeUnknown)}</code></div>
+      <div class="integrity-row"><span>${esc(copy.runtime)}</span><code>${esc(runtimeLabel)}</code></div>
     </div>
     ${lock?`<p class="integrity-state ${drift?'warn':'ok'}">${drift?'⚠':'✓'} ${esc(drift?copy.drift:copy.healthy)}</p>`:''}
+    ${lock&&runtimeStatus!=='unknown'?`<p class="integrity-state ${runtimeDrift?'warn':'ok'}">${runtimeDrift?'⚠':'✓'} ${esc(runtimeDrift?copy.runtimeDrift:copy.runtimeHealthy)}</p>`:''}
+    ${runtimeIntegrity?.reroutes?`<p class="integrity-state warn">↪ ${esc(copy.runtimeReroute.replace('{count}',String(runtimeIntegrity.reroutes)))}</p>`:''}
     ${draftChangesLock?`<p class="rail-help">${esc(copy.pendingChange)}</p>`:''}
     <div class="integrity-actions">
       ${lock?`<button id="restoreIntegrityTarget" class="text-button" ${drift?'':'disabled'}>${esc(copy.restoreTarget)}</button><button id="unlockIntegrity" class="text-button danger-text">${esc(copy.unlock)}</button>`:`<button id="lockIntegrity" class="text-button" ${effective?.model?'':'disabled'}>${esc(copy.lockCurrent)}</button>`}
@@ -737,7 +779,7 @@ async function reloadConfig():Promise<void> {
 async function loadConfig():Promise<void> {
   if(busy)return;
   const request=++configReadId,target=JSON.stringify(requestScope());
-  draftPresetSource=null;lastSnapshot=null;
+  draftPresetSource=null;lastSnapshot=null;runtimeIntegrity=null;++runtimeIntegrityRequestId;
   const result=document.querySelector<HTMLElement>('#applyResult');result?.classList.add('hidden');
   if(scope==='project'&&!projectPath){setStatus('status.selectProject',false);renderRightRail();void loadConfigHealth(false);return;}
   setStatus('status.reading',true);renderRightRail();
@@ -747,7 +789,7 @@ async function loadConfig():Promise<void> {
     if(scope==='project')globalSnapshot=null;
     applySnapshot(snap);setStatus(snap.exists?'status.read':'status.missing',true);
   }catch(e){if(request===configReadId){lastSnapshot=null;if(scope==='project')globalSnapshot=null;setStatus('status.readFailed',false);toast(String(e),true);}}
-  finally{if(request===configReadId){renderRightRail();void loadConfigHealth(false);}}
+  finally{if(request===configReadId){renderRightRail();void loadConfigHealth(false);void loadRuntimeIntegrityEvidence();}}
 }
 function applySnapshot(snapshot:ConfigSnapshot):void {
   lastSnapshot=snapshot;if(scope==='global')globalSnapshot=snapshot;values=clone(snapshot.values);draftPresetSource=null;
