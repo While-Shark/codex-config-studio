@@ -744,10 +744,11 @@ fn restore_original_inner(scope: ScopeRequest) -> Result<ConfigSnapshot, String>
 async fn get_project_usage(
     project_path: Option<String>,
     since_ms: Option<u64>,
+    since_day: Option<String>,
     max_files: Option<usize>,
 ) -> Result<usage::UsageReport, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        usage::collect_project_usage(project_path, since_ms, max_files)
+        usage::collect_project_usage(project_path, since_ms, since_day, max_files)
     })
     .await
     .map_err(|e| format!("Usage collection task failed: {e}"))?
