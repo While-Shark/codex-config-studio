@@ -1,3 +1,5 @@
+mod usage;
+
 use serde::{Deserialize, Serialize};
 use std::{
     any::Any,
@@ -739,6 +741,19 @@ fn restore_original_inner(scope: ScopeRequest) -> Result<ConfigSnapshot, String>
 }
 
 #[tauri::command]
+async fn get_project_usage(
+    project_path: Option<String>,
+    since_ms: Option<u64>,
+    max_files: Option<usize>,
+) -> Result<usage::UsageReport, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        usage::collect_project_usage(project_path, since_ms, max_files)
+    })
+    .await
+    .map_err(|e| format!("Usage collection task failed: {e}"))?
+}
+
+#[tauri::command]
 async fn inspect_config(scope: ScopeRequest) -> Result<ConfigInspection, String> {
     tauri::async_runtime::spawn_blocking(move || {
         with_config_lock("检查配置", || inspect_config_inner(scope))
@@ -892,6 +907,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             inspect_config,
+            get_project_usage,
             remove_config_key,
             read_config,
             apply_config,

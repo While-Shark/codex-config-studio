@@ -42,9 +42,11 @@ import {
   saveIntegrityLock,
   type IntegrityTarget,
 } from './model-integrity';
+import { periodSinceMs, type UsagePeriod, type UsageReport } from './usage-dashboard';
+import { renderUsageView } from './usage-view';
 
 type ScopeKind = 'global' | 'project';
-type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'history';
+type WorkspaceTab = 'presets' | 'task' | 'advanced' | 'usage' | 'history';
 type ThemeMode = 'system' | 'dark' | 'light';
 type Accent = 'violet' | 'blue' | 'emerald' | 'amber' | 'rose';
 type ManagedConfig = {
@@ -110,6 +112,11 @@ let taskPreferences = loadTaskPreferences();
 let historyEntries: HistoryEntry[] = [];
 let historySearch = '';
 let historyView: 'projects' | 'presets' = 'projects';
+let usagePeriod: UsagePeriod = '30d';
+let usageReport: UsageReport | null = null;
+let usageLoading = false;
+let usageLoadError = '';
+let usageRequestId = 0;
 let configReadId = 0;
 let historyLoading = false;
 let historyLoadError = false;
@@ -226,6 +233,7 @@ function renderWorkspace():void {
   const host=$<HTMLElement>('#leftContent');
   if(activeTab==='presets') renderPresets(host);
   else if(activeTab==='task') renderTask(host);
+  else if(activeTab==='usage') renderUsagePage(host);
   else if(activeTab==='history') renderHistoryPage(host);
   else renderAdvanced(host);
 }
@@ -279,6 +287,37 @@ function renderTask(host:HTMLElement):void {
   $('#useTask').addEventListener('click',()=>{const modelSel=$<HTMLSelectElement>('#taskModel').value;const custom=$<HTMLInputElement>('#taskCustomModel')?.value.trim()??'';const model=modelSel==='__custom__'?custom:modelSel;const reasoning=$<HTMLSelectElement>('#taskReasoning').value;if(!model){toast(t('toast.taskModelRequired'),true);return;}const next:TaskPreference={model,reasoning};taskPreferences[activeTaskMode]=next;saveTaskPreference(activeTaskMode,next);draftPresetSource=null;values.model=model;values.modelReasoningEffort=reasoning;activePreset='';renderTask(host);renderRightRail();toast(t('toast.taskPrepared',{name:taskText(activeTaskMode,'name')}));});
   $('#resetTask').addEventListener('click',()=>{taskPreferences[activeTaskMode]=resetTaskPreference(activeTaskMode);renderTask(host);toast(t('toast.taskReset',{name:taskText(activeTaskMode,'name')}));});
 }
+function renderUsagePage(host:HTMLElement):void {
+  renderUsageView(host,{
+    locale:getLocale(),
+    scope,
+    projectPath,
+    period:usagePeriod,
+    report:usageReport,
+    loading:usageLoading,
+    error:usageLoadError,
+    onPeriod:period=>{usagePeriod=period;usageReport=null;void loadProjectUsage();},
+    onRefresh:()=>{void loadProjectUsage();},
+  });
+}
+async function loadProjectUsage():Promise<void> {
+  if(activeTab!=='usage')return;
+  const request=++usageRequestId;
+  usageLoadError='';
+  if(scope!=='project'||!projectPath){usageReport=null;usageLoading=false;renderWorkspace();return;}
+  usageLoading=true;renderWorkspace();
+  try{
+    const report=await safeInvoke<UsageReport>('get_project_usage',{projectPath,sinceMs:periodSinceMs(usagePeriod),maxFiles:8000},30000);
+    if(request!==usageRequestId)return;
+    usageReport=report;
+  }catch(error){
+    if(request!==usageRequestId)return;
+    usageReport=null;usageLoadError=String(error);
+  }finally{
+    if(request===usageRequestId){usageLoading=false;renderWorkspace();}
+  }
+}
+
 function renderAdvanced(host:HTMLElement):void {
   host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.custom.eyebrow')}</span><h2>${t('section.custom.title')}</h2><p>${t('advanced.help')}</p></div><button id="resetPresetBtn" class="text-button">${t('action.resetPreset')}</button></div>${advancedLayout(`${advancedField('model',t('field.model'),t('field.model.help'),renderModelPicker('model',values.model,commonTaskModels,t('field.model'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('modelReasoningEffort',t('field.reasoning'),t('field.reasoning.help'),selectHtml('modelReasoningEffort',values.modelReasoningEffort,efforts,true))}${advancedField('planModeReasoningEffort',t('field.planReasoning'),t('field.planReasoning.help'),selectHtml('planModeReasoningEffort',values.planModeReasoningEffort,efforts,true))}`,`${advancedField('agentsEnabled',t('field.agents'),t('field.agents.help'),`<select id="agentsEnabled"><option value="">${t('option.inherit')}</option><option value="true" ${values.agentsEnabled===true?'selected':''}>${t('option.enabled')}</option><option value="false" ${values.agentsEnabled===false?'selected':''}>${t('option.disabled')}</option></select>`)}${advancedField('defaultSubagentModel',t('field.subagentModel'),t('field.subagentModel.help'),renderModelPicker('defaultSubagentModel',values.defaultSubagentModel,commonTaskModels,t('field.subagentModel'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('defaultSubagentReasoningEffort',t('field.subagentReasoning'),t('field.subagentReasoning.help'),selectHtml('defaultSubagentReasoningEffort',values.defaultSubagentReasoningEffort,efforts,true))}${advancedField('maxConcurrentThreadsPerSession',t('field.maxConcurrent'),t('field.maxConcurrent.help'),`<input id="maxConcurrentThreadsPerSession" type="number" min="1" max="16" value="${values.maxConcurrentThreadsPerSession??''}" placeholder="${t('option.inherit')}">`)}`,workspaceText(getLocale()))}</section>`;
   bindModelPickers(host);
@@ -570,7 +609,8 @@ async function changeScope(kind:ScopeKind,path=projectPath):Promise<void> {
     const input=document.querySelector<HTMLInputElement>('#projectPath');if(input)input.value=projectPath;
     return;
   }
-  scope=kind;projectPath=path;await loadConfig();
+  scope=kind;projectPath=path;usageReport=null;usageLoadError='';++usageRequestId;await loadConfig();
+  if(activeTab==='usage')void loadProjectUsage();
 }
 async function reloadConfig():Promise<void> {
   if(await approveDraftDiscard())await loadConfig();
@@ -702,7 +742,7 @@ function bindStaticEvents():void {
   $<HTMLSelectElement>('#themeMode').value=themeMode;
   $<HTMLSelectElement>('#themeMode').onchange=e=>{themeMode=(e.currentTarget as HTMLSelectElement).value as ThemeMode;safeSet('codex-config-studio.theme.mode',themeMode);applyTheme();};
   document.querySelectorAll<HTMLButtonElement>('[data-accent]').forEach(btn=>btn.onclick=()=>{accent=btn.dataset.accent as Accent;safeSet('codex-config-studio.theme.accent',accent);applyTheme();document.querySelectorAll('[data-accent]').forEach(x=>{x.classList.toggle('active',(x as HTMLElement).dataset.accent===accent);x.setAttribute('aria-pressed',String((x as HTMLElement).dataset.accent===accent));});});
-  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>btn.onclick=()=>{if(busy||confirmResolver||!validateModelPickers(document))return;activeTab=btn.dataset.tab as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();});
+  document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(btn=>btn.onclick=()=>{if(busy||confirmResolver||!validateModelPickers(document))return;activeTab=btn.dataset.tab as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();if(activeTab==='usage')void loadProjectUsage();});
   document.querySelectorAll<HTMLButtonElement>('.scope-tab').forEach(btn=>btn.onclick=()=>void changeScope(btn.dataset.scope as ScopeKind));
   $('#chooseProject').addEventListener('click',async()=>{if(busy||confirmResolver)return;try{const p=await open({directory:true,multiple:false,title:t('scope.dialogTitle')});if(typeof p==='string')await changeScope('project',p);}catch(e){toast(String(e),true);}});
   $<HTMLInputElement>('#projectPath').onchange=e=>{const path=(e.currentTarget as HTMLInputElement).value.trim();void changeScope('project',path);};
@@ -711,7 +751,7 @@ function bindStaticEvents():void {
   $('#confirmCancel').addEventListener('click',()=>finishConfirm(false));$('#confirmOk').addEventListener('click',()=>{if(!$<HTMLButtonElement>('#confirmOk').disabled)finishConfirm(true);});
   $('#confirmClose').addEventListener('click',()=>finishConfirm(false));
   bindModalKeyboard(()=>finishConfirm(false));
-  bindTabs(document,id=>{if(busy||confirmResolver||!validateModelPickers(document))return false;activeTab=id as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();});
+  bindTabs(document,id=>{if(busy||confirmResolver||!validateModelPickers(document))return false;activeTab=id as WorkspaceTab;renderWorkspace();if(activeTab==='history')void loadHistory();if(activeTab==='usage')void loadProjectUsage();});
   $('#confirmModal').addEventListener('click',e=>{if(e.target===e.currentTarget)finishConfirm(false);});
 }
 
