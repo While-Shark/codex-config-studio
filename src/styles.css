@@ -436,3 +436,13 @@ input::placeholder { color: var(--muted2); }
 .schema-change-kind.removed { color: var(--danger); }
 .schema-change-kind.changed { color: var(--warning); }
 .schema-change-details > small { display: block; margin-top: 6px; color: var(--muted2); font-size: 9px; }
+
+
+.update-check-button { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.update-check-button .icon { width: 14px; height: 14px; }
+.update-check-button.available { color: var(--accent); font-weight: 700; }
+.update-check-button.ok { color: var(--ok); }
+.update-check-button.error { color: var(--warning); }
+@media (max-width: 900px) {
+  .update-check-button span { display: none; }
+}
