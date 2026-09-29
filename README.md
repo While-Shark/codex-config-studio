@@ -145,7 +145,7 @@ Plan Mode、子 Agent、MCP、hooks 及其他配置保持不变。
 | Linux x64 | `.AppImage` + `.deb` |
 | macOS Universal | `.dmg`，同时支持 Apple Silicon 与 Intel |
 
-> macOS CI 当前未配置 Apple Developer 签名与 notarization；测试构建可以正常生成，但正式公开分发建议配置签名和公证。
+> 正式 Release 工作流已支持可选的 Windows Authenticode 与 macOS Developer ID + notarization；是否启用取决于仓库签名配置。所有正式 Release 文件都会生成 GitHub build provenance，可用 `gh attestation verify <文件> --repo While-Shark/codex-config-studio` 验证其确实来自本仓库发布流程。
 
 ## 本地开发
 
