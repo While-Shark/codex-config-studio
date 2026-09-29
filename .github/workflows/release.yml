@@ -182,6 +182,82 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Prepare optional Windows Authenticode signing
+        if: matrix.name == 'windows-x64'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          WINDOWS_TIMESTAMP_URL: ${{ vars.WINDOWS_TIMESTAMP_URL }}
+          WINDOWS_TSP: ${{ vars.WINDOWS_TSP }}
+          REQUIRE_WINDOWS_SIGNING: ${{ vars.REQUIRE_WINDOWS_SIGNING }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $hasCertificate = -not [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE)
+          $hasPassword = -not [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)
+          $requireSigning = $env:REQUIRE_WINDOWS_SIGNING -ieq 'true'
+
+          if (-not $hasCertificate -and -not $hasPassword) {
+            if ($requireSigning) {
+              Write-Error 'REQUIRE_WINDOWS_SIGNING=true but Windows Authenticode signing secrets are not configured.'
+            }
+            "WINDOWS_PLATFORM_SIGNING_ENABLED=false" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+            Write-Host '::notice::Windows Authenticode signing is not configured; Windows artifacts remain unsigned.'
+            exit 0
+          }
+
+          if (-not $hasCertificate -or -not $hasPassword) {
+            Write-Error 'WINDOWS_CERTIFICATE and WINDOWS_CERTIFICATE_PASSWORD must both be configured for Windows Authenticode signing.'
+          }
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_TIMESTAMP_URL)) {
+            Write-Error 'WINDOWS_TIMESTAMP_URL must be configured when Windows Authenticode signing is enabled.'
+          }
+
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'codex-config-studio-signing.pfx'
+          try {
+            $base64 = $env:WINDOWS_CERTIFICATE -replace '\s', ''
+            [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($base64))
+          } catch {
+            Write-Error "WINDOWS_CERTIFICATE is not valid Base64: $($_.Exception.Message)"
+          }
+
+          $securePassword = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText
+          $imported = @(Import-PfxCertificate -FilePath $certificatePath -CertStoreLocation 'Cert:\CurrentUser\My' -Password $securePassword)
+
+          $signer = $imported | Where-Object {
+            $_.HasPrivateKey -and
+            (@($_.EnhancedKeyUsageList | ForEach-Object { $_.ObjectId.Value }) -contains '1.3.6.1.5.5.7.3.3')
+          } | Select-Object -First 1
+
+          if (-not $signer) {
+            Write-Error 'The imported PFX does not contain a private-key certificate with the Code Signing enhanced key usage.'
+          }
+          if ($signer.NotAfter -le (Get-Date)) {
+            Write-Error "The Windows code-signing certificate expired on $($signer.NotAfter.ToString('u'))."
+          }
+
+          $thumbprint = $signer.Thumbprint
+          $importedThumbprints = ($imported | ForEach-Object { $_.Thumbprint } | Where-Object { $_ } | Select-Object -Unique) -join ','
+
+          $windowsConfig = @{
+            bundle = @{
+              windows = @{
+                certificateThumbprint = $thumbprint
+                digestAlgorithm = 'sha256'
+                timestampUrl = $env:WINDOWS_TIMESTAMP_URL
+                tsp = ($env:WINDOWS_TSP -ieq 'true')
+              }
+            }
+          } | ConvertTo-Json -Depth 5 -Compress
+
+          "TAURI_CONFIG=$windowsConfig" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "WINDOWS_PLATFORM_SIGNING_ENABLED=true" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "WINDOWS_SIGNING_THUMBPRINT=$thumbprint" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "WINDOWS_IMPORTED_THUMBPRINTS=$importedThumbprints" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Windows Authenticode signing certificate: $($signer.Subject)"
+          Write-Host "Windows timestamp server: $($env:WINDOWS_TIMESTAMP_URL)"
+
       - name: Prepare optional macOS Developer ID signing
         if: matrix.name == 'macos-universal'
         shell: bash
@@ -316,6 +392,36 @@ jobs:
         with:
           args: ${{ matrix.args }}
 
+      - name: Verify Windows Authenticode signature
+        if: matrix.name == 'windows-x64'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          if ($env:WINDOWS_PLATFORM_SIGNING_ENABLED -ne 'true') {
+            Write-Host '::notice::Skipping Authenticode verification because Windows signing is not configured.'
+            exit 0
+          }
+
+          $installer = Get-ChildItem 'src-tauri\target\release\bundle\nsis\*-setup.exe' | Select-Object -First 1
+          if (-not $installer) {
+            Write-Error 'The Windows NSIS installer was not found.'
+          }
+
+          $signature = Get-AuthenticodeSignature -FilePath $installer.FullName
+          if ($signature.Status -ne 'Valid') {
+            Write-Error "Authenticode verification failed for $($installer.Name): $($signature.Status) $($signature.StatusMessage)"
+          }
+          if ($signature.SignerCertificate.Thumbprint -ne $env:WINDOWS_SIGNING_THUMBPRINT) {
+            Write-Error 'The NSIS installer was signed by an unexpected certificate.'
+          }
+          if (-not $signature.TimeStamperCertificate) {
+            Write-Error 'The NSIS installer signature does not contain a trusted timestamp.'
+          }
+
+          Write-Host "Verified Authenticode signature: $($signature.SignerCertificate.Subject)"
+          Write-Host "Timestamp authority: $($signature.TimeStamperCertificate.Subject)"
+
       - name: Verify macOS Developer ID signature and notarization
         if: matrix.name == 'macos-universal'
         shell: bash
@@ -361,6 +467,19 @@ jobs:
           path: ${{ matrix.artifact_path }}
           if-no-files-found: error
           retention-days: 30
+
+      - name: Cleanup Windows signing material
+        if: always() && matrix.name == 'windows-x64'
+        shell: pwsh
+        run: |
+          if (-not [string]::IsNullOrWhiteSpace($env:WINDOWS_IMPORTED_THUMBPRINTS)) {
+            foreach ($thumbprint in ($env:WINDOWS_IMPORTED_THUMBPRINTS -split ',')) {
+              if (-not [string]::IsNullOrWhiteSpace($thumbprint)) {
+                Remove-Item "Cert:\CurrentUser\My\$thumbprint" -Force -ErrorAction SilentlyContinue
+              }
+            }
+          }
+          Remove-Item (Join-Path $env:RUNNER_TEMP 'codex-config-studio-signing.pfx') -Force -ErrorAction SilentlyContinue
 
       - name: Cleanup macOS signing material
         if: always() && matrix.name == 'macos-universal'
