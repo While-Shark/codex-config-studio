@@ -158,6 +158,18 @@ test('reference cost avoids double charging cached input and includes reasoning 
   assert.equal(Number(cost.toFixed(6)),0.164);
 });
 
+test('new official models stay explicitly unpriced until the Work/Codex rate snapshot includes them',()=>{
+  const row={model:'gpt-6.1-sol',reasoning:'medium',responses:1,usage:{
+    inputTokens:1_000_000,cachedInputTokens:0,cacheWriteInputTokens:0,
+    outputTokens:0,reasoningOutputTokens:0,totalTokens:1_000_000
+  }};
+  const result=pricing.estimateUsageCost([row],1_000_000);
+  assert.equal(result.usd,0);
+  assert.equal(result.coveredTokens,0);
+  assert.equal(result.coverage,0);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.unpricedModels)),['gpt-6.1-sol']);
+});
+
 test('tier-aware cost applies model-specific Fast multipliers only to observed priority usage',()=>{
   const tokens=(input,output=0)=>({inputTokens:input,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:output,reasoningOutputTokens:0,totalTokens:input+output});
   const modelRows=[
