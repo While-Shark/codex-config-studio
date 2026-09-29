@@ -102,7 +102,9 @@ Model Integrity 可以给当前作用域锁定有效的 `model` 与 `model_reaso
 | 复杂问题 | GPT-6 Sol / high |
 | 架构设计 | GPT-6 Astra / high |
 
-这些只是开源默认值，**不会锁死**。每一类都可以从下拉框改成 Astra / Sol / Terra / Luna，也支持任意自定义模型 ID；Reasoning 可选择 `low / medium / high / xhigh / ultra / persistent / max`。
+这些只是开源默认值，**不会锁死**。每一类都可以从下拉框选择模型，也支持任意自定义模型 ID；Reasoning 可选择 `low / medium / high / xhigh / ultra / persistent / max`。
+
+模型候选会从 OpenAI Codex 官方 `models.json` 自动刷新并在本机缓存 24 小时；离线或官方源暂不可用时继续使用最近缓存与内置兼容列表。刷新只更新候选项，不自动迁移已有配置、任务偏好、历史记录、Preset 或自定义模型 ID。
 
 例如可以把“日常开发”长期改成 `Luna + xhigh`，应用会在本机记住这个偏好，但不会改变其他用户的默认设置。
 

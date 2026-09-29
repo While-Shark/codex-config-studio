@@ -74,6 +74,8 @@ The project usage dashboard reads local Codex rollout JSONL in read-only mode an
 
 Reference cost uses a **dated, versioned pricing snapshot**. Unknown models are excluded rather than assigned invented prices, and stale snapshots are flagged. All usage and cost values are **best-effort local telemetry, not billing data**.
 
+Model choices refresh from the official OpenAI Codex `models.json` catalog and are cached locally for 24 hours. Offline or failed refreshes fall back to the latest cache plus the built-in compatibility list. Refreshes only change available choices; they never migrate existing configuration, task preferences, history, presets, or custom model IDs.
+
 ## Built-in profiles
 
 | Profile | Main model | Typical use |
