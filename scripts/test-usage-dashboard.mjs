@@ -30,7 +30,7 @@ test('service tier summary only counts exact usage with durable tier evidence',(
   const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
   const base={cwd:'/p',startedAt:'',updatedAt:'',parentThreadId:null,agentRole:null,agentPath:null,isSubagent:false,turns:1,models:[],dailyUsage:[],dailyModelUsage:[],reroutes:[]};
   const report={source:'x',filesScanned:3,filesMatched:3,parseErrors:0,skippedLargeFiles:0,truncated:false,sessions:[
-    {...base,threadId:'fast',sessionId:'fast',responses:2,lastModel:'gpt-6-luna',lastReasoning:'high',serviceTierObserved:true,lastServiceTier:'fast',usageSource:'response_records',usage:tokens(200),serviceTiers:[{serviceTier:'fast',responses:2,usage:tokens(200)}]},
+    {...base,threadId:'fast',sessionId:'fast',responses:2,lastModel:'gpt-6-luna',lastReasoning:'high',serviceTierObserved:true,lastServiceTier:'priority',usageSource:'response_records',usage:tokens(200),serviceTiers:[{serviceTier:'priority',responses:2,usage:tokens(200)}]},
     {...base,threadId:'default',sessionId:'default',responses:1,lastModel:'gpt-6-luna',lastReasoning:'high',serviceTierObserved:true,lastServiceTier:null,usageSource:'response_records',usage:tokens(100),serviceTiers:[{serviceTier:null,responses:1,usage:tokens(100)}]},
     {...base,threadId:'old',sessionId:'old',responses:1,lastModel:'gpt-6-luna',lastReasoning:'high',serviceTierObserved:false,lastServiceTier:null,usageSource:'response_records',usage:tokens(100),serviceTiers:[]},
   ]};
@@ -39,8 +39,11 @@ test('service tier summary only counts exact usage with durable tier evidence',(
   assert.equal(summary.serviceTierCoveredTokens,300);
   assert.equal(summary.serviceTierCoverage,0.75);
   assert.equal(summary.fastTierTokens,200);
+  assert.equal(usage.isFastServiceTier('priority'),true);
+  assert.equal(usage.isFastServiceTier('fast'),true);
+  assert.equal(usage.isFastServiceTier('flex'),false);
   assert.equal(summary.serviceTierRows.length,2);
-  assert.equal(summary.serviceTierRows[0].serviceTier,'fast');
+  assert.equal(summary.serviceTierRows[0].serviceTier,'priority');
   assert.equal(summary.serviceTierRows[0].share,2/3);
   assert.equal(summary.serviceTierRows[1].serviceTier,null);
   assert.equal(summary.serviceTierRows[1].share,1/3);
