@@ -218,6 +218,31 @@ test('actual advanced renderer uses complete selectors for main and sub-agent mo
   }
 });
 
+test('reasoning refresh reconciles only when an explicit model change requests it', () => {
+  const select = { innerHTML: '' };
+  const calls = [];
+  const context = {
+    document: { querySelector: () => select },
+    reasoningOptionsForModel: () => ['low','high'],
+    officialModelEntries: [{ id: 'gpt-a' }],
+    reconcileReasoningLevelForModel: (model, value, entries, preserveUnset) => {
+      calls.push({ model, value, entries, preserveUnset });
+      return value === 'xhigh' ? 'low' : value;
+    },
+    selectOptionsHtml: (value, options, inherit) => [value ?? '', String(inherit), ...options].join('|'),
+  };
+  const code = appFunction('refreshReasoningSelect');
+  runInNewContext(code + "\nrefreshReasoningSelect('reasoning','xhigh','gpt-a',false,false);", context);
+  assert.equal(select.innerHTML, 'xhigh|false|low|high');
+  assert.equal(calls.length, 0);
+
+  runInNewContext(code + "\nrefreshReasoningSelect('reasoning','xhigh','gpt-a',false,true);", context);
+  assert.equal(select.innerHTML, 'low|false|low|high');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].model, 'gpt-a');
+  assert.equal(calls[0].preserveUnset, false);
+});
+
 test('actual form reading does not reset reasoning inheritance or unrelated agent settings', () => {
   const form = { ...pending, model: 'new/custom-model' };
   const context = { values: {}, document: { querySelector: selector => ({
