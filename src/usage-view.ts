@@ -158,7 +158,11 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
   const unadjustedFast = cost.unadjustedFastModels.length
     ? '<p class="cost-unpriced"><strong>' + esc(copy.unadjustedFastModels) + ':</strong> ' + esc(cost.unadjustedFastModels.join(', ')) + '</p>'
     : '';
-  const costDisplay = cost.coverage <= 0 ? '—' : (cost.isLowerBound ? '≥' : '') + formatUsd(cost.usd);
+  const unsupportedTiers = cost.unsupportedServiceTiers.length
+    ? '<p class="cost-unpriced"><strong>' + esc(copy.unsupportedServiceTiers) + ':</strong> ' + esc(cost.unsupportedServiceTiers.join(', ')) + '</p>'
+    : '';
+  const qualifier = !cost.tierAdjustmentComplete ? '~' : (cost.coverage < 0.999999 ? '≥' : '');
+  const costDisplay = cost.coverage <= 0 ? '—' : qualifier + formatUsd(cost.usd);
   const costHtml =
     '<div class="cost-summary"><div><span>' + esc(copy.referenceCost) + '</span><strong>' + esc(costDisplay) +
     '</strong></div><div><span>' + esc(copy.priceCoverage) + '</span><strong>' + (cost.coverage*100).toFixed(1) +
@@ -167,7 +171,7 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
     '</strong></div><div><span>' + esc(copy.tierCostCoverage) + '</span><strong>' + (cost.tierCoverage*100).toFixed(1) +
     '%</strong></div></div>' + costRows +
     '<div class="cost-meta"><span>' + esc(copy.pricingSnapshot) + ': ' + esc(CODEX_USD_REFERENCE_CATALOG.snapshotDate) +
-    '</span><span>' + esc(CODEX_USD_REFERENCE_CATALOG.sourceLabel) + '</span></div>' + unpriced + unadjustedFast +
+    '</span><span>' + esc(CODEX_USD_REFERENCE_CATALOG.sourceLabel) + '</span></div>' + unpriced + unadjustedFast + unsupportedTiers +
     (priceAgeDays>30?'<div class="usage-warning">' + esc(copy.pricingStale) + '</div>':'') +
     '<p class="usage-panel-note">' + esc(copy.referenceCostHint) + '</p>';
 
