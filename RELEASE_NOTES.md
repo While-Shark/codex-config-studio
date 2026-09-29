@@ -2,6 +2,10 @@
 
 ## 简体中文
 
+- 🧭 **配置健康与官方 schema 变更中心**：优先使用 OpenAI Codex 仓库生成的权威配置 schema，并安全缓存最近可信版本；未知/未来字段默认保留，只有在 schema 足够新且可信时才会给出未知字段清理提示，清理前必须确认并备份。配置健康页还会显示本机 Codex CLI 版本，并汇总权威 schema 的新增、移除和结构变化字段。
+- 📊 **项目用量、趋势与参考成本**：基于本机 Codex rollout JSONL 的只读遥测，支持 7 天 / 30 天 / 全部时间、模型与 Reasoning 分布、主会话/子 Agent、每日与模型趋势、Agent 分析、可观测 reroute 时间线、近期项目概览和版本化参考成本。旧格式数据会明确标记估算；未知模型不猜价格；这些数据是 best-effort 本地遥测，不是官方账单。
+- 🔒 **Model Integrity 运行时核验**：可按作用域锁定有效模型与 Reasoning、检测 Studio 可见配置漂移，并与本机 rollout 已记录的运行时证据核对。界面展示最近主会话的实际模型/Reasoning、reroute 次数、最近 5 条证据，并支持只读手动刷新。仅 CLI 临时覆盖、未被本机记录的行为和不可观测的服务端内部路由仍不属于本地保证范围。
+
 - 🔄 **稳定版更新与签名原地升级**：应用会检查 GitHub 最新稳定版；正式签名构建可在应用内下载、校验签名并安装更新，Windows 使用 NSIS，Linux 会按 AppImage / deb 安装来源匹配更新包，macOS 使用签名更新包并在安装后重启。Nightly / 本地未签名构建继续回退到 GitHub Release 页面，不会因为缺少签名密钥而影响开发构建。
 
 - **工作台 UI/UX 重构**：简洁双栏布局、固定应用区、分组高级设置、项目/方案历史子页与只读预览；加入草稿放弃确认、弹窗焦点管理和键盘导航。五语言、深浅主题、完整预览、继承配置和历史方案提示均保留。写入较慢时不再提前解锁，避免重复提交。
@@ -21,6 +25,10 @@
 
 ## 繁體中文
 
+- 🧭 **設定健康與官方 schema 變更中心**：優先使用 OpenAI Codex 儲存庫產生的權威設定 schema，並安全快取最近可信版本；未知/未來欄位預設保留，只有 schema 足夠新且可信時才會提供未知欄位清理提示，清理前必須確認並備份。設定健康頁亦會顯示本機 Codex CLI 版本，並摘要權威 schema 的新增、移除與結構變更欄位。
+- 📊 **專案用量、趨勢與參考成本**：以唯讀方式分析本機 Codex rollout JSONL，支援 7 天 / 30 天 / 全期間、模型與 Reasoning 分布、主工作階段/子 Agent、每日與模型趨勢、Agent 分析、可觀測 reroute 時間線、近期專案總覽與版本化參考成本。舊格式資料會明確標記估算；未知模型不猜價格；所有數值都是 best-effort 本機遙測，不是正式帳單。
+- 🔒 **Model Integrity 執行階段核驗**：可依作用域鎖定有效模型與 Reasoning、偵測 Studio 可見設定偏移，並與本機 rollout 已記錄的執行階段證據比對。介面會顯示最近主工作階段的實際模型/Reasoning、reroute 次數、最近 5 筆證據，並支援唯讀手動重新整理。僅 CLI 臨時覆寫、未被本機記錄的行為與不可觀測的服務端內部路由仍不在本機保證範圍內。
+
 - 🔄 **穩定版更新與簽名原地升級**：應用會檢查 GitHub 最新穩定版；正式簽名建置可在應用內下載、驗證簽名並安裝更新，Windows 使用 NSIS，Linux 依 AppImage / deb 安裝來源配對更新包，macOS 使用簽名更新包並於安裝後重新啟動。Nightly / 本機未簽名建置仍會回退到 GitHub Release 頁面，不會因缺少簽名金鑰而影響開發建置。
 
 - **工作台 UI/UX 重構**：簡潔雙欄佈局、固定套用區、分組進階設定、專案/方案歷史分頁與唯讀預覽；新增放棄草稿確認、對話框焦點管理與鍵盤導覽。保留五語言、深淺主題、繼承設定與舊方案提示。寫入完成前不會提前解鎖。
@@ -36,6 +44,10 @@
 - 🛡️ **設定安全**：持續支援全域/專案級 Codex 設定、逐項繼承、安全備份、歷史備份與原始設定還原。
 
 ## English
+
+- 🧭 **Config Health and authoritative schema change center**: Prefer the generated authoritative schema from the OpenAI Codex repository and safely cache the latest trusted copy. Unknown/future fields are preserved by default; cleanup suggestions only come from sufficiently fresh trusted schema data and require confirmation plus backup. Config Health also shows the detected local Codex CLI version and summarizes added, removed, and structurally changed fields across authoritative schema revisions.
+- 📊 **Project usage, trends, and reference cost**: Read-only analysis of local Codex rollout JSONL with 7-day / 30-day / all-time views, model and reasoning breakdowns, root/sub-agent usage, daily and per-model trends, agent analysis, observable reroute history, recent-project overview, and versioned reference-cost estimates. Legacy-only data is explicitly estimated, unknown-model pricing is never invented, and all values are best-effort local telemetry rather than billing data.
+- 🔒 **Runtime Model Integrity verification**: Lock the effective model/reasoning target per scope, detect Studio-visible config drift, and compare it with runtime evidence already recorded in local rollout files. The UI shows the latest observed model/reasoning, reroute count, five recent evidence entries, and a read-only refresh action. CLI-only temporary overrides, behavior not recorded locally, and unobservable server-side routing remain outside the local guarantee.
 
 - 🔄 **Stable update checks and signed in-place upgrades**: The app checks the latest stable GitHub release. Formal signed builds can download, verify, and install updates in-app: NSIS on Windows, installer-matched AppImage/deb packages on Linux, and signed updater bundles on macOS with restart after installation. Unsigned Nightly/local builds keep the GitHub Release-page fallback, so development builds do not depend on signing secrets.
 
@@ -56,6 +68,10 @@
 
 ## 日本語
 
+- 🧭 **Config Health と公式 schema 変更センター**：OpenAI Codex リポジトリで生成された公式 schema を優先し、最後に信頼できた版を安全にキャッシュします。未知/将来フィールドは既定で保持し、十分に新しく信頼できる schema の場合だけ削除候補を提示し、削除前には確認とバックアップが必要です。ローカル Codex CLI の版と、公式 schema 間の追加・削除・構造変更フィールドも表示します。
+- 📊 **プロジェクト使用量・傾向・参考コスト**：ローカル Codex rollout JSONL を読み取り専用で分析し、7 日 / 30 日 / 全期間、モデル/Reasoning、ルート/サブ Agent、日次/モデル別傾向、Agent 分析、観測可能な reroute 履歴、最近のプロジェクト概要、版管理された参考コストを表示します。旧形式のみのデータは推定と明示し、未知モデルの価格は推測しません。すべて best-effort のローカルテレメトリであり、請求データではありません。
+- 🔒 **Model Integrity の実行時検証**：スコープごとに有効モデル/Reasoning をロックし、Studio から見える設定ドリフトを検出し、ローカル rollout に記録済みの実行時証拠と照合します。最新モデル/Reasoning、reroute 数、最近 5 件の証拠を表示し、読み取り専用で再取得できます。CLI の一時上書き、ローカルに記録されない挙動、観測不能なサーバー内部ルーティングは保証対象外です。
+
 - 🔄 **安定版チェックと署名付きアプリ内更新**：GitHub の最新安定版を確認し、正式な署名付きビルドではアプリ内で更新をダウンロード、署名検証、インストールできます。Windows は NSIS、Linux は AppImage / deb のインストール元に一致する更新パッケージ、macOS は署名付き更新パッケージを使用し、インストール後に再起動します。未署名の Nightly / ローカルビルドは GitHub Release ページへフォールバックします。
 
 - **UI/UX を刷新**：二列レイアウト、固定適用ボタン、設定のグループ化、プロジェクト/プロファイル履歴と読み取り専用プレビュー。草稿破棄の確認、フォーカス管理、キーボード操作を追加。多言語、テーマ、継承と履歴警告を維持し、書き込み完了前のロック解除を防止。
@@ -71,6 +87,10 @@
 - 🛡️ **安全な設定管理**：グローバル/プロジェクト設定、項目単位の継承、元設定バックアップ、履歴バックアップ、復元機能を引き続き提供します。
 
 ## 한국어
+
+- 🧭 **Config Health 및 권위 schema 변경 센터**: OpenAI Codex 저장소에서 생성된 권위 있는 schema를 우선 사용하고 마지막으로 신뢰한 버전을 안전하게 캐시합니다. 알 수 없거나 미래의 필드는 기본 보존하며, 충분히 최신이고 신뢰 가능한 schema에서만 정리 후보를 제시하고 제거 전 확인과 백업을 요구합니다. 로컬 Codex CLI 버전과 권위 schema 사이의 추가/삭제/구조 변경 필드도 표시합니다.
+- 📊 **프로젝트 사용량, 추세 및 참고 비용**: 로컬 Codex rollout JSONL을 읽기 전용으로 분석해 7일 / 30일 / 전체 기간, 모델/Reasoning, 루트/서브 Agent, 일별/모델별 추세, Agent 분석, 관찰 가능한 reroute 기록, 최근 프로젝트 개요, 버전이 있는 참고 비용을 제공합니다. 구형 형식 데이터는 추정값으로 명시하며 알 수 없는 모델 가격은 추측하지 않습니다. 모든 값은 best-effort 로컬 텔레메트리이며 청구 데이터가 아닙니다.
+- 🔒 **Model Integrity 런타임 검증**: 범위별 유효 모델/Reasoning을 잠그고 Studio에서 보이는 설정 드리프트를 감지하며 로컬 rollout에 이미 기록된 런타임 증거와 비교합니다. 최근 모델/Reasoning, reroute 횟수, 최근 5개 증거를 표시하고 읽기 전용 새로고침을 제공합니다. CLI 임시 재정의, 로컬에 기록되지 않은 동작, 관찰할 수 없는 서버 내부 라우팅은 로컬 보장 범위 밖입니다.
 
 - 🔄 **안정 버전 확인 및 서명된 인앱 업데이트**: GitHub 최신 안정 버전을 확인하고, 정식 서명 빌드에서는 앱 안에서 업데이트를 다운로드하고 서명을 검증한 뒤 설치할 수 있습니다. Windows는 NSIS, Linux는 설치 출처에 맞는 AppImage/deb 패키지, macOS는 서명된 업데이트 패키지를 사용하며 설치 후 재시작합니다. 서명되지 않은 Nightly/로컬 빌드는 GitHub Release 페이지로 안전하게 폴백합니다.
 
