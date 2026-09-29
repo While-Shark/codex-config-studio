@@ -99,6 +99,14 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
       }).join('') + '</div><p class="usage-panel-note">' + esc(copy.trendHint) + '</p>'
     : '<div class="empty-state">' + esc(copy.noUsage) + '</div>';
 
+  const anomalyHtml = summary.anomalies.length
+    ? '<div class="usage-anomaly-list">' + summary.anomalies.slice(0,5).map(item =>
+        '<div class="usage-anomaly-row"><div><strong>' + esc(item.day) + '</strong><small>' +
+        esc(copy.anomalyBaseline) + ' ' + esc(formatTokens(item.baselineTokens)) + '</small></div><span>' +
+        esc(formatTokens(item.totalTokens)) + '</span><em>' + item.ratio.toFixed(1) + '×</em></div>'
+      ).join('') + '</div><p class="usage-panel-note">' + esc(copy.anomalyHint) + '</p>'
+    : '<div class="empty-state">' + esc(copy.noAnomalies) + '</div><p class="usage-panel-note">' + esc(copy.anomalyHint) + '</p>';
+
   const modelTrendHtml = summary.modelTrend.length
     ? '<div class="model-trend-list">' + summary.modelTrend.map(day => {
         const rows = day.rows.slice(0,4);
@@ -180,6 +188,7 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
     warnings.map(value => '<div class="usage-warning">' + esc(value) + '</div>').join('') +
     '<div class="usage-metrics">' + metricHtml + '</div>' +
     '<section class="usage-panel"><h3>' + esc(copy.dailyTrend) + '</h3>' + trendHtml + '</section>' +
+    '<section class="usage-panel"><h3>' + esc(copy.anomalies) + '</h3>' + anomalyHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.modelTrend) + '</h3>' + modelTrendHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.rerouteTimeline) + '</h3>' + rerouteHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.referenceCost) + '</h3>' + costHtml + '</section>' +
