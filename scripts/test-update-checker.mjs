@@ -74,11 +74,16 @@ test('updater manifest generator emits matching signed package URLs',()=>{
   const dir=mkdtempSync(join(tmpdir(),'ccs-updater-'));
   try{
     for(const name of [
+      'Codex_1.2.3_x64-setup.exe',
       'Codex_1.2.3_x64-setup.exe.sig',
+      'Codex_1.2.3_amd64.AppImage',
       'Codex_1.2.3_amd64.AppImage.sig',
+      'Codex_1.2.3_amd64.deb',
       'Codex_1.2.3_amd64.deb.sig',
+      'Codex_1.2.3_universal.dmg',
+      'Codex.app.tar.gz',
       'Codex.app.tar.gz.sig',
-    ])writeFileSync(join(dir,name),'trusted-signature\n');
+    ])writeFileSync(join(dir,name),name.endsWith('.sig')?'trusted-signature\n':'artifact\n');
     const run=spawnSync(process.execPath,[
       resolve(root,'scripts/build-updater-manifest.mjs'),dir,'1.2.3','v1.2.3','While-Shark/codex-config-studio'
     ],{encoding:'utf8'});

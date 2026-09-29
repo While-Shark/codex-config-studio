@@ -96,3 +96,12 @@ test('release workflow attests the final collected release files before publishi
   const publish = workflow.indexOf('Create or update GitHub Release');
   assert.ok(collect >= 0 && attest > collect && publish > attest, 'attestation must cover final release files before publishing');
 });
+
+
+test('formal release validates a complete artifact set before manifest and attestation', () => {
+  assert.match(workflow, /node scripts\/verify-release-files\.mjs release-files/);
+  const verify = workflow.indexOf('node scripts/verify-release-files.mjs release-files');
+  const manifest = workflow.indexOf('node scripts/build-updater-manifest.mjs release-files');
+  const attest = workflow.indexOf('Attest release build provenance');
+  assert.ok(verify >= 0 && manifest > verify && attest > manifest, 'artifact integrity must be checked before manifest generation and attestation');
+});

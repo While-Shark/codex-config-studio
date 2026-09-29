@@ -15,6 +15,8 @@ This is a third release-security layer, separate from platform signing and Tauri
 
 The attestation covers the files in `release-files/*` after artifacts have been collected and the updater manifest/checksum files have been created.
 
+Before manifest generation or attestation, the release job also enforces a complete artifact set: exactly one Windows NSIS installer, Linux AppImage, Linux deb, macOS DMG, macOS updater archive, and the four matching Tauri updater signatures. Missing, duplicate, empty, or signature/payload filename mismatches fail the release before anything is published.
+
 ## Verify a downloaded release
 
 Install or update GitHub CLI, authenticate if necessary, then run:
