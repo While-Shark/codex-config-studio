@@ -164,7 +164,7 @@ export const zhCN = {
   'preset.daily.usage': '大多数日常项目开发。',
   'preset.balanced.name': '均衡',
   'preset.balanced.badge': '复杂开发',
-  'preset.balanced.description': 'GPT-6 Sol 主导 + GPT-6 Luna 执行。',
+  'preset.balanced.description': 'GPT-6.1 Sol 主导 + GPT-6 Luna 执行。',
   'preset.balanced.usage': '跨文件功能、常规重构、联调。',
   'preset.astra.name': 'Astra 总指挥',
   'preset.astra.badge': '高质量',
