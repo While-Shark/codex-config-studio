@@ -20,6 +20,14 @@ export type ServiceTierUsage = {
   usage: UsageTokens;
 };
 
+export type ModelTierUsage = {
+  model: string;
+  reasoning: string | null;
+  serviceTier: string | null;
+  responses: number;
+  usage: UsageTokens;
+};
+
 export type ServiceTierSummary = ServiceTierUsage & {
   share: number;
 };
@@ -96,6 +104,7 @@ export type UsageSession = {
   usage: UsageTokens;
   models: ModelUsage[];
   serviceTiers: ServiceTierUsage[];
+  modelTiers: ModelTierUsage[];
   dailyUsage: DailyUsage[];
   dailyModelUsage: DailyModelUsage[];
   reroutes: ModelReroute[];
@@ -131,6 +140,7 @@ export type UsageSummary = {
   agentRoles: AgentRoleUsage[];
   rerouteEvents: ObservableReroute[];
   serviceTierRows: ServiceTierSummary[];
+  modelTierRows: ModelTierUsage[];
   serviceTierCoveredTokens: number;
   serviceTierCoverage: number;
   fastTierTokens: number;
@@ -281,6 +291,7 @@ export function summarizeUsage(report: UsageReport): UsageSummary {
   const modelDayMap=new Map<string,DailyModelUsage>();
   const roleMap=new Map<string,{sessions:number;turns:number;responses:number;usage:UsageTokens}>();
   const serviceTierMap=new Map<string,ServiceTierUsage>();
+  const modelTierMap=new Map<string,ModelTierUsage>();
   const rerouteEvents:ObservableReroute[]=[];
   let turns=0,responses=0,rootUsage=0,subagentUsage=0,rootSessions=0,subagentSessions=0,reroutes=0,exactSessions=0,legacySessions=0;
   for(const session of report.sessions){
@@ -313,6 +324,15 @@ export function summarizeUsage(report: UsageReport): UsageSummary {
       const key=row.serviceTier??'__default__';
       let item=serviceTierMap.get(key);
       if(!item){item={serviceTier:row.serviceTier,responses:0,usage:zeroTokens()};serviceTierMap.set(key,item);}
+      item.responses+=row.responses;addTokens(item.usage,row.usage);
+    }
+    for(const row of session.modelTiers??[]){
+      const key=[row.model,row.reasoning??'',row.serviceTier??'__default__'].join('\u0000');
+      let item=modelTierMap.get(key);
+      if(!item){
+        item={model:row.model,reasoning:row.reasoning,serviceTier:row.serviceTier,responses:0,usage:zeroTokens()};
+        modelTierMap.set(key,item);
+      }
       item.responses+=row.responses;addTokens(item.usage,row.usage);
     }
     for(const row of session.models){
@@ -350,12 +370,14 @@ export function summarizeUsage(report: UsageReport): UsageSummary {
   const serviceTierRows=[...serviceTierMap.values()]
     .sort((a,b)=>b.usage.totalTokens-a.usage.totalTokens||(a.serviceTier??'').localeCompare(b.serviceTier??''))
     .map(row=>({...row,share:serviceTierCoveredTokens>0?row.usage.totalTokens/serviceTierCoveredTokens:0}));
+  const modelTierRows=[...modelTierMap.values()]
+    .sort((a,b)=>b.usage.totalTokens-a.usage.totalTokens||a.model.localeCompare(b.model)||(a.serviceTier??'').localeCompare(b.serviceTier??''));
   const serviceTierCoverage=usage.totalTokens>0?serviceTierCoveredTokens/usage.totalTokens:0;
   const fastTierTokens=serviceTierRows
     .filter(row=>isFastServiceTier(row.serviceTier))
     .reduce((sum,row)=>sum+row.usage.totalTokens,0);
   const anomalies=detectUsageAnomalies(dailyTrend);
-  return {usage,sessions:report.sessions.length,turns,responses,rootUsage,subagentUsage,rootSessions,subagentSessions,reroutes,exactSessions,legacySessions,modelRows,dailyTrend,modelTrend,agentRoles,rerouteEvents,serviceTierRows,serviceTierCoveredTokens,serviceTierCoverage,fastTierTokens,anomalies};
+  return {usage,sessions:report.sessions.length,turns,responses,rootUsage,subagentUsage,rootSessions,subagentSessions,reroutes,exactSessions,legacySessions,modelRows,dailyTrend,modelTrend,agentRoles,rerouteEvents,serviceTierRows,modelTierRows,serviceTierCoveredTokens,serviceTierCoverage,fastTierTokens,anomalies};
 }
 
 export function detectUsageAnomalies(days: readonly DailyUsage[], baselineDays=7): UsageAnomaly[] {
