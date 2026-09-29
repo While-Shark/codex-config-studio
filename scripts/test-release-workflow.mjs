@@ -75,6 +75,6 @@ test('release workflow verifies and cleans Windows Authenticode signing material
   assert.match(workflow, /signature\.TimeStamperCertificate/);
   assert.match(workflow, /Cleanup Windows signing material/);
   assert.match(workflow, /if: always\(\) && matrix\.name == 'windows-x64'/);
-  assert.match(workflow, /Remove-Item "Cert:\\\\CurrentUser\\\\My\\\\\$thumbprint"/);
+  assert.ok(workflow.includes('Remove-Item "Cert:\\CurrentUser\\My\\$thumbprint"'));
   assert.match(workflow, /codex-config-studio-signing\.pfx/);
 });
