@@ -172,6 +172,79 @@ export function reasoningLevelsForModel(
   return [...entry.reasoningLevels];
 }
 
+type ComparableVersion = {
+  core: number[];
+  prerelease: Array<number | string> | null;
+};
+
+function parseComparableVersion(value: string): ComparableVersion | null {
+  const match=value.trim().replace(/^v/i,'').match(/^(\d+(?:\.\d+)*)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/);
+  if(!match)return null;
+  const core=match[1].split('.').map(part=>Number(part));
+  if(core.some(part=>!Number.isSafeInteger(part)||part<0))return null;
+  const prerelease=match[2]
+    ? match[2].split('.').map(part=>/^\d+$/.test(part)?Number(part):part.toLowerCase())
+    : null;
+  return{core,prerelease};
+}
+
+function comparePrerelease(left:Array<number|string>|null,right:Array<number|string>|null):number {
+  if(left===null&&right===null)return 0;
+  if(left===null)return 1;
+  if(right===null)return -1;
+  const length=Math.max(left.length,right.length);
+  for(let i=0;i<length;i++){
+    const a=left[i],b=right[i];
+    if(a===undefined)return -1;
+    if(b===undefined)return 1;
+    if(a===b)continue;
+    if(typeof a==='number'&&typeof b==='number')return a<b?-1:1;
+    if(typeof a==='number')return -1;
+    if(typeof b==='number')return 1;
+    return a<b?-1:1;
+  }
+  return 0;
+}
+
+/** Compare Codex CLI versions without guessing when the runtime string is not semver-like. */
+export function compareCodexVersions(left:string|null|undefined,right:string|null|undefined):number|null {
+  if(!left||!right)return null;
+  const a=parseComparableVersion(left),b=parseComparableVersion(right);
+  if(!a||!b)return null;
+  const length=Math.max(a.core.length,b.core.length);
+  for(let i=0;i<length;i++){
+    const av=a.core[i]??0,bv=b.core[i]??0;
+    if(av!==bv)return av<bv?-1:1;
+  }
+  return comparePrerelease(a.prerelease,b.prerelease);
+}
+
+export type ModelClientCompatibility = {
+  model: string;
+  installedVersion: string;
+  minimalClientVersion: string;
+  status: 'compatible' | 'too-old' | 'unknown';
+};
+
+export function modelClientCompatibility(
+  model:string|null|undefined,
+  installedVersion:string|null|undefined,
+  officialEntries:readonly OfficialModelCatalogEntry[],
+):ModelClientCompatibility|null {
+  const id=model?.trim();
+  if(!id||!installedVersion)return null;
+  const entry=officialEntries.find(item=>item.id===id);
+  const minimum=entry?.minimalClientVersion?.trim();
+  if(!minimum)return null;
+  const comparison=compareCodexVersions(installedVersion,minimum);
+  return{
+    model:id,
+    installedVersion,
+    minimalClientVersion:minimum,
+    status:comparison===null?'unknown':comparison<0?'too-old':'compatible',
+  };
+}
+
 export function reconcileReasoningLevelForModel(
   model: string | null | undefined,
   current: string | null,
