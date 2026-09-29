@@ -217,6 +217,20 @@ test('reference cost reports pricing coverage and unknown models without inventi
   assert.deepEqual(result.unpricedModels,['custom-local-model']);
 });
 
+test('verified reference catalog exposes only documented Fast multipliers',()=>{
+  assert.equal(pricing.fastMultiplierForModel('gpt-6-astra'),2.5);
+  assert.equal(pricing.fastMultiplierForModel('gpt-6-sol'),2.5);
+  assert.equal(pricing.fastMultiplierForModel('gpt-6-luna'),2.5);
+  assert.equal(pricing.fastMultiplierForModel('gpt-5.6-terra'),2.5);
+  assert.equal(pricing.fastMultiplierForModel('gpt-5.5'),2.5);
+  assert.equal(pricing.fastMultiplierForModel('gpt-5.4'),2);
+  assert.equal(pricing.fastMultiplierForModel('gpt-5.4-mini'),null);
+  assert.equal(pricing.fastMultiplierForModel('gpt-5.2'),null);
+  assert.deepEqual(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-5.4-mini'],{input:0.75,cachedInput:0.075,output:4.5});
+  assert.deepEqual(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-5.2'],{input:1.75,cachedInput:0.175,output:14});
+  assert.deepEqual(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-daybreak-red-latest'],{input:12.5,cachedInput:1.25,output:75});
+});
+
 test('reference pricing snapshot is versioned and staleness is deterministic',()=>{
   assert.equal(pricing.CODEX_USD_REFERENCE_CATALOG.snapshotDate,'2026-09-29');
   assert.equal(pricing.pricingSnapshotAgeDays(pricing.CODEX_USD_REFERENCE_CATALOG,Date.UTC(2026,8,29,12)),0);
