@@ -1,5 +1,5 @@
 import { icon } from './ui/icons';
-import { formatTokens, summarizeUsage, usageText, type UsagePeriod, type UsageReport } from './usage-dashboard';
+import { formatTokens, isFastServiceTier, summarizeUsage, usageText, type UsagePeriod, type UsageReport } from './usage-dashboard';
 import { CODEX_USD_REFERENCE_CATALOG, estimateUsageCost, formatUsd, pricingSnapshotAgeDays } from './pricing-catalog';
 
 export type UsageViewOptions = {
@@ -132,7 +132,7 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
   const serviceTierRows = summary.serviceTierRows.length
     ? '<div class="cost-model-list">' + summary.serviceTierRows.map(row => {
         const raw = row.serviceTier?.trim() ?? '';
-        const label = raw.toLowerCase() === 'fast' ? copy.serviceTierFast : (raw || copy.serviceTierDefault);
+        const label = isFastServiceTier(raw) ? copy.serviceTierFast : (raw || copy.serviceTierDefault);
         return '<div class="cost-model-row"><div><code>' + esc(label) + '</code><small>' +
           row.responses + ' ' + esc(copy.responses) + ' · ' + (row.share*100).toFixed(1) + '%</small></div><strong>' +
           esc(formatTokens(row.usage.totalTokens)) + '</strong></div>';
@@ -193,7 +193,7 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
     const models = session.models.slice(0,2).map(row => row.model + (row.reasoning ? ' · ' + row.reasoning : '')).join(' / ') || copy.unknownModel;
     const agent = session.isSubagent ? (session.agentRole || copy.subagents) : copy.rootAgent;
     const tier = session.serviceTierObserved
-      ? ((session.lastServiceTier?.trim().toLowerCase()==='fast') ? copy.serviceTierFast : (session.lastServiceTier?.trim() || copy.serviceTierDefault))
+      ? (isFastServiceTier(session.lastServiceTier) ? copy.serviceTierFast : (session.lastServiceTier?.trim() || copy.serviceTierDefault))
       : copy.serviceTierUnobserved;
     return '<div class="usage-session"><div><strong>' + esc(models) + '</strong><p>' + esc(agent) + ' · ' + session.turns + ' ' + esc(copy.turns) + ' · ' + esc(dateLabel(session.updatedAt, options.locale)) + '</p><p>' + esc(copy.serviceTier) + ': ' + esc(tier) + ' · ' + esc(session.cwd) + '</p></div><span>' + esc(formatTokens(session.usage.totalTokens)) + '</span></div>';
   }).join('');
