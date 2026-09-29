@@ -83,7 +83,7 @@ Model Integrity 可以给当前作用域锁定有效的 `model` 与 `model_reaso
 | 极省 Token | GPT-6 Luna / low | 小修改、批量替换、明确任务 |
 | 经济 | GPT-6 Luna / medium | CRUD、前端修改、常规接口 |
 | 日常 | GPT-6 Luna + GPT-6 Luna | 大多数日常开发 |
-| 均衡 | GPT-6 Sol + GPT-6 Luna | 跨文件功能、重构、联调 |
+| 均衡 | GPT-6.1 Sol + GPT-6 Luna | 跨文件功能、重构、联调 |
 | Astra 总指挥 | GPT-6 Astra + GPT-6 Luna | Astra 规划/Review，Luna 执行 |
 | 极致 | GPT-6 Astra xhigh + GPT-6 Luna high | 疑难 Bug、大重构、上线前 Review |
 
@@ -99,10 +99,10 @@ Model Integrity 可以给当前作用域锁定有效的 `model` 与 `model_reaso
 | --- | --- |
 | 小修复 | GPT-6 Luna / low |
 | 日常开发 | GPT-6 Luna / medium |
-| 复杂问题 | GPT-6 Sol / high |
+| 复杂问题 | GPT-6.1 Sol / high |
 | 架构设计 | GPT-6 Astra / high |
 
-这些只是开源默认值，**不会锁死**。每一类都可以从下拉框选择模型，也支持任意自定义模型 ID；Reasoning 可选择 `low / medium / high / xhigh / ultra / persistent / max`。
+这些只是开源默认值，**不会锁死**。每一类都可以从下拉框选择模型，也支持任意自定义模型 ID；已知官方模型会按 Codex `models.json` 只展示其支持的 Reasoning，读取旧配置/自定义模型时仍保留原值，用户主动切换到官方模型时才会把不兼容等级调整为该模型的官方默认值。
 
 模型候选会从 OpenAI Codex 官方 `models.json` 自动刷新并在本机缓存 24 小时；离线或官方源暂不可用时继续使用最近缓存与内置兼容列表。刷新只更新候选项，不自动迁移已有配置、任务偏好、历史记录、Preset 或自定义模型 ID。
 
@@ -208,9 +208,9 @@ Codex Config Studio 不向前端开放通用文件系统或 Shell 权限。
 
 ## 方案版本
 
-**GPT-6 / v0.4.0**
+**GPT-6.1 / GPT-6 (v0.5.0) / v0.4.0**
 
-当前推荐使用 GPT-6。旧方案已完整保存在历史版本中；浏览版本不会修改配置。
+当前推荐在均衡/复杂任务中使用 GPT-6.1 Sol；GPT-6（v0.5.0）与更早的 v0.4.0 方案都作为不可变历史快照保留，浏览版本不会修改配置。
 
 历史快照保留原有模型、思考等级和子 Agent 参数，不随新版推荐变动。
 
