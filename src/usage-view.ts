@@ -1,6 +1,6 @@
 import { icon } from './ui/icons';
 import { formatTokens, isFastServiceTier, summarizeUsage, usageText, type UsagePeriod, type UsageReport } from './usage-dashboard';
-import { CODEX_USD_REFERENCE_CATALOG, estimateUsageCost, formatUsd, pricingSnapshotAgeDays } from './pricing-catalog';
+import { CODEX_USD_REFERENCE_CATALOG, estimateTierAwareUsageCost, formatUsd, pricingSnapshotAgeDays } from './pricing-catalog';
 
 export type UsageViewOptions = {
   locale: string;
@@ -144,7 +144,7 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
     '</span><strong>' + esc(formatTokens(summary.fastTierTokens)) + '</strong></div></div>' +
     serviceTierRows + '<p class="usage-panel-note">' + esc(copy.serviceTierHint) + '</p>';
 
-  const cost = estimateUsageCost(summary.modelRows, summary.usage.totalTokens);
+  const cost = estimateTierAwareUsageCost(summary.modelRows, summary.modelTierRows, summary.usage.totalTokens);
   const priceAgeDays = pricingSnapshotAgeDays();
   const costRows = cost.modelRows.length
     ? '<div class="cost-model-list">' + cost.modelRows.slice(0,8).map(row =>
@@ -155,13 +155,19 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
   const unpriced = cost.unpricedModels.length
     ? '<p class="cost-unpriced"><strong>' + esc(copy.unpricedModels) + ':</strong> ' + esc(cost.unpricedModels.join(', ')) + '</p>'
     : '';
-  const costDisplay = cost.coverage <= 0 ? '—' : (cost.coverage < 0.999999 ? '≥' : '') + formatUsd(cost.usd);
+  const unadjustedFast = cost.unadjustedFastModels.length
+    ? '<p class="cost-unpriced"><strong>' + esc(copy.unadjustedFastModels) + ':</strong> ' + esc(cost.unadjustedFastModels.join(', ')) + '</p>'
+    : '';
+  const costDisplay = cost.coverage <= 0 ? '—' : (cost.isLowerBound ? '≥' : '') + formatUsd(cost.usd);
   const costHtml =
     '<div class="cost-summary"><div><span>' + esc(copy.referenceCost) + '</span><strong>' + esc(costDisplay) +
     '</strong></div><div><span>' + esc(copy.priceCoverage) + '</span><strong>' + (cost.coverage*100).toFixed(1) +
+    '%</strong></div></div>' +
+    '<div class="cost-summary"><div><span>' + esc(copy.fastSurcharge) + '</span><strong>+' + esc(formatUsd(cost.fastSurchargeUsd)) +
+    '</strong></div><div><span>' + esc(copy.tierCostCoverage) + '</span><strong>' + (cost.tierCoverage*100).toFixed(1) +
     '%</strong></div></div>' + costRows +
     '<div class="cost-meta"><span>' + esc(copy.pricingSnapshot) + ': ' + esc(CODEX_USD_REFERENCE_CATALOG.snapshotDate) +
-    '</span><span>' + esc(CODEX_USD_REFERENCE_CATALOG.sourceLabel) + '</span></div>' + unpriced +
+    '</span><span>' + esc(CODEX_USD_REFERENCE_CATALOG.sourceLabel) + '</span></div>' + unpriced + unadjustedFast +
     (priceAgeDays>30?'<div class="usage-warning">' + esc(copy.pricingStale) + '</div>':'') +
     '<p class="usage-panel-note">' + esc(copy.referenceCostHint) + '</p>';
 
