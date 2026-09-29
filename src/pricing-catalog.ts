@@ -39,7 +39,8 @@ export type TierAwareCostEstimate = CostEstimate & {
   tierCoverage: number;
   fastAdjustedTokens: number;
   unadjustedFastModels: string[];
-  isLowerBound: boolean;
+  unsupportedServiceTiers: string[];
+  tierAdjustmentComplete: boolean;
 };
 
 /**
@@ -125,9 +126,18 @@ export function fastMultiplierForModel(model: string): number | null {
   return null;
 }
 
+function normalizeTier(value:string|null|undefined):string {
+  return (value??'').trim().toLowerCase();
+}
+
 function isFastTier(value:string|null|undefined):boolean {
-  const normalized=(value??'').trim().toLowerCase();
+  const normalized=normalizeTier(value);
   return normalized==='priority'||normalized==='fast';
+}
+
+function isDefaultTier(value:string|null|undefined):boolean {
+  const normalized=normalizeTier(value);
+  return normalized===''||normalized==='default';
 }
 
 function modelReasoningKey(model:string,reasoning:string|null):string {
@@ -143,6 +153,7 @@ export function estimateTierAwareUsageCost(
   const base=estimateUsageCost(modelRows,totalTokens,catalog);
   const surchargeByModel=new Map<string,number>();
   const unadjustedFastModels=new Set<string>();
+  const unsupportedServiceTiers=new Set<string>();
   let fastSurchargeUsd=0;
   let tierCoveredTokens=0;
   let fastAdjustedTokens=0;
@@ -151,14 +162,23 @@ export function estimateTierAwareUsageCost(
     const normalized=normalizePricedModel(row.model);
     if(!catalog.rates[normalized])continue;
     const tokens=Math.max(0,row.usage.totalTokens||0);
-    tierCoveredTokens+=tokens;
-    if(!isFastTier(row.serviceTier))continue;
+
+    if(isDefaultTier(row.serviceTier)){
+      tierCoveredTokens+=tokens;
+      continue;
+    }
+    if(!isFastTier(row.serviceTier)){
+      const raw=row.serviceTier?.trim();
+      if(raw)unsupportedServiceTiers.add(raw);
+      continue;
+    }
 
     const multiplier=fastMultiplierForModel(normalized);
     if(multiplier===null){
       unadjustedFastModels.add(row.model);
       continue;
     }
+    tierCoveredTokens+=tokens;
     const baseRowCost=estimateModelCost(row,catalog);
     if(baseRowCost===null)continue;
     const surcharge=baseRowCost*(multiplier-1);
@@ -174,6 +194,10 @@ export function estimateTierAwareUsageCost(
   })).sort((a,b)=>b.usd-a.usd||a.model.localeCompare(b.model));
   const tierCoverage=base.coveredTokens>0?Math.min(1,tierCoveredTokens/base.coveredTokens):0;
   const unadjusted=[...unadjustedFastModels].sort();
+  const unsupported=[...unsupportedServiceTiers].sort();
+  const tierAdjustmentComplete=base.coveredTokens<=0||(
+    tierCoverage>=0.999999&&unadjusted.length===0&&unsupported.length===0
+  );
 
   return {
     ...base,
@@ -185,7 +209,8 @@ export function estimateTierAwareUsageCost(
     fastAdjustedTokens,
     modelRows:modelRowsAdjusted,
     unadjustedFastModels:unadjusted,
-    isLowerBound:base.coverage<0.999999||tierCoverage<0.999999||unadjusted.length>0,
+    unsupportedServiceTiers:unsupported,
+    tierAdjustmentComplete,
   };
 }
 
