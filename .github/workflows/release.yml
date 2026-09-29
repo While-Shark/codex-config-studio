@@ -194,6 +194,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          REQUIRE_MACOS_SIGNING: ${{ vars.REQUIRE_MACOS_SIGNING }}
         run: |
           set -euo pipefail
 
@@ -207,6 +208,10 @@ jobs:
           done
 
           if [ "$any_apple_secret" = false ]; then
+            if [ "${REQUIRE_MACOS_SIGNING,,}" = "true" ]; then
+              echo "::error::REQUIRE_MACOS_SIGNING=true but Apple Developer signing/notarization secrets are not configured."
+              exit 1
+            fi
             echo "APPLE_PLATFORM_SIGNING_ENABLED=false" >> "$GITHUB_ENV"
             echo "::notice::Apple Developer signing/notarization is not configured; macOS artifacts remain unsigned."
             exit 0
