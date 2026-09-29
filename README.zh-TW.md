@@ -83,7 +83,7 @@ Model Integrity 可為目前作用域鎖定有效的 `model` 與 `model_reasonin
 | Token 節省 | GPT-6 Luna / low | 小修改、批次替換、明確任務 |
 | 經濟 | GPT-6 Luna / medium | CRUD、前端修改、一般 API |
 | 日常 | GPT-6 Luna + GPT-6 Luna | 多數日常開發 |
-| 均衡 | GPT-6 Sol + GPT-6 Luna | 跨檔案功能、重構、聯調 |
+| 均衡 | GPT-6.1 Sol + GPT-6 Luna | 跨檔案功能、重構、聯調 |
 | Astra 總指揮 | GPT-6 Astra + GPT-6 Luna | Astra 規劃/Review，Luna 執行 |
 | 最高品質 | GPT-6 Astra xhigh + GPT-6 Luna high | 疑難 Bug、大型重構、上線前 Review |
 
@@ -172,9 +172,9 @@ Codex Config Studio 不向前端開放通用檔案系統或 Shell 權限。
 
 ## 方案版本
 
-**GPT-6 / v0.4.0**
+**GPT-6.1 / GPT-6 (v0.5.0) / v0.4.0**
 
-目前推薦使用 GPT-6。舊方案已完整保留在歷史版本中；瀏覽版本不會修改設定。
+目前在均衡/複雜任務中推薦使用 GPT-6.1 Sol；GPT-6（v0.5.0）與更早的 v0.4.0 方案都會以不可變歷史快照保留，瀏覽版本不會修改設定。
 
 歷史快照保留原有模型、思考等級與子 Agent 參數，不隨新版推薦變動。
 
