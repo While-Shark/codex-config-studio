@@ -47,6 +47,14 @@ pub(crate) struct ModelUsage {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct ServiceTierUsage {
+    pub service_tier: Option<String>,
+    pub responses: u64,
+    pub usage: UsageTokens,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct ModelReroute {
     pub timestamp: String,
     pub from_model: String,
@@ -90,9 +98,12 @@ pub(crate) struct UsageSession {
     pub responses: u64,
     pub last_model: Option<String>,
     pub last_reasoning: Option<String>,
+    pub service_tier_observed: bool,
+    pub last_service_tier: Option<String>,
     pub usage_source: String,
     pub usage: UsageTokens,
     pub models: Vec<ModelUsage>,
+    pub service_tiers: Vec<ServiceTierUsage>,
     pub daily_usage: Vec<DailyUsage>,
     pub daily_model_usage: Vec<DailyModelUsage>,
     pub reroutes: Vec<ModelReroute>,
@@ -155,10 +166,13 @@ struct SessionBuilder {
     turn_models: HashMap<String, TurnModel>,
     last_turn_id: Option<String>,
     last_model: Option<TurnModel>,
+    service_tier_observed: bool,
+    current_service_tier: Option<String>,
     exact_usage: UsageTokens,
     exact_responses: u64,
     has_exact_records: bool,
     model_usage: BTreeMap<(String, Option<String>), (u64, UsageTokens)>,
+    service_tier_usage: BTreeMap<Option<String>, (u64, UsageTokens)>,
     daily_usage: BTreeMap<String, (u64, UsageTokens)>,
     daily_model_usage: BTreeMap<(String, String, Option<String>), (u64, UsageTokens)>,
     legacy_total: Option<UsageTokens>,
@@ -209,6 +223,11 @@ impl SessionBuilder {
         }
     }
 
+    fn observe_service_tier(&mut self, value: Option<&Value>) {
+        self.service_tier_observed = true;
+        self.current_service_tier = string_value(value);
+    }
+
     fn observe_usage_record(&mut self, timestamp: &str, payload: &Value, since_day: Option<&str>) {
         self.has_exact_records = true;
         let Some(usage) = parse_tokens(payload.get("usage")) else {
@@ -251,6 +270,15 @@ impl SessionBuilder {
             .or_insert_with(|| (0, UsageTokens::default()));
         entry.0 += 1;
         entry.1.add_assign(&usage);
+
+        if self.service_tier_observed {
+            let tier_entry = self
+                .service_tier_usage
+                .entry(self.current_service_tier.clone())
+                .or_insert_with(|| (0, UsageTokens::default()));
+            tier_entry.0 += 1;
+            tier_entry.1.add_assign(&usage);
+        }
 
         if let Some(day) = utc_day(timestamp) {
             let entry = self
@@ -337,6 +365,21 @@ impl SessionBuilder {
                 .cmp(&a.usage.total_tokens)
                 .then_with(|| a.model.cmp(&b.model))
         });
+        let mut service_tiers = self
+            .service_tier_usage
+            .into_iter()
+            .map(|(service_tier, (responses, usage))| ServiceTierUsage {
+                service_tier,
+                responses,
+                usage,
+            })
+            .collect::<Vec<_>>();
+        service_tiers.sort_by(|a, b| {
+            b.usage
+                .total_tokens
+                .cmp(&a.usage.total_tokens)
+                .then_with(|| a.service_tier.cmp(&b.service_tier))
+        });
 
         let mut daily_usage = self
             .daily_usage
@@ -413,6 +456,8 @@ impl SessionBuilder {
             responses: self.exact_responses,
             last_model: last_model.as_ref().map(|selection| selection.model.clone()),
             last_reasoning: last_model.and_then(|selection| selection.reasoning),
+            service_tier_observed: self.service_tier_observed,
+            last_service_tier: self.current_service_tier,
             usage_source: if exact {
                 "response_records".to_string()
             } else if self.legacy_total.is_some() {
@@ -422,6 +467,7 @@ impl SessionBuilder {
             },
             usage,
             models,
+            service_tiers,
             daily_usage,
             daily_model_usage,
             reroutes: self.reroutes,
@@ -555,6 +601,7 @@ fn parse_rollout<R: Read>(reader: R, since_day: Option<&str>) -> (SessionBuilder
                                 settings.get("model").and_then(Value::as_str),
                                 optional_label(settings.get("reasoning_effort")),
                             );
+                            builder.observe_service_tier(settings.get("service_tier"));
                         }
                     }
                     "token_count" => {
@@ -969,6 +1016,41 @@ mod tests {
         assert!(!session.daily_usage[0].estimated);
         assert_eq!(session.daily_model_usage.len(), 2);
         assert_eq!(session.daily_model_usage.iter().map(|item| item.usage.total_tokens).sum::<i64>(), 185);
+    }
+
+    #[test]
+    fn durable_thread_settings_attribute_exact_usage_to_service_tier() {
+        let text = [
+            r#"{"timestamp":"2026-09-26T01:00:00Z","type":"session_meta","payload":{"id":"tiered","cwd":"/work/demo"}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:01Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"tiered","thread_settings":{"model":"gpt-6-luna","model_provider_id":"openai","approval_policy":"never","approvals_reviewer":"user","permission_profile":{"file_system":{"type":"read_only"},"network":{"enabled":false}},"cwd":"/work/demo","reasoning_effort":"high","collaboration_mode":{"mode":"default"},"disabled_plugin_ids":[]}}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:02Z","type":"turn_context","payload":{"turn_id":"t1","cwd":"/work/demo","model":"gpt-6-luna","effort":"high"}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:03Z","type":"token_usage_record","payload":{"thread_id":"tiered","turn_id":"t1","session_id":"tiered","root_turn_id":"t1","response_id":"standard","usage":{"input_tokens":90,"cached_input_tokens":0,"output_tokens":10,"reasoning_output_tokens":0,"total_tokens":100}}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:04Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"tiered","thread_settings":{"model":"gpt-6-luna","model_provider_id":"openai","service_tier":"priority","approval_policy":"never","approvals_reviewer":"user","permission_profile":{"file_system":{"type":"read_only"},"network":{"enabled":false}},"cwd":"/work/demo","reasoning_effort":"high","collaboration_mode":{"mode":"default"},"disabled_plugin_ids":[]}}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:05Z","type":"turn_context","payload":{"turn_id":"t2","cwd":"/work/demo","model":"gpt-6-luna","effort":"high"}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:06Z","type":"token_usage_record","payload":{"thread_id":"tiered","turn_id":"t2","session_id":"tiered","root_turn_id":"t2","response_id":"fast","usage":{"input_tokens":180,"cached_input_tokens":0,"output_tokens":20,"reasoning_output_tokens":0,"total_tokens":200}}}"#,
+        ].join("\n");
+        let (builder, errors) = parse_rollout(Cursor::new(text), None);
+        assert_eq!(errors, 0);
+        let session = builder.finish();
+        assert!(session.service_tier_observed);
+        assert_eq!(session.last_service_tier.as_deref(), Some("priority"));
+        assert_eq!(session.service_tiers.len(), 2);
+        let standard = session.service_tiers.iter().find(|row| row.service_tier.is_none()).unwrap();
+        let fast = session.service_tiers.iter().find(|row| row.service_tier.as_deref() == Some("priority")).unwrap();
+        assert_eq!(standard.responses, 1);
+        assert_eq!(standard.usage.total_tokens, 100);
+        assert_eq!(fast.responses, 1);
+        assert_eq!(fast.usage.total_tokens, 200);
+    }
+
+    #[test]
+    fn exact_usage_without_durable_tier_remains_unobserved() {
+        let (builder, errors) = parse_rollout(Cursor::new(sample_rollout()), None);
+        assert_eq!(errors, 0);
+        let session = builder.finish();
+        assert!(!session.service_tier_observed);
+        assert!(session.last_service_tier.is_none());
+        assert!(session.service_tiers.is_empty());
     }
 
     #[test]

@@ -1,5 +1,5 @@
 import { icon } from './ui/icons';
-import { formatTokens, summarizeUsage, usageText, type UsagePeriod, type UsageReport } from './usage-dashboard';
+import { formatTokens, isFastServiceTier, summarizeUsage, usageText, type UsagePeriod, type UsageReport } from './usage-dashboard';
 import { CODEX_USD_REFERENCE_CATALOG, estimateUsageCost, formatUsd, pricingSnapshotAgeDays } from './pricing-catalog';
 
 export type UsageViewOptions = {
@@ -129,6 +129,21 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
       }).join('') + '</div><p class="usage-panel-note">' + esc(copy.rerouteTimelineHint) + '</p>'
     : '<div class="empty-state">' + esc(copy.noReroutes) + '</div><p class="usage-panel-note">' + esc(copy.rerouteTimelineHint) + '</p>';
 
+  const serviceTierRows = summary.serviceTierRows.length
+    ? '<div class="cost-model-list">' + summary.serviceTierRows.map(row => {
+        const raw = row.serviceTier?.trim() ?? '';
+        const label = isFastServiceTier(raw) ? copy.serviceTierFast : (raw || copy.serviceTierDefault);
+        return '<div class="cost-model-row"><div><code>' + esc(label) + '</code><small>' +
+          row.responses + ' ' + esc(copy.responses) + ' · ' + (row.share*100).toFixed(1) + '%</small></div><strong>' +
+          esc(formatTokens(row.usage.totalTokens)) + '</strong></div>';
+      }).join('') + '</div>'
+    : '<div class="empty-state">' + esc(copy.serviceTierUnobserved) + '</div>';
+  const serviceTierHtml =
+    '<div class="cost-summary"><div><span>' + esc(copy.serviceTierCoverage) + '</span><strong>' +
+    (summary.serviceTierCoverage*100).toFixed(1) + '%</strong></div><div><span>' + esc(copy.serviceTierFast) +
+    '</span><strong>' + esc(formatTokens(summary.fastTierTokens)) + '</strong></div></div>' +
+    serviceTierRows + '<p class="usage-panel-note">' + esc(copy.serviceTierHint) + '</p>';
+
   const cost = estimateUsageCost(summary.modelRows, summary.usage.totalTokens);
   const priceAgeDays = pricingSnapshotAgeDays();
   const costRows = cost.modelRows.length
@@ -177,7 +192,10 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
   const sessionHtml = report.sessions.slice(0,12).map(session => {
     const models = session.models.slice(0,2).map(row => row.model + (row.reasoning ? ' · ' + row.reasoning : '')).join(' / ') || copy.unknownModel;
     const agent = session.isSubagent ? (session.agentRole || copy.subagents) : copy.rootAgent;
-    return '<div class="usage-session"><div><strong>' + esc(models) + '</strong><p>' + esc(agent) + ' · ' + session.turns + ' ' + esc(copy.turns) + ' · ' + esc(dateLabel(session.updatedAt, options.locale)) + '</p><p>' + esc(session.cwd) + '</p></div><span>' + esc(formatTokens(session.usage.totalTokens)) + '</span></div>';
+    const tier = session.serviceTierObserved
+      ? (isFastServiceTier(session.lastServiceTier) ? copy.serviceTierFast : (session.lastServiceTier?.trim() || copy.serviceTierDefault))
+      : copy.serviceTierUnobserved;
+    return '<div class="usage-session"><div><strong>' + esc(models) + '</strong><p>' + esc(agent) + ' · ' + session.turns + ' ' + esc(copy.turns) + ' · ' + esc(dateLabel(session.updatedAt, options.locale)) + '</p><p>' + esc(copy.serviceTier) + ': ' + esc(tier) + ' · ' + esc(session.cwd) + '</p></div><span>' + esc(formatTokens(session.usage.totalTokens)) + '</span></div>';
   }).join('');
 
   const warnings: string[] = [];
@@ -191,6 +209,7 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
     '<section class="usage-panel"><h3>' + esc(copy.anomalies) + '</h3>' + anomalyHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.modelTrend) + '</h3>' + modelTrendHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.rerouteTimeline) + '</h3>' + rerouteHtml + '</section>' +
+    '<section class="usage-panel"><h3>' + esc(copy.serviceTier) + '</h3>' + serviceTierHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.referenceCost) + '</h3>' + costHtml + '</section>' +
     '<section class="usage-panel"><h3>' + esc(copy.agentAnalysis) + '</h3>' + agentAnalysisHtml + '</section>' +
     '<div class="usage-panels"><section class="usage-panel"><h3>' + esc(copy.modelUsage) + '</h3><div class="usage-model-list">' + modelHtml + '</div></section>' +
