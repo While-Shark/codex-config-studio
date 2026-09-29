@@ -6,7 +6,7 @@
 
 **跨平台 Codex 配置管理器：一键切换 Astra / Sol / Terra / Luna 方案。**
 
-全局配置 · 项目配置 · Reasoning · 子 Agent · 安全备份
+全局/项目配置 · 配置健康 · Model Integrity · 用量分析 · Reasoning · 子 Agent · 安全更新
 
 [![Build Desktop](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml/badge.svg)](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml)
 [![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio?include_prereleases)](https://github.com/While-Shark/codex-config-studio/releases)
@@ -45,8 +45,36 @@ Codex Config Studio 是一个基于 **Tauri v2** 的桌面配置管理器，用�
 | ↩️ 原始恢复 | 可恢复到本应用第一次接管之前的配置 |
 | 🎨 主题与配色 | 深色 / 浅色 / 跟随系统，5 套主题色并本机记忆 |
 | 🕘 项目历史 | 独立历史标签页，支持搜索、恢复和删除；删除需二次确认，不影响项目配置或备份 |
+| 🩺 配置健康 | 使用近期权威 Codex schema 检查配置；未知/未来字段默认保留，清理前必须确认并备份 |
+| 🔒 Model Integrity | 可锁定当前模型/Reasoning，检测配置漂移，并核对本机 Codex rollout 中可观测的运行时证据 |
+| 📊 用量与参考成本 | 7 天 / 30 天 / 全部时间的项目用量、模型趋势、Agent 分析、reroute 时间线与版本化参考成本 |
+| 🗂️ 近期项目概览 | 基于 Config Studio 历史汇总最近 7 天项目活动、Token、会话、主模型与 reroute |
+| 🔄 安全更新 | 稳定版检查；正式签名构建支持应用内校验并安装更新，未签名构建安全回退到 Release 页面 |
 | 🌐 多语言 | 简中、繁中、英语、日语、韩语；自动识别并记忆选择 |
 | 📦 多端构建 | Windows / Linux / macOS 自动构建 |
+
+## 配置健康、Model Integrity 与用量分析
+
+### 配置健康
+
+配置健康中心会优先使用 **OpenAI Codex 仓库中生成的权威配置 schema**，并在本机缓存最近一次可信版本。离线、回退源或缓存过旧时仍可展示信息，但**不会据此生成“未知字段可删除”建议**。
+
+- 普通写入只修改本工具管理的键，未知字段和未来新增字段会原样保留。
+- 删除未知字段必须由用户明确确认，并在删除前创建备份与历史记录。
+- 可显示本机 Codex CLI 版本，并比较前后两份权威 schema 的新增、移除和结构变化字段。
+- 仅文档描述变化不会被误报为配置结构变化。
+
+### Model Integrity
+
+Model Integrity 可以给当前作用域锁定有效的 `model` 与 `model_reasoning_effort`，并检测 Studio 可见配置是否偏离目标。它还会读取本机 Codex rollout 中已经记录的运行时证据，展示最近主会话的实际模型/Reasoning、可观测 reroute 次数、最近 5 条证据，并支持只读手动刷新。
+
+> 这个机制能验证 **Studio 可见配置 + 本机已记录 rollout 证据**。仅 CLI 临时覆盖、未被本机记录的行为，以及不可观测的服务端内部路由仍不属于本地保证范围。
+
+### 项目用量与参考成本
+
+项目用量看板从本机 Codex rollout JSONL 只读汇总数据，支持 7 天 / 30 天 / 全部时间范围，并展示模型/Reasoning、主会话/子 Agent、每日趋势、模型趋势、Agent 使用、可观测 reroute 时间线和近期项目总览。
+
+参考成本使用**带日期和版本的价格快照**计算覆盖范围内的估算值；未知模型不会猜价格，快照过旧会提示。所有用量与成本都属于 **best-effort 本地遥测，不是官方账单数据**。
 
 ## 内置方案
 
