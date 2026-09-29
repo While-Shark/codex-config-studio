@@ -52,6 +52,7 @@ test('official catalog keeps only visible list models and sorts by priority', ()
         visibility: 'list',
         priority: 20,
         minimal_client_version: '0.200.0',
+        default_reasoning_level: 'high',
         supported_reasoning_levels: [{ effort: 'high' }, { effort: 'xhigh' }],
       },
       {
@@ -59,6 +60,7 @@ test('official catalog keeps only visible list models and sorts by priority', ()
         display_name: 'GPT Next A',
         visibility: 'list',
         priority: 2,
+        default_reasoning_level: 'low',
         supported_reasoning_levels: [{ effort: 'low' }, { effort: 'high' }, { effort: 'high' }],
       },
       { slug: '', visibility: 'list', priority: 1 },
@@ -67,6 +69,8 @@ test('official catalog keeps only visible list models and sorts by priority', ()
 
   assert.deepEqual(entries.map(entry => entry.id), ['gpt-next-a', 'gpt-next-b']);
   assert.deepEqual(entries[0].reasoningLevels, ['low', 'high']);
+  assert.equal(entries[0].defaultReasoningLevel, 'low');
+  assert.equal(entries[1].defaultReasoningLevel, 'high');
   assert.equal(entries[1].minimalClientVersion, '0.200.0');
 });
 
@@ -82,6 +86,20 @@ test('reasoning choices follow official model capabilities with safe fallbacks',
   assert.deepEqual(catalog.reasoningLevelsForModel('provider/custom', entries, fallback), fallback);
   assert.deepEqual(catalog.reasoningLevelsForModel(null, entries, fallback), fallback);
   assert.deepEqual(fallback, ['low','medium','high','xhigh','persistent']);
+});
+
+test('reasoning reconciliation uses the official default only for incompatible explicit model changes', () => {
+  const entries = [
+    { id: 'gpt-a', displayName: 'A', reasoningLevels: ['low','high','xhigh'], defaultReasoningLevel: 'high', priority: 1, minimalClientVersion: null },
+    { id: 'gpt-b', displayName: 'B', reasoningLevels: ['low','high'], defaultReasoningLevel: 'missing', priority: 2, minimalClientVersion: null },
+  ];
+
+  assert.equal(catalog.reconcileReasoningLevelForModel('gpt-a', 'xhigh', entries), 'xhigh');
+  assert.equal(catalog.reconcileReasoningLevelForModel('gpt-a', 'medium', entries), 'high');
+  assert.equal(catalog.reconcileReasoningLevelForModel('gpt-b', 'xhigh', entries), 'low');
+  assert.equal(catalog.reconcileReasoningLevelForModel('provider/custom', 'xhigh', entries), 'xhigh');
+  assert.equal(catalog.reconcileReasoningLevelForModel('gpt-a', null, entries, true), null);
+  assert.equal(catalog.reconcileReasoningLevelForModel('gpt-a', null, entries, false), 'high');
 });
 
 test('official models lead the selector while built-in legacy models remain as fallback', () => {
@@ -113,6 +131,7 @@ test('fresh cached official catalog avoids a network request', async () => {
   const result = await catalog.loadOfficialModelCatalog();
   assert.equal(result.state.status, 'fresh');
   assert.deepEqual(result.entries.map(entry => entry.id), ['gpt-cached']);
+  assert.equal(result.entries[0].defaultReasoningLevel, null);
   assert.equal(calls, 0);
 });
 

@@ -20,7 +20,7 @@ import './config-preview.css';
 import { historyText, filterHistoryEntries, renderHistoryEntries } from './history-tab';
 import './history-tab.css';
 import { renderModelPicker, bindModelPickers, validateModelPickers } from './model-picker';
-import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog, reasoningLevelsForModel, type OfficialModelCatalogEntry } from './model-catalog';
+import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog, reasoningLevelsForModel, reconcileReasoningLevelForModel, type OfficialModelCatalogEntry } from './model-catalog';
 import './model-picker.css';
 import { CURRENT_PRESET_VERSION, presetVersion, presetByReference, matchPresetVersion, presetSource, parsePresetSource, type PresetReference } from './preset-versions';
 import { renderPresetWorkspace, presetReferenceLabel } from './preset-version-view';
@@ -405,7 +405,7 @@ function renderTask(host:HTMLElement):void {
     const v=$<HTMLSelectElement>('#taskModel').value;
     $<HTMLElement>('#customModelWrap').classList.toggle('hidden',v!=='__custom__');
     const model=v==='__custom__'?($<HTMLInputElement>('#taskCustomModel')?.value.trim()??''):v;
-    refreshReasoningSelect('taskReasoning',$<HTMLSelectElement>('#taskReasoning').value,model,false);
+    refreshReasoningSelect('taskReasoning',$<HTMLSelectElement>('#taskReasoning').value,model,false,true);
   };
   $('#useTask').addEventListener('click',()=>{const modelSel=$<HTMLSelectElement>('#taskModel').value;const custom=$<HTMLInputElement>('#taskCustomModel')?.value.trim()??'';const model=modelSel==='__custom__'?custom:modelSel;const reasoning=$<HTMLSelectElement>('#taskReasoning').value;if(!model){toast(t('toast.taskModelRequired'),true);return;}const next:TaskPreference={model,reasoning};taskPreferences[activeTaskMode]=next;saveTaskPreference(activeTaskMode,next);draftPresetSource=null;values.model=model;values.modelReasoningEffort=reasoning;activePreset='';renderTask(host);renderRightRail();toast(t('toast.taskPrepared',{name:taskText(activeTaskMode,'name')}));});
   $('#resetTask').addEventListener('click',()=>{taskPreferences[activeTaskMode]=resetTaskPreference(activeTaskMode);renderTask(host);toast(t('toast.taskReset',{name:taskText(activeTaskMode,'name')}));});
@@ -444,15 +444,17 @@ async function loadProjectUsage():Promise<void> {
 function renderAdvanced(host:HTMLElement):void {
   host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.custom.eyebrow')}</span><h2>${t('section.custom.title')}</h2><p>${t('advanced.help')}</p></div><button id="resetPresetBtn" class="text-button">${t('action.resetPreset')}</button></div>${advancedLayout(`${advancedField('model',t('field.model'),t('field.model.help'),renderModelPicker('model',values.model,selectableModels,t('field.model'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('modelReasoningEffort',t('field.reasoning'),t('field.reasoning.help'),selectHtml('modelReasoningEffort',values.modelReasoningEffort,reasoningOptionsForModel(values.model),true))}${advancedField('planModeReasoningEffort',t('field.planReasoning'),t('field.planReasoning.help'),selectHtml('planModeReasoningEffort',values.planModeReasoningEffort,reasoningOptionsForModel(values.model),true))}`,`${advancedField('agentsEnabled',t('field.agents'),t('field.agents.help'),`<select id="agentsEnabled"><option value="">${t('option.inherit')}</option><option value="true" ${values.agentsEnabled===true?'selected':''}>${t('option.enabled')}</option><option value="false" ${values.agentsEnabled===false?'selected':''}>${t('option.disabled')}</option></select>`)}${advancedField('defaultSubagentModel',t('field.subagentModel'),t('field.subagentModel.help'),renderModelPicker('defaultSubagentModel',values.defaultSubagentModel,selectableModels,t('field.subagentModel'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('defaultSubagentReasoningEffort',t('field.subagentReasoning'),t('field.subagentReasoning.help'),selectHtml('defaultSubagentReasoningEffort',values.defaultSubagentReasoningEffort,reasoningOptionsForModel(values.defaultSubagentModel),true))}${advancedField('maxConcurrentThreadsPerSession',t('field.maxConcurrent'),t('field.maxConcurrent.help'),`<input id="maxConcurrentThreadsPerSession" type="number" min="1" max="16" value="${values.maxConcurrentThreadsPerSession??''}" placeholder="${t('option.inherit')}">`)}`,workspaceText(getLocale()))}</section>`;
   bindModelPickers(host);
-  fields.forEach(field=>{const el=document.querySelector<HTMLInputElement|HTMLSelectElement>(`#${field}`);if(el)el.addEventListener('input',()=>{readAdvanced();activePreset='';renderRightRail();});});
+  fields.filter(field=>field!=='model'&&field!=='defaultSubagentModel').forEach(field=>{const el=document.querySelector<HTMLInputElement|HTMLSelectElement>(`#${field}`);if(el)el.addEventListener('input',()=>{readAdvanced();activePreset='';renderRightRail();});});
   document.querySelector<HTMLInputElement>('#model')?.addEventListener('input',event=>{
     const model=(event.currentTarget as HTMLInputElement).value.trim()||null;
-    refreshReasoningSelect('modelReasoningEffort',$<HTMLSelectElement>('#modelReasoningEffort').value||null,model,true);
-    refreshReasoningSelect('planModeReasoningEffort',$<HTMLSelectElement>('#planModeReasoningEffort').value||null,model,true);
+    refreshReasoningSelect('modelReasoningEffort',$<HTMLSelectElement>('#modelReasoningEffort').value||null,model,true,true);
+    refreshReasoningSelect('planModeReasoningEffort',$<HTMLSelectElement>('#planModeReasoningEffort').value||null,model,true,true);
+    readAdvanced();activePreset='';renderRightRail();
   });
   document.querySelector<HTMLInputElement>('#defaultSubagentModel')?.addEventListener('input',event=>{
     const model=(event.currentTarget as HTMLInputElement).value.trim()||null;
-    refreshReasoningSelect('defaultSubagentReasoningEffort',$<HTMLSelectElement>('#defaultSubagentReasoningEffort').value||null,model,true);
+    refreshReasoningSelect('defaultSubagentReasoningEffort',$<HTMLSelectElement>('#defaultSubagentReasoningEffort').value||null,model,true,true);
+    readAdvanced();activePreset='';renderRightRail();
   });
   $('#resetPresetBtn').addEventListener('click',resetSelectedPreset);
 }
@@ -465,9 +467,11 @@ function selectOptionsHtml(value:string|null,options:readonly string[],inherit=f
 function selectHtml(id:string,value:string|null,options:readonly string[],inherit=false):string {
   return `<select id="${id}">${selectOptionsHtml(value,options,inherit)}</select>`;
 }
-function refreshReasoningSelect(id:string,value:string|null,model:string|null|undefined,inherit=false):void {
+function refreshReasoningSelect(id:string,value:string|null,model:string|null|undefined,inherit=false,reconcile=false):void {
   const select=document.querySelector<HTMLSelectElement>(`#${id}`);if(!select)return;
-  select.innerHTML=selectOptionsHtml(value,reasoningOptionsForModel(model),inherit);
+  const options=reasoningOptionsForModel(model);
+  const nextValue=reconcile?reconcileReasoningLevelForModel(model,value,officialModelEntries,inherit):value;
+  select.innerHTML=selectOptionsHtml(nextValue,options,inherit);
 }
 function readAdvanced():void {
   const v=(id:Field)=>document.querySelector<HTMLInputElement|HTMLSelectElement>(`#${id}`)?.value??'';
