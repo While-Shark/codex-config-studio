@@ -6,7 +6,7 @@
 
 **跨平台 Codex 設定管理器：一鍵切換 Astra / Sol / Terra / Luna 方案。**
 
-全域設定 · 專案設定 · Reasoning · 子 Agent · 安全備份
+全域/專案設定 · 設定健康 · Model Integrity · 用量分析 · Reasoning · 子 Agent · 安全更新
 
 [![Build Desktop](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml/badge.svg)](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml)
 [![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio?include_prereleases)](https://github.com/While-Shark/codex-config-studio/releases)
@@ -36,14 +36,43 @@ Codex Config Studio 是基於 **Tauri v2** 的桌面設定管理器，用於安�
 | --- | --- |
 | 🌍 全域設定 | 管理 `~/.codex/config.toml` |
 | 📁 專案設定 | 管理 `<project>/.codex/config.toml` |
+| 🎯 目前任務快速切換 | 小修復 / 日常開發 / 複雜問題 / 架構設計；每類都可自訂模型與 Reasoning 並記住偏好 |
 | ⚡ 一鍵切換方案 | Token 節省、經濟、日常、均衡、Astra 總指揮、最高品質 |
 | 🧠 Reasoning | 分別調整主模型、Plan Mode、子 Agent 思考等級 |
 | 🤖 子 Agent | 開關、預設模型、Reasoning、最大並行 |
 | 🧬 欄位繼承 | 專案欄位可逐項取消覆寫並繼承下層設定 |
 | 🛡️ 安全備份 | 首次修改保存原始副本，每次寫入前保存歷史備份 |
 | ↩️ 原始還原 | 可恢復至本應用第一次接管前的設定 |
+| 🩺 設定健康 | 使用近期權威 Codex schema 驗證設定；未知/未來欄位預設保留，清理前必須確認並備份 |
+| 🔒 Model Integrity | 鎖定有效模型/Reasoning、偵測設定偏移，並核對本機 Codex rollout 中可觀測的執行階段證據 |
+| 📊 用量與參考成本 | 7 天 / 30 天 / 全期間用量、模型趨勢、Agent 分析、reroute 時間線與版本化參考成本 |
+| 🗂️ 近期專案總覽 | 依 Config Studio 歷史彙總最近專案活動、Token、工作階段、主要模型與 reroute |
+| 🔄 安全更新 | 穩定版檢查；正式簽名建置支援應用內驗證並安裝更新，未簽名建置安全回退到 Release 頁面 |
 | 🌐 多語言 | 簡中、繁中、英語、日語、韓語 |
 | 📦 多端建置 | Windows / Linux / macOS |
+
+## 設定健康、Model Integrity 與用量分析
+
+### 設定健康
+
+設定健康中心優先使用 **OpenAI Codex 儲存庫中產生的權威設定 schema**，並在本機快取最近一次可信版本。離線、回退來源或快取過舊時仍可顯示資訊，但**不會據此產生未知欄位刪除警告**。
+
+- 一般寫入只修改 Studio 管理的鍵，未知欄位與未來新增欄位會原樣保留。
+- 移除未知欄位必須明確確認，並先建立備份與歷史記錄。
+- 可顯示本機 Codex CLI 版本，並比較連續兩份權威 schema 的新增、移除與結構變更欄位。
+- 僅文件描述變更不會被誤報為設定結構變更。
+
+### Model Integrity
+
+Model Integrity 可為目前作用域鎖定有效的 `model` 與 `model_reasoning_effort`，偵測 Studio 可見設定偏移，並與本機 Codex rollout 已記錄的執行階段證據比對。介面會顯示最近觀測到的模型/Reasoning、可觀測 reroute 次數、最近 5 筆證據，並提供唯讀手動重新整理。
+
+> 這項機制驗證 **Studio 可見設定 + 本機已記錄 rollout 證據**。僅 CLI 臨時覆寫、未被本機記錄的行為，以及不可觀測的服務端內部路由仍不在本機保證範圍內。
+
+### 專案用量與參考成本
+
+專案用量儀表板以唯讀方式彙總本機 Codex rollout JSONL，支援 7 天 / 30 天 / 全期間，並提供模型/Reasoning、主工作階段/子 Agent、每日趨勢、模型趨勢、Agent 使用、可觀測 reroute 時間線與近期專案總覽。
+
+參考成本使用**帶日期與版本的價格快照**。未知模型不會猜測價格，快照過舊會提示。所有用量與成本都是 **best-effort 本機遙測，不是正式帳單資料**。
 
 ## 內建方案
 
