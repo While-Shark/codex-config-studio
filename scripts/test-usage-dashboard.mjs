@@ -176,10 +176,10 @@ test('tier-aware cost applies model-specific Fast multipliers only to observed p
   assert.equal(Number(result.usd.toFixed(6)),5.35);
   assert.equal(result.tierCoverage,1);
   assert.equal(result.fastAdjustedTokens,2_000_000);
-  assert.equal(result.isLowerBound,false);
+  assert.equal(result.tierAdjustmentComplete,true);
 });
 
-test('tier-aware cost keeps unknown tier history as a lower bound instead of assuming standard',()=>{
+test('tier-aware cost keeps unobserved tier history approximate instead of assuming standard',()=>{
   const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
   const result=pricing.estimateTierAwareUsageCost(
     [{model:'gpt-6-sol',reasoning:'high',responses:1,usage:tokens(1_000_000)}],
@@ -189,7 +189,22 @@ test('tier-aware cost keeps unknown tier history as a lower bound instead of ass
   assert.equal(result.baseUsd,2);
   assert.equal(result.fastSurchargeUsd,0);
   assert.equal(result.tierCoverage,0);
-  assert.equal(result.isLowerBound,true);
+  assert.equal(result.tierAdjustmentComplete,false);
+});
+
+test('unsupported service tiers stay outside cost adjustment instead of being treated as standard',()=>{
+  const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
+  const row={model:'gpt-6-sol',reasoning:'high',responses:1,usage:tokens(1_000_000)};
+  const result=pricing.estimateTierAwareUsageCost(
+    [row],
+    [{...row,serviceTier:'flex'}],
+    1_000_000,
+  );
+  assert.equal(result.baseUsd,2);
+  assert.equal(result.fastSurchargeUsd,0);
+  assert.equal(result.tierCoverage,0);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.unsupportedServiceTiers)),['flex']);
+  assert.equal(result.tierAdjustmentComplete,false);
 });
 
 test('priced Fast model without a documented multiplier is surfaced without inventing one',()=>{
@@ -203,7 +218,7 @@ test('priced Fast model without a documented multiplier is surfaced without inve
   assert.equal(result.baseUsd,0.75);
   assert.equal(result.fastSurchargeUsd,0);
   assert.deepEqual(JSON.parse(JSON.stringify(result.unadjustedFastModels)),['gpt-5.4-mini']);
-  assert.equal(result.isLowerBound,true);
+  assert.equal(result.tierAdjustmentComplete,false);
 });
 
 test('reference cost reports pricing coverage and unknown models without inventing rates',()=>{
