@@ -70,6 +70,20 @@ test('official catalog keeps only visible list models and sorts by priority', ()
   assert.equal(entries[1].minimalClientVersion, '0.200.0');
 });
 
+test('reasoning choices follow official model capabilities with safe fallbacks', () => {
+  const entries = [
+    { id: 'gpt-a', displayName: 'A', reasoningLevels: ['low','high','xhigh'], priority: 1, minimalClientVersion: '1.0.0' },
+    { id: 'gpt-empty', displayName: 'Empty', reasoningLevels: [], priority: 2, minimalClientVersion: null },
+  ];
+  const fallback = ['low','medium','high','xhigh','persistent'];
+
+  assert.deepEqual(catalog.reasoningLevelsForModel('gpt-a', entries, fallback), ['low','high','xhigh']);
+  assert.deepEqual(catalog.reasoningLevelsForModel('gpt-empty', entries, fallback), fallback);
+  assert.deepEqual(catalog.reasoningLevelsForModel('provider/custom', entries, fallback), fallback);
+  assert.deepEqual(catalog.reasoningLevelsForModel(null, entries, fallback), fallback);
+  assert.deepEqual(fallback, ['low','medium','high','xhigh','persistent']);
+});
+
 test('official models lead the selector while built-in legacy models remain as fallback', () => {
   const merged = catalog.mergeModelCatalogIds(
     ['gpt-6-sol', 'gpt-5.6-terra', 'provider/custom'],

@@ -86,9 +86,9 @@ test('out-of-order reads cannot replace a newer project snapshot',async()=>{
 });
 test('unknown reasoning remains selectable; null remains inherit',()=>{
   const ctx={t:x=>x,esc:x=>x};
-  const custom=execute(['selectHtml'],ctx,"selectHtml('reason','provider-level',['low','high'],true)");
+  const custom=execute(['selectOptionsHtml','selectHtml'],ctx,"selectHtml('reason','provider-level',['low','high'],true)");
   assert.ok(custom.includes('value="provider-level" selected'));
-  const inherit=execute(['selectHtml'],ctx,"selectHtml('reason',null,['low','high'],true)");assert.ok(inherit.includes('value="" selected'));
+  const inherit=execute(['selectOptionsHtml','selectHtml'],ctx,"selectHtml('reason',null,['low','high'],true)");assert.ok(inherit.includes('value="" selected'));
 });
 test('fractional, nonfinite, and out-of-range concurrency never reach confirm or IPC',async()=>{
   for(const value of [0,17,1.5,NaN,Infinity]){

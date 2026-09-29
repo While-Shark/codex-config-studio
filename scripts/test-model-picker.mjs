@@ -200,13 +200,13 @@ test('actual advanced renderer uses complete selectors for main and sub-agent mo
   const host = { innerHTML: '' };
   const context = { host, advancedLayout: loadTypeScript(join(root,'src/ui/advanced-layout.ts')).advancedLayout,
     workspaceText: loadTypeScript(join(root,'src/i18n/workspace.ts')).workspaceText, getLocale: () => 'en', values: structuredClone(pending), fields, commonTaskModels: models, selectableModels: models,
-    efforts: ['low', 'medium', 'high', 'xhigh'], t: key => key,
+    efforts: ['low', 'medium', 'high', 'xhigh'], reasoningOptionsForModel: () => ['low','medium','high','xhigh'], t: key => key,
     esc: value => String(value).replaceAll('"', '&quot;'),
     resetSelectedPreset() {},
     renderModelPicker, bindModelPickers: target => { assert.equal(target, host); bound++; },
     document: { querySelector: () => element }, $: () => element,
   };
-  const code = ['advancedField', 'selectHtml', 'renderAdvanced'].map(appFunction).join('\n');
+  const code = ['advancedField', 'selectOptionsHtml', 'selectHtml', 'renderAdvanced'].map(appFunction).join('\n');
   runInNewContext(code + '\nrenderAdvanced(host);', context);
   assert.equal(bound, 1);
   assert.ok(!host.innerHTML.includes('<datalist'));

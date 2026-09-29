@@ -20,7 +20,7 @@ import './config-preview.css';
 import { historyText, filterHistoryEntries, renderHistoryEntries } from './history-tab';
 import './history-tab.css';
 import { renderModelPicker, bindModelPickers, validateModelPickers } from './model-picker';
-import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog } from './model-catalog';
+import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog, reasoningLevelsForModel, type OfficialModelCatalogEntry } from './model-catalog';
 import './model-picker.css';
 import { CURRENT_PRESET_VERSION, presetVersion, presetByReference, matchPresetVersion, presetSource, parsePresetSource, type PresetReference } from './preset-versions';
 import { renderPresetWorkspace, presetReferenceLabel } from './preset-version-view';
@@ -143,7 +143,9 @@ let configHealthRequestId = 0;
 let updateState: UpdateState = {status:'idle'};
 let updateRequestId = 0;
 let signedUpdaterReady = false;
-let selectableModels = mergeModelCatalogIds(commonTaskModels, readCachedOfficialModelCatalog()?.entries ?? []);
+const cachedOfficialModelCatalog = readCachedOfficialModelCatalog();
+let officialModelEntries: OfficialModelCatalogEntry[] = cachedOfficialModelCatalog?.entries ?? [];
+let selectableModels = mergeModelCatalogIds(commonTaskModels, officialModelEntries);
 let confirmResolver: ((value: boolean) => void) | null = null;
 let themeMode = (safeGet('codex-config-studio.theme.mode') as ThemeMode | null) ?? 'system';
 let accent = (safeGet('codex-config-studio.theme.accent') as Accent | null) ?? 'violet';
@@ -162,6 +164,9 @@ function applyTheme(): void {
 }
 function presetText(id:string,part:'name'|'badge'|'description'|'usage'):string { return t(`preset.${id}.${part}` as Parameters<typeof t>[0]); }
 function taskText(id:TaskModeId,part:'name'|'description'):string { return t(`task.${id}.${part}` as Parameters<typeof t>[0]); }
+function reasoningOptionsForModel(model:string|null|undefined):string[] {
+  return reasoningLevelsForModel(model,officialModelEntries,reasoningLevels);
+}
 function fieldLabel(field:Field):string {
   const map:Record<Field,string> = {
     model:t('field.model'),modelReasoningEffort:t('field.reasoning'),planModeReasoningEffort:t('field.planReasoning'),agentsEnabled:t('field.agents'),defaultSubagentModel:t('field.subagentModel'),defaultSubagentReasoningEffort:t('field.subagentReasoning'),maxConcurrentThreadsPerSession:t('field.maxConcurrent')
@@ -394,9 +399,14 @@ function resetSelectedPreset():void {
 function renderTask(host:HTMLElement):void {
   const pref=taskPreferences[activeTaskMode];
   const isCommon=selectableModels.includes(pref.model);
-  host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.task.eyebrow')}</span><h2>${t('section.task.title')}</h2><p>${t('section.task.hint')}</p></div></div><div class="task-grid">${taskModeIds.map(id=>{const p=taskPreferences[id];return `<button class="task-card ${activeTaskMode===id?'selected':''}" data-task-mode="${id}"><strong>${taskText(id,'name')}</strong><p>${taskText(id,'description')}</p><small>${esc(p.model)} · ${esc(p.reasoning)}</small></button>`;}).join('')}</div><div class="task-editor"><label><span>${t('task.model')}</span><select id="taskModel">${selectableModels.map(m=>`<option value="${m}" ${pref.model===m?'selected':''}>${m}</option>`).join('')}<option value="__custom__" ${!isCommon?'selected':''}>${t('task.customModel')}</option></select></label><label id="customModelWrap" class="${isCommon?'hidden':''}"><span>${t('task.customModel')}</span><input id="taskCustomModel" value="${isCommon?'':esc(pref.model)}" placeholder="${t('task.customPlaceholder')}"></label><label><span>${t('task.reasoning')}</span>${selectHtml('taskReasoning',pref.reasoning,reasoningLevels)}</label></div><div class="inline-actions"><button id="useTask" class="button primary">${t('task.useAsPending')}</button><button id="resetTask" class="button secondary">${t('task.reset')}</button></div><div class="tip-box"><strong>${t('task.tipTitle')}</strong><span>${t('task.remember')}</span><span>${t('task.modelSupport')}</span><span>${t('task.note')}</span></div></section>`;
+  host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.task.eyebrow')}</span><h2>${t('section.task.title')}</h2><p>${t('section.task.hint')}</p></div></div><div class="task-grid">${taskModeIds.map(id=>{const p=taskPreferences[id];return `<button class="task-card ${activeTaskMode===id?'selected':''}" data-task-mode="${id}"><strong>${taskText(id,'name')}</strong><p>${taskText(id,'description')}</p><small>${esc(p.model)} · ${esc(p.reasoning)}</small></button>`;}).join('')}</div><div class="task-editor"><label><span>${t('task.model')}</span><select id="taskModel">${selectableModels.map(m=>`<option value="${m}" ${pref.model===m?'selected':''}>${m}</option>`).join('')}<option value="__custom__" ${!isCommon?'selected':''}>${t('task.customModel')}</option></select></label><label id="customModelWrap" class="${isCommon?'hidden':''}"><span>${t('task.customModel')}</span><input id="taskCustomModel" value="${isCommon?'':esc(pref.model)}" placeholder="${t('task.customPlaceholder')}"></label><label><span>${t('task.reasoning')}</span>${selectHtml('taskReasoning',pref.reasoning,reasoningOptionsForModel(pref.model))}</label></div><div class="inline-actions"><button id="useTask" class="button primary">${t('task.useAsPending')}</button><button id="resetTask" class="button secondary">${t('task.reset')}</button></div><div class="tip-box"><strong>${t('task.tipTitle')}</strong><span>${t('task.remember')}</span><span>${t('task.modelSupport')}</span><span>${t('task.note')}</span></div></section>`;
   host.querySelectorAll<HTMLButtonElement>('[data-task-mode]').forEach(btn=>btn.onclick=()=>{activeTaskMode=btn.dataset.taskMode as TaskModeId;saveActiveTaskMode(activeTaskMode);renderTask(host);});
-  $<HTMLSelectElement>('#taskModel').onchange=()=>{const v=$<HTMLSelectElement>('#taskModel').value;$<HTMLElement>('#customModelWrap').classList.toggle('hidden',v!=='__custom__');};
+  $<HTMLSelectElement>('#taskModel').onchange=()=>{
+    const v=$<HTMLSelectElement>('#taskModel').value;
+    $<HTMLElement>('#customModelWrap').classList.toggle('hidden',v!=='__custom__');
+    const model=v==='__custom__'?($<HTMLInputElement>('#taskCustomModel')?.value.trim()??''):v;
+    refreshReasoningSelect('taskReasoning',$<HTMLSelectElement>('#taskReasoning').value,model,false);
+  };
   $('#useTask').addEventListener('click',()=>{const modelSel=$<HTMLSelectElement>('#taskModel').value;const custom=$<HTMLInputElement>('#taskCustomModel')?.value.trim()??'';const model=modelSel==='__custom__'?custom:modelSel;const reasoning=$<HTMLSelectElement>('#taskReasoning').value;if(!model){toast(t('toast.taskModelRequired'),true);return;}const next:TaskPreference={model,reasoning};taskPreferences[activeTaskMode]=next;saveTaskPreference(activeTaskMode,next);draftPresetSource=null;values.model=model;values.modelReasoningEffort=reasoning;activePreset='';renderTask(host);renderRightRail();toast(t('toast.taskPrepared',{name:taskText(activeTaskMode,'name')}));});
   $('#resetTask').addEventListener('click',()=>{taskPreferences[activeTaskMode]=resetTaskPreference(activeTaskMode);renderTask(host);toast(t('toast.taskReset',{name:taskText(activeTaskMode,'name')}));});
 }
@@ -432,15 +442,32 @@ async function loadProjectUsage():Promise<void> {
 }
 
 function renderAdvanced(host:HTMLElement):void {
-  host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.custom.eyebrow')}</span><h2>${t('section.custom.title')}</h2><p>${t('advanced.help')}</p></div><button id="resetPresetBtn" class="text-button">${t('action.resetPreset')}</button></div>${advancedLayout(`${advancedField('model',t('field.model'),t('field.model.help'),renderModelPicker('model',values.model,selectableModels,t('field.model'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('modelReasoningEffort',t('field.reasoning'),t('field.reasoning.help'),selectHtml('modelReasoningEffort',values.modelReasoningEffort,efforts,true))}${advancedField('planModeReasoningEffort',t('field.planReasoning'),t('field.planReasoning.help'),selectHtml('planModeReasoningEffort',values.planModeReasoningEffort,efforts,true))}`,`${advancedField('agentsEnabled',t('field.agents'),t('field.agents.help'),`<select id="agentsEnabled"><option value="">${t('option.inherit')}</option><option value="true" ${values.agentsEnabled===true?'selected':''}>${t('option.enabled')}</option><option value="false" ${values.agentsEnabled===false?'selected':''}>${t('option.disabled')}</option></select>`)}${advancedField('defaultSubagentModel',t('field.subagentModel'),t('field.subagentModel.help'),renderModelPicker('defaultSubagentModel',values.defaultSubagentModel,selectableModels,t('field.subagentModel'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('defaultSubagentReasoningEffort',t('field.subagentReasoning'),t('field.subagentReasoning.help'),selectHtml('defaultSubagentReasoningEffort',values.defaultSubagentReasoningEffort,efforts,true))}${advancedField('maxConcurrentThreadsPerSession',t('field.maxConcurrent'),t('field.maxConcurrent.help'),`<input id="maxConcurrentThreadsPerSession" type="number" min="1" max="16" value="${values.maxConcurrentThreadsPerSession??''}" placeholder="${t('option.inherit')}">`)}`,workspaceText(getLocale()))}</section>`;
+  host.innerHTML=`<section class="card pane-card"><div class="section-heading"><div><span class="eyebrow">${t('section.custom.eyebrow')}</span><h2>${t('section.custom.title')}</h2><p>${t('advanced.help')}</p></div><button id="resetPresetBtn" class="text-button">${t('action.resetPreset')}</button></div>${advancedLayout(`${advancedField('model',t('field.model'),t('field.model.help'),renderModelPicker('model',values.model,selectableModels,t('field.model'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('modelReasoningEffort',t('field.reasoning'),t('field.reasoning.help'),selectHtml('modelReasoningEffort',values.modelReasoningEffort,reasoningOptionsForModel(values.model),true))}${advancedField('planModeReasoningEffort',t('field.planReasoning'),t('field.planReasoning.help'),selectHtml('planModeReasoningEffort',values.planModeReasoningEffort,reasoningOptionsForModel(values.model),true))}`,`${advancedField('agentsEnabled',t('field.agents'),t('field.agents.help'),`<select id="agentsEnabled"><option value="">${t('option.inherit')}</option><option value="true" ${values.agentsEnabled===true?'selected':''}>${t('option.enabled')}</option><option value="false" ${values.agentsEnabled===false?'selected':''}>${t('option.disabled')}</option></select>`)}${advancedField('defaultSubagentModel',t('field.subagentModel'),t('field.subagentModel.help'),renderModelPicker('defaultSubagentModel',values.defaultSubagentModel,selectableModels,t('field.subagentModel'),{inherit:t('option.inherit'),custom:t('task.customModel'),placeholder:t('task.customPlaceholder'),required:t('toast.taskModelRequired')}))}${advancedField('defaultSubagentReasoningEffort',t('field.subagentReasoning'),t('field.subagentReasoning.help'),selectHtml('defaultSubagentReasoningEffort',values.defaultSubagentReasoningEffort,reasoningOptionsForModel(values.defaultSubagentModel),true))}${advancedField('maxConcurrentThreadsPerSession',t('field.maxConcurrent'),t('field.maxConcurrent.help'),`<input id="maxConcurrentThreadsPerSession" type="number" min="1" max="16" value="${values.maxConcurrentThreadsPerSession??''}" placeholder="${t('option.inherit')}">`)}`,workspaceText(getLocale()))}</section>`;
   bindModelPickers(host);
   fields.forEach(field=>{const el=document.querySelector<HTMLInputElement|HTMLSelectElement>(`#${field}`);if(el)el.addEventListener('input',()=>{readAdvanced();activePreset='';renderRightRail();});});
+  document.querySelector<HTMLInputElement>('#model')?.addEventListener('input',event=>{
+    const model=(event.currentTarget as HTMLInputElement).value.trim()||null;
+    refreshReasoningSelect('modelReasoningEffort',$<HTMLSelectElement>('#modelReasoningEffort').value||null,model,true);
+    refreshReasoningSelect('planModeReasoningEffort',$<HTMLSelectElement>('#planModeReasoningEffort').value||null,model,true);
+  });
+  document.querySelector<HTMLInputElement>('#defaultSubagentModel')?.addEventListener('input',event=>{
+    const model=(event.currentTarget as HTMLInputElement).value.trim()||null;
+    refreshReasoningSelect('defaultSubagentReasoningEffort',$<HTMLSelectElement>('#defaultSubagentReasoningEffort').value||null,model,true);
+  });
   $('#resetPresetBtn').addEventListener('click',resetSelectedPreset);
 }
 function advancedField(id:Field,title:string,help:string,control:string):string { const target=(id==='model'||id==='defaultSubagentModel')?`${id}Select`:id; return `<div class="field"><div><label class="field-label" for="${target}"><strong>${title}</strong></label><small>${help}</small></div><div>${control}</div></div>`; }
-function selectHtml(id:string,value:string|null,options:readonly string[],inherit=false):string {
+function selectOptionsHtml(value:string|null,options:readonly string[],inherit=false):string {
   const all=value && !options.includes(value)?[value,...options]:options;
-  return `<select id="${id}">${inherit?`<option value="" ${value===null?'selected':''}>${t('option.inherit')}</option>`:''}${all.map(o=>`<option value="${esc(o)}" ${value===o?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  return (inherit?`<option value="" ${value===null?'selected':''}>${t('option.inherit')}</option>`:'')+
+    all.map(o=>`<option value="${esc(o)}" ${value===o?'selected':''}>${esc(o)}</option>`).join('');
+}
+function selectHtml(id:string,value:string|null,options:readonly string[],inherit=false):string {
+  return `<select id="${id}">${selectOptionsHtml(value,options,inherit)}</select>`;
+}
+function refreshReasoningSelect(id:string,value:string|null,model:string|null|undefined,inherit=false):void {
+  const select=document.querySelector<HTMLSelectElement>(`#${id}`);if(!select)return;
+  select.innerHTML=selectOptionsHtml(value,reasoningOptionsForModel(model),inherit);
 }
 function readAdvanced():void {
   const v=(id:Field)=>document.querySelector<HTMLInputElement|HTMLSelectElement>(`#${id}`)?.value??'';
@@ -946,6 +973,7 @@ matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{if(th
 async function refreshOfficialModelCatalog():Promise<void> {
   try {
     const result=await loadOfficialModelCatalog();
+    officialModelEntries=result.entries;
     selectableModels=mergeModelCatalogIds(commonTaskModels,result.entries);
   } catch(error) {
     console.warn('official model catalog',error);
