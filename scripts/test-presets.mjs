@@ -111,10 +111,21 @@ test('versions are unambiguous; unknown revisions cannot silently load a default
   assert.throws(()=>versionPresets(presets,'invalid'));
   assert.equal(presetByReference(presets,{versionId:'invalid',presetId:'daily'}),undefined);
 });
-test('each revision can be identified without migrating loaded configuration',()=>{
-  for(const version of [current,gpt6,legacy])for(const p of versionPresets(presets,version)){
+test('value matching prefers the newest equivalent revision while preserving distinguishable archives',()=>{
+  for(const p of versionPresets(presets,current)){
     const before=JSON.stringify(p.values);
-    assert.deepEqual(matchPresetVersion(presets,p.values),{versionId:version,presetId:p.id});
+    assert.deepEqual(matchPresetVersion(presets,p.values),{versionId:current,presetId:p.id});
+    assert.equal(JSON.stringify(p.values),before);
+  }
+  for(const p of versionPresets(presets,gpt6)){
+    const before=JSON.stringify(p.values);
+    const expectedVersion=p.id==='balanced'?gpt6:current;
+    assert.deepEqual(matchPresetVersion(presets,p.values),{versionId:expectedVersion,presetId:p.id});
+    assert.equal(JSON.stringify(p.values),before);
+  }
+  for(const p of versionPresets(presets,legacy)){
+    const before=JSON.stringify(p.values);
+    assert.deepEqual(matchPresetVersion(presets,p.values),{versionId:legacy,presetId:p.id});
     assert.equal(JSON.stringify(p.values),before);
   }
 });
