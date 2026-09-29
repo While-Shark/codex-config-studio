@@ -34,6 +34,13 @@ export type DailyUsage = {
   estimated: boolean;
 };
 
+export type UsageAnomaly = {
+  day: string;
+  totalTokens: number;
+  baselineTokens: number;
+  ratio: number;
+};
+
 export type DailyModelUsage = {
   day: string;
   model: string;
@@ -110,6 +117,7 @@ export type UsageSummary = {
   modelTrend: ModelTrendDay[];
   agentRoles: AgentRoleUsage[];
   rerouteEvents: ObservableReroute[];
+  anomalies: UsageAnomaly[];
 };
 
 export type UsageCopy = {
@@ -168,6 +176,10 @@ export type UsageCopy = {
   pricingSnapshot: string;
   unpricedModels: string;
   pricingStale: string;
+  anomalies: string;
+  anomalyHint: string;
+  noAnomalies: string;
+  anomalyBaseline: string;
 };
 
 const copies: Record<string, UsageCopy> = {
@@ -177,7 +189,7 @@ const copies: Record<string, UsageCopy> = {
     sevenDays:'7 days',thirtyDays:'30 days',allTime:'All time',totalTokens:'Total tokens',sessions:'Sessions',turns:'Turns',responses:'Responses',
     cached:'Cached input',reasoning:'Reasoning',input:'Input',output:'Output',modelUsage:'Model usage',agentUsage:'Agent split',rootAgent:'Root agent',subagents:'Sub-agents',
     reroutes:'Observed reroutes',latestSessions:'Recent sessions',model:'Model',usage:'Tokens',share:'Share',source:'Data quality',exact:'Exact response records',
-    legacy:'Legacy session totals',files:'rollout files scanned',dataNote:'Usage is best-effort local telemetry, not billing. Exact response records are preferred; older sessions may only expose cumulative totals.',
+    legacy:'Legacy session totals',files:'rollout files scanned',dataNote:'Usage is best-effort local telemetry, not billing. Exact response records are preferred; older sessions may only expose cumulative totals.',anomalies:'Usage anomalies',anomalyHint:'Flags exact daily token use at least 2.5× the median of at least 3 prior exact active days, with a baseline of at least 10K tokens. This is a usage heuristic, not a quality or billing alert.',noAnomalies:'No token spikes matched this heuristic.',anomalyBaseline:'Baseline',
     truncated:'The scan hit its safety limit; older sessions may be omitted.',parseWarning:'Some rollout records could not be parsed.',unknownModel:'Unknown model',noUsage:'No token usage',dailyTrend:'Daily trend',trendHint:'Daily totals use exact response timestamps when available.',estimatedDay:'Estimated from legacy session total',modelTrend:'Model trend',modelTrendHint:'Shows which model consumed tokens each day; legacy-only days are estimates.',agentAnalysis:'Agent analysis',agentAnalysisHint:'Objective usage metrics for root and sub-agent sessions. No quality score is inferred.',avgPerSession:'Avg / session',role:'Role',uncategorizedAgent:'Sub-agent (unclassified)',rerouteTimeline:'Observed reroutes',rerouteTimelineHint:'Only reroutes explicitly recorded by Codex are shown. Absence of an event does not prove server-side routing never changed.',noReroutes:'No observable reroute events in this period.',referenceCost:'Reference cost',referenceCostHint:'Reference estimate using a versioned OpenAI Codex token-rate snapshot. It is not your invoice, plan credit usage, or a guarantee of current pricing.',priceCoverage:'Pricing coverage',pricingSnapshot:'Price snapshot',unpricedModels:'Models without a reference rate',pricingStale:'This pricing snapshot is over 30 days old. Treat the estimate as stale until rates are refreshed.',
   },
   'zh-CN': {
@@ -186,7 +198,7 @@ const copies: Record<string, UsageCopy> = {
     sevenDays:'7 天',thirtyDays:'30 天',allTime:'全部',totalTokens:'总 Token',sessions:'会话',turns:'轮次',responses:'模型响应',
     cached:'缓存输入',reasoning:'Reasoning',input:'输入',output:'输出',modelUsage:'模型用量',agentUsage:'Agent 分布',rootAgent:'主 Agent',subagents:'子 Agent',
     reroutes:'可观测模型路由',latestSessions:'最近会话',model:'模型',usage:'Token',share:'占比',source:'数据质量',exact:'精确响应记录',
-    legacy:'旧版会话累计值',files:'个 rollout 文件已扫描',dataNote:'这里是本机 best-effort 用量统计，不等同于账单。优先使用逐响应精确记录；旧会话可能只有累计值。',
+    legacy:'旧版会话累计值',files:'个 rollout 文件已扫描',dataNote:'这里是本机 best-effort 用量统计，不等同于账单。优先使用逐响应精确记录；旧会话可能只有累计值。',anomalies:'用量异常',anomalyHint:'仅在精确每日 Token 达到此前至少 3 个精确活跃日中位数的 2.5 倍以上、且基线不少于 10K Token 时提示。它只是用量启发式，不评价质量，也不是账单告警。',noAnomalies:'当前没有符合该规则的 Token 突增。',anomalyBaseline:'基线',
     truncated:'扫描已达到安全上限，较旧会话可能未纳入。',parseWarning:'部分 rollout 记录无法解析。',unknownModel:'未知模型',noUsage:'暂无 Token 用量',dailyTrend:'每日趋势',trendHint:'有逐响应记录时按真实响应时间统计每日 Token。',estimatedDay:'根据旧版会话累计值估算',modelTrend:'模型趋势',modelTrendHint:'按天显示各模型 Token 消耗；只有旧版累计数据的日期会标记为估算。',agentAnalysis:'Agent 分析',agentAnalysisHint:'展示主 Agent 与子 Agent 的客观用量指标，不根据 Token 消耗推断质量高低。',avgPerSession:'平均 / 会话',role:'角色',uncategorizedAgent:'子 Agent（未分类）',rerouteTimeline:'可观测模型路由',rerouteTimelineHint:'这里只显示 Codex 明确记录的 reroute 事件；没有事件不代表服务端内部路由一定没有变化。',noReroutes:'当前时间范围内没有可观测 reroute 事件。',referenceCost:'参考成本',referenceCostHint:'使用版本化的 OpenAI Codex Token 费率快照进行参考估算，不代表你的实际账单、套餐 Credits 消耗或当前价格承诺。',priceCoverage:'价格覆盖率',pricingSnapshot:'价格快照',unpricedModels:'暂无参考价格的模型',pricingStale:'该价格快照已超过 30 天，请在更新费率前将成本结果视为过期参考。',
   },
   'zh-TW': {
@@ -195,7 +207,7 @@ const copies: Record<string, UsageCopy> = {
     sevenDays:'7 天',thirtyDays:'30 天',allTime:'全部',totalTokens:'總 Token',sessions:'工作階段',turns:'輪次',responses:'模型回應',
     cached:'快取輸入',reasoning:'Reasoning',input:'輸入',output:'輸出',modelUsage:'模型用量',agentUsage:'Agent 分布',rootAgent:'主 Agent',subagents:'子 Agent',
     reroutes:'可觀測模型路由',latestSessions:'最近工作階段',model:'模型',usage:'Token',share:'占比',source:'資料品質',exact:'精確回應記錄',
-    legacy:'舊版工作階段累計值',files:'個 rollout 檔案已掃描',dataNote:'這是本機 best-effort 用量統計，不等同帳單。優先使用逐回應精確記錄；舊工作階段可能只有累計值。',
+    legacy:'舊版工作階段累計值',files:'個 rollout 檔案已掃描',dataNote:'這是本機 best-effort 用量統計，不等同帳單。優先使用逐回應精確記錄；舊工作階段可能只有累計值。',anomalies:'用量異常',anomalyHint:'僅在精確每日 Token 達到先前至少 3 個精確活躍日中位數的 2.5 倍以上、且基線不少於 10K Token 時提示。這只是用量啟發式，不評價品質，也不是帳單警報。',noAnomalies:'目前沒有符合此規則的 Token 突增。',anomalyBaseline:'基線',
     truncated:'掃描已達安全上限，較舊工作階段可能未納入。',parseWarning:'部分 rollout 記錄無法解析。',unknownModel:'未知模型',noUsage:'暫無 Token 用量',dailyTrend:'每日趨勢',trendHint:'有逐回應記錄時依真實回應時間統計每日 Token。',estimatedDay:'依舊版工作階段累計值估算',modelTrend:'模型趨勢',modelTrendHint:'按日顯示各模型 Token 消耗；只有舊版累計資料的日期會標記為估算。',agentAnalysis:'Agent 分析',agentAnalysisHint:'呈現主 Agent 與子 Agent 的客觀用量指標，不依 Token 消耗推斷品質高低。',avgPerSession:'平均 / 工作階段',role:'角色',uncategorizedAgent:'子 Agent（未分類）',rerouteTimeline:'可觀測模型路由',rerouteTimelineHint:'只顯示 Codex 明確記錄的 reroute 事件；沒有事件不代表服務端內部路由一定沒有變化。',noReroutes:'目前時間範圍內沒有可觀測 reroute 事件。',referenceCost:'參考成本',referenceCostHint:'使用版本化的 OpenAI Codex Token 費率快照進行參考估算，不代表實際帳單、方案 Credits 消耗或目前價格承諾。',priceCoverage:'價格覆蓋率',pricingSnapshot:'價格快照',unpricedModels:'暫無參考價格的模型',pricingStale:'此價格快照已超過 30 天，更新費率前請將成本結果視為過期參考。',
   },
   ja: {
@@ -204,7 +216,7 @@ const copies: Record<string, UsageCopy> = {
     sevenDays:'7日',thirtyDays:'30日',allTime:'全期間',totalTokens:'総 Token',sessions:'セッション',turns:'ターン',responses:'モデル応答',
     cached:'キャッシュ入力',reasoning:'Reasoning',input:'入力',output:'出力',modelUsage:'モデル使用量',agentUsage:'Agent 内訳',rootAgent:'Root Agent',subagents:'Sub-Agent',
     reroutes:'観測された reroute',latestSessions:'最近のセッション',model:'モデル',usage:'Token',share:'割合',source:'データ品質',exact:'正確な応答記録',
-    legacy:'旧形式の累積値',files:' rollout ファイルを走査',dataNote:'ローカルの best-effort 統計で、請求額ではありません。逐次応答記録を優先し、古いセッションは累積値のみの場合があります。',
+    legacy:'旧形式の累積値',files:' rollout ファイルを走査',dataNote:'ローカルの best-effort 統計で、請求額ではありません。逐次応答記録を優先し、古いセッションは累積値のみの場合があります。',anomalies:'使用量の異常',anomalyHint:'正確な日次 Token が、少なくとも過去 3 つの正確なアクティブ日の中央値の 2.5 倍以上で、基準値が 10K Token 以上の場合だけ表示します。品質評価や請求アラートではありません。',noAnomalies:'このルールに一致する Token 急増はありません。',anomalyBaseline:'基準値',
     truncated:'安全上限に達したため、古いセッションが省略されている可能性があります。',parseWarning:'一部の rollout 記録を解析できませんでした。',unknownModel:'不明なモデル',noUsage:'Token 使用量なし',dailyTrend:'日別トレンド',trendHint:'応答単位の記録がある場合は実際の応答時刻で日別集計します。',estimatedDay:'旧形式のセッション累積値から推定',modelTrend:'モデル推移',modelTrendHint:'日ごとのモデル別 Token 消費を表示します。旧形式のみの日は推定値です。',agentAnalysis:'Agent 分析',agentAnalysisHint:'Root / Sub-Agent の客観的な使用量指標です。Token 消費から品質スコアは推定しません。',avgPerSession:'平均 / セッション',role:'ロール',uncategorizedAgent:'Sub-Agent（未分類）',rerouteTimeline:'観測された reroute',rerouteTimelineHint:'Codex が明示的に記録した reroute のみ表示します。イベントがないことはサーバー内部ルーティングの不変を証明しません。',noReroutes:'この期間に観測可能な reroute はありません。',referenceCost:'参考コスト',referenceCostHint:'バージョン管理された OpenAI Codex Token レートのスナップショットによる参考値です。実際の請求、プランのクレジット消費、現在価格の保証ではありません。',priceCoverage:'価格カバレッジ',pricingSnapshot:'価格スナップショット',unpricedModels:'参考価格のないモデル',pricingStale:'この価格スナップショットは30日以上前のものです。料金を更新するまで参考値は古い可能性があります。',
   },
   ko: {
@@ -213,7 +225,7 @@ const copies: Record<string, UsageCopy> = {
     sevenDays:'7일',thirtyDays:'30일',allTime:'전체',totalTokens:'총 Token',sessions:'세션',turns:'턴',responses:'모델 응답',
     cached:'캐시 입력',reasoning:'Reasoning',input:'입력',output:'출력',modelUsage:'모델 사용량',agentUsage:'Agent 분포',rootAgent:'루트 Agent',subagents:'서브 Agent',
     reroutes:'관찰된 reroute',latestSessions:'최근 세션',model:'모델',usage:'Token',share:'비중',source:'데이터 품질',exact:'정확한 응답 기록',
-    legacy:'이전 형식 누적값',files:'개 rollout 파일 스캔',dataNote:'로컬 best-effort 통계이며 청구 금액이 아닙니다. 응답별 정확한 기록을 우선하고, 오래된 세션은 누적값만 있을 수 있습니다.',
+    legacy:'이전 형식 누적값',files:'개 rollout 파일 스캔',dataNote:'로컬 best-effort 통계이며 청구 금액이 아닙니다. 응답별 정확한 기록을 우선하고, 오래된 세션은 누적값만 있을 수 있습니다.',anomalies:'사용량 이상',anomalyHint:'정확한 일별 Token이 이전 최소 3개의 정확한 활성일 중앙값의 2.5배 이상이고 기준값이 10K Token 이상일 때만 표시합니다. 품질 평가나 청구 경고가 아닌 사용량 휴리스틱입니다.',noAnomalies:'이 규칙에 해당하는 Token 급증이 없습니다.',anomalyBaseline:'기준값',
     truncated:'안전 한도에 도달해 오래된 세션이 누락될 수 있습니다.',parseWarning:'일부 rollout 기록을 파싱하지 못했습니다.',unknownModel:'알 수 없는 모델',noUsage:'Token 사용량 없음',dailyTrend:'일별 추이',trendHint:'응답별 기록이 있으면 실제 응답 시각을 기준으로 일별 집계합니다.',estimatedDay:'이전 세션 누적값에서 추정',modelTrend:'모델 추이',modelTrendHint:'날짜별 모델 Token 사용량을 표시합니다. 이전 형식만 있는 날짜는 추정값입니다.',agentAnalysis:'Agent 분석',agentAnalysisHint:'루트/서브 Agent의 객관적 사용량 지표입니다. Token 사용량으로 품질 점수를 추정하지 않습니다.',avgPerSession:'평균 / 세션',role:'역할',uncategorizedAgent:'서브 Agent(미분류)',rerouteTimeline:'관찰된 reroute',rerouteTimelineHint:'Codex가 명시적으로 기록한 reroute만 표시합니다. 이벤트가 없다고 서버 내부 라우팅이 변하지 않았다는 뜻은 아닙니다.',noReroutes:'이 기간에 관찰 가능한 reroute 이벤트가 없습니다.',referenceCost:'참고 비용',referenceCostHint:'버전이 고정된 OpenAI Codex Token 요금 스냅샷을 사용한 참고 추정치입니다. 실제 청구서, 플랜 크레딧 사용량 또는 현재 가격 보장이 아닙니다.',priceCoverage:'가격 적용 범위',pricingSnapshot:'가격 스냅샷',unpricedModels:'참고 요금이 없는 모델',pricingStale:'이 가격 스냅샷은 30일이 지났습니다. 요금을 갱신하기 전까지 비용 추정치를 오래된 참고값으로 취급하세요.',
   },
 };
@@ -299,7 +311,27 @@ export function summarizeUsage(report: UsageReport): UsageSummary {
     share:subagentUsage>0?item.usage.totalTokens/subagentUsage:0,
   })).sort((a,b)=>b.usage.totalTokens-a.usage.totalTokens||a.role.localeCompare(b.role));
   rerouteEvents.sort((a,b)=>b.timestamp.localeCompare(a.timestamp));
-  return {usage,sessions:report.sessions.length,turns,responses,rootUsage,subagentUsage,rootSessions,subagentSessions,reroutes,exactSessions,legacySessions,modelRows,dailyTrend,modelTrend,agentRoles,rerouteEvents};
+  const anomalies=detectUsageAnomalies(dailyTrend);
+  return {usage,sessions:report.sessions.length,turns,responses,rootUsage,subagentUsage,rootSessions,subagentSessions,reroutes,exactSessions,legacySessions,modelRows,dailyTrend,modelTrend,agentRoles,rerouteEvents,anomalies};
+}
+
+export function detectUsageAnomalies(days: readonly DailyUsage[], baselineDays=7): UsageAnomaly[] {
+  const exact=[...days]
+    .filter(day=>!day.estimated&&day.usage.totalTokens>0)
+    .sort((a,b)=>a.day.localeCompare(b.day));
+  const anomalies:UsageAnomaly[]=[];
+  for(let index=0;index<exact.length;index++){
+    const current=exact[index];
+    const history=exact.slice(Math.max(0,index-Math.max(3,baselineDays)),index);
+    if(history.length<3)continue;
+    const values=history.map(day=>day.usage.totalTokens).sort((a,b)=>a-b);
+    const middle=Math.floor(values.length/2);
+    const baseline=values.length%2?values[middle]:(values[middle-1]+values[middle])/2;
+    if(baseline<10_000)continue;
+    const ratio=current.usage.totalTokens/baseline;
+    if(ratio>=2.5)anomalies.push({day:current.day,totalTokens:current.usage.totalTokens,baselineTokens:baseline,ratio});
+  }
+  return anomalies.sort((a,b)=>b.day.localeCompare(a.day));
 }
 
 export function periodSinceMs(period: UsagePeriod, now=Date.now()): number | null {
