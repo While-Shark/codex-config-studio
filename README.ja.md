@@ -97,7 +97,7 @@ Model Integrity はスコープの有効な `model` と `model_reasoning_effort`
 | Linux x64 | `.AppImage` + `.deb` |
 | macOS Universal | `.dmg`、Apple Silicon / Intel 対応 |
 
-> macOS CI は現在未署名・未 notarization です。テスト用途には利用できますが、一般公開には Apple の署名と公証を推奨します。
+> 正式 Release ワークフローは、リポジトリ側で認証情報を設定した場合に Windows Authenticode と macOS Developer ID + notarization を任意で有効化できます。正式 Release の全ファイルには GitHub build provenance も付与され、`gh attestation verify <file> --repo While-Shark/codex-config-studio` で由来を検証できます。
 
 ## ローカル開発
 
