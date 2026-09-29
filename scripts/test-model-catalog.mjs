@@ -20,7 +20,7 @@ const { commonTaskModels, defaultTaskPreferences, taskModeIds, loadTaskPreferenc
   saveTaskPreference, loadActiveTaskMode } = await import(pathToFileURL(join(output, 'task-modes.js')));
 const { renderModelPicker } = await import(pathToFileURL(join(output, 'model-picker.js')));
 
-const expected = ['gpt-6-sol', 'gpt-6-astra', 'gpt-6-luna',
+const expected = ['gpt-6.1-sol', 'gpt-6-sol', 'gpt-6-astra', 'gpt-6-luna',
   'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5'];
 const copy = { inherit: 'Unset / inherit', custom: 'Custom model...',
   placeholder: 'Model ID', required: 'Choose or enter a model' };
@@ -49,7 +49,7 @@ test('shared catalog lists the new family first and retains all screenshot legac
   assert.ok(!commonTaskModels.includes('gpt-6-terra'));
 });
 
-test('both advanced selectors show the real seven-model catalog for every selected model', () => {
+test('both advanced selectors show the complete fallback catalog for every selected model', () => {
   for (const field of ['model', 'defaultSubagentModel']) for (const model of expected) {
     const items = options(renderModelPicker(field, model, commonTaskModels, field, copy));
     assert.deepEqual(items.slice(1, -1).map(item => item.label), expected);
@@ -66,7 +66,7 @@ test('inherit remains selected rather than being replaced by the first new model
 });
 
 test('a newly catalogued custom GPT-6 ID is preserved and not duplicated', () => {
-  for (const model of ['gpt-6-sol', 'gpt-6-luna']) {
+  for (const model of ['gpt-6.1-sol', 'gpt-6-sol', 'gpt-6-luna']) {
     const items = options(renderModelPicker('model', model, commonTaskModels, 'Model', copy));
     assert.equal(items.filter(item => item.value === 'id:' + model).length, 1);
     assert.equal(items.find(item => item.selected).value, 'id:' + model);
@@ -93,7 +93,7 @@ test('loading saved tasks never migrates old models, custom IDs or reasoning lev
 });
 
 test('each task can save and reload either new model without changing other task settings', () => {
-  for (const id of taskModeIds) for (const model of ['gpt-6-sol', 'gpt-6-luna']) {
+  for (const id of taskModeIds) for (const model of ['gpt-6.1-sol', 'gpt-6-sol', 'gpt-6-luna']) {
     const before = structuredClone(defaultTaskPreferences);
     storage(before);
     saveTaskPreference(id, { model, reasoning: 'xhigh' });
@@ -107,7 +107,7 @@ test('fresh task recommendations use GPT-6 while keeping reasoning levels unchan
   assert.deepEqual(defaultTaskPreferences, {
     'quick-fix': { model: 'gpt-6-luna', reasoning: 'low' },
     daily: { model: 'gpt-6-luna', reasoning: 'medium' },
-    complex: { model: 'gpt-6-sol', reasoning: 'high' },
+    complex: { model: 'gpt-6.1-sol', reasoning: 'high' },
     architecture: { model: 'gpt-6-astra', reasoning: 'high' },
   });
 });
