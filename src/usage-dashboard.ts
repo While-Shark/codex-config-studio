@@ -257,6 +257,11 @@ export function usageText(locale: string): UsageCopy {
   return copies[locale] ?? copies.en;
 }
 
+export function isFastServiceTier(value: string | null | undefined): boolean {
+  const normalized=(value??'').trim().toLowerCase();
+  return normalized==='priority'||normalized==='fast';
+}
+
 function zeroTokens(): UsageTokens {
   return {inputTokens:0,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:0};
 }
@@ -347,7 +352,7 @@ export function summarizeUsage(report: UsageReport): UsageSummary {
     .map(row=>({...row,share:serviceTierCoveredTokens>0?row.usage.totalTokens/serviceTierCoveredTokens:0}));
   const serviceTierCoverage=usage.totalTokens>0?serviceTierCoveredTokens/usage.totalTokens:0;
   const fastTierTokens=serviceTierRows
-    .filter(row=>(row.serviceTier??'').toLowerCase()==='fast')
+    .filter(row=>isFastServiceTier(row.serviceTier))
     .reduce((sum,row)=>sum+row.usage.totalTokens,0);
   const anomalies=detectUsageAnomalies(dailyTrend);
   return {usage,sessions:report.sessions.length,turns,responses,rootUsage,subagentUsage,rootSessions,subagentSessions,reroutes,exactSessions,legacySessions,modelRows,dailyTrend,modelTrend,agentRoles,rerouteEvents,serviceTierRows,serviceTierCoveredTokens,serviceTierCoverage,fastTierTokens,anomalies};
