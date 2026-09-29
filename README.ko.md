@@ -6,7 +6,7 @@
 
 **Astra / Sol / Terra / Luna 프로필을 한 번에 전환하는 크로스플랫폼 Codex 설정 관리자.**
 
-전역 설정 · 프로젝트 설정 · Reasoning · 서브 Agent · 안전 백업
+전역/프로젝트 설정 · Config Health · Model Integrity · 사용량 분석 · Reasoning · 서브 Agent · 안전 업데이트
 
 [![Build Desktop](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml/badge.svg)](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml)
 [![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio?include_prereleases)](https://github.com/While-Shark/codex-config-studio/releases)
@@ -36,14 +36,43 @@ Astra, Sol, Terra, Luna를 자주 전환하거나 계획 모델, 실행 모델, 
 | --- | --- |
 | 🌍 전역 설정 | `~/.codex/config.toml` 관리 |
 | 📁 프로젝트 설정 | `<project>/.codex/config.toml` 관리 |
+| 🎯 현재 작업 빠른 전환 | 작은 수정 / 일상 개발 / 복잡한 문제 / 아키텍처별로 모델과 Reasoning을 편집하고 선호를 저장 |
 | ⚡ 원클릭 프로필 | Token 절약, Economy, Daily, Balanced, Astra Director, Max Quality |
 | 🧠 Reasoning | 메인 / Plan Mode / 서브 Agent 사고 수준 개별 설정 |
 | 🤖 서브 Agent | 사용 여부, 기본 모델, Reasoning, 최대 동시 수 |
 | 🧬 필드 상속 | 프로젝트 설정을 필드별로 하위 설정에 상속 |
 | 🛡️ 안전 백업 | 최초 원본 백업 + 쓰기 전 히스토리 백업 |
 | ↩️ 복원 | 앱이 처음 수정하기 전 설정으로 복원 |
+| 🩺 Config Health | 최근의 신뢰 가능한 Codex schema로 검증하며, 알 수 없거나 미래의 필드는 기본 보존하고 정리 전 확인+백업 필요 |
+| 🔒 Model Integrity | 유효 모델/Reasoning을 잠그고 설정 드리프트 및 로컬 Codex rollout의 관찰 가능한 런타임 증거를 비교 |
+| 📊 사용량과 참고 비용 | 7일 / 30일 / 전체 기간, 모델 추세, Agent 분석, reroute 타임라인, 버전이 있는 참고 비용 |
+| 🗂️ 최근 프로젝트 개요 | Config Studio 기록에서 최근 활동, Token, 세션, 주요 모델, reroute를 요약 |
+| 🔄 안전 업데이트 | 안정 버전 확인과 정식 서명 빌드의 인앱 업데이트. 미서명 빌드는 Release 페이지로 안전하게 폴백 |
 | 🌐 다국어 | 중국어 간체/번체, 영어, 일본어, 한국어 |
 | 📦 멀티플랫폼 | Windows / Linux / macOS |
+
+## Config Health, Model Integrity, 사용량 분석
+
+### Config Health
+
+Config Health는 **OpenAI Codex 저장소에서 생성된 권위 있는 설정 schema**를 우선 사용하고 마지막으로 신뢰한 버전을 로컬에 보관합니다. 오프라인/폴백 소스 또는 너무 오래된 캐시는 참고로 표시할 수 있지만 **알 수 없는 필드 삭제 경고에는 사용하지 않습니다**.
+
+- 일반 쓰기는 Studio가 관리하는 키만 수정하며 알 수 없거나 미래에 추가된 필드는 보존합니다.
+- 알 수 없는 필드를 제거하려면 명시적 확인이 필요하고 먼저 백업 및 기록을 생성합니다.
+- 로컬 Codex CLI 버전을 표시하고 연속된 권위 schema 사이의 추가/삭제/구조 변경 필드를 비교할 수 있습니다.
+- 문서 설명만 바뀐 경우 구조 변경으로 보고하지 않습니다.
+
+### Model Integrity
+
+Model Integrity는 범위의 유효 `model` 및 `model_reasoning_effort`를 잠그고 Studio에서 보이는 설정 드리프트를 감지합니다. 또한 로컬 Codex rollout에 이미 기록된 런타임 증거와 비교해 최근 모델/Reasoning, 관찰 가능한 reroute, 최근 5개 증거를 보여 주며 읽기 전용 새로고침을 제공합니다.
+
+> 검증 범위는 **Studio에서 보이는 설정 + 로컬에 기록된 rollout 증거**입니다. CLI 임시 재정의, 로컬에 기록되지 않은 동작, 관찰할 수 없는 서버 내부 라우팅은 로컬 보장 범위 밖입니다.
+
+### 프로젝트 사용량과 참고 비용
+
+프로젝트 사용량 대시보드는 로컬 Codex rollout JSONL을 읽기 전용으로 집계하며 7일 / 30일 / 전체 기간을 지원합니다. 모델/Reasoning, 루트/서브 Agent, 일별/모델별 추세, Agent 분석, 관찰 가능한 reroute 타임라인, 최근 프로젝트 개요를 제공합니다.
+
+참고 비용은 **날짜와 버전이 있는 가격 스냅샷**을 사용합니다. 알 수 없는 모델 가격은 추정하지 않으며 오래된 스냅샷에는 경고합니다. 모든 사용량과 비용 값은 **best-effort 로컬 텔레메트리이며 청구 데이터가 아닙니다**.
 
 ## 기본 프로필
 

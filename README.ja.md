@@ -6,7 +6,7 @@
 
 **Astra / Sol / Terra / Luna をワンクリックで切り替えるクロスプラットフォーム Codex 設定マネージャー。**
 
-グローバル設定 · プロジェクト設定 · Reasoning · サブ Agent · 安全バックアップ
+グローバル/プロジェクト設定 · Config Health · Model Integrity · 使用量分析 · Reasoning · サブ Agent · 安全更新
 
 [![Build Desktop](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml/badge.svg)](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml)
 [![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio?include_prereleases)](https://github.com/While-Shark/codex-config-studio/releases)
@@ -36,14 +36,43 @@ Astra、Sol、Terra、Luna を頻繁に切り替える人や、計画モデル�
 | --- | --- |
 | 🌍 グローバル設定 | `~/.codex/config.toml` を管理 |
 | 📁 プロジェクト設定 | `<project>/.codex/config.toml` を管理 |
+| 🎯 現在のタスク切り替え | 小さな修正 / 日常開発 / 複雑な問題 / アーキテクチャ。各モードでモデルと Reasoning を編集・保存可能 |
 | ⚡ ワンクリックプロファイル | Token 節約、Economy、Daily、Balanced、Astra Director、Max Quality |
 | 🧠 Reasoning | メイン、Plan Mode、サブ Agent の思考レベルを個別設定 |
 | 🤖 サブ Agent | 有効/無効、既定モデル、Reasoning、最大並列数 |
 | 🧬 フィールド継承 | プロジェクト設定を項目ごとに下位設定へ継承可能 |
 | 🛡️ 安全バックアップ | 初回変更時の原本 + 毎回の履歴バックアップ |
 | ↩️ 復元 | アプリが初めて変更する前の設定へ復元 |
+| 🩺 Config Health | 最近の信頼できる Codex schema で検証。未知/将来フィールドは既定で保持し、削除には確認とバックアップが必要 |
+| 🔒 Model Integrity | 有効なモデル/Reasoning をロックし、設定ドリフトとローカル Codex rollout の観測可能な実行時証拠を照合 |
+| 📊 使用量と参考コスト | 7 日 / 30 日 / 全期間、モデル傾向、Agent 分析、reroute タイムライン、版管理された参考コスト |
+| 🗂️ 最近のプロジェクト | Config Studio 履歴から最近の活動、Token、セッション、主要モデル、reroute を集計 |
+| 🔄 安全な更新 | 安定版チェックと正式署名ビルドのアプリ内更新。未署名ビルドは Release ページへ安全にフォールバック |
 | 🌐 多言語 | 中国語簡体字/繁体字、英語、日本語、韓国語 |
 | 📦 マルチプラットフォーム | Windows / Linux / macOS |
+
+## Config Health、Model Integrity、使用量分析
+
+### Config Health
+
+Config Health は **OpenAI Codex リポジトリで生成された公式 schema** を優先し、最後に信頼できた版をローカルへ保存します。オフライン、フォールバック元、古すぎるキャッシュは参考表示できますが、**未知フィールドの削除警告には使用しません**。
+
+- 通常の書き込みは Studio 管理キーだけを変更し、未知/将来フィールドを保持します。
+- 未知フィールドの削除には明示確認が必要で、先にバックアップと履歴を作成します。
+- ローカル Codex CLI の版を表示し、連続する公式 schema 間で追加・削除・構造変更フィールドを比較できます。
+- 説明文だけの変更は構造変更として扱いません。
+
+### Model Integrity
+
+Model Integrity はスコープの有効な `model` と `model_reasoning_effort` をロックし、Studio から見える設定ドリフトを検出します。さらにローカル Codex rollout に記録済みの実行時証拠と照合し、最新モデル/Reasoning、観測可能な reroute、最近 5 件の履歴を表示し、読み取り専用で再取得できます。
+
+> 検証対象は **Studio から見える設定 + ローカルに記録済みの rollout 証拠** です。CLI の一時上書き、ローカルに記録されない挙動、観測不能なサーバー内部ルーティングは保証対象外です。
+
+### プロジェクト使用量と参考コスト
+
+使用量ダッシュボードはローカル Codex rollout JSONL を読み取り専用で集計し、7 日 / 30 日 / 全期間に対応します。モデル/Reasoning、ルート/サブ Agent、日次・モデル別傾向、Agent 分析、観測可能な reroute タイムライン、最近のプロジェクト概要を表示します。
+
+参考コストは**日付と版を持つ価格スナップショット**を使用します。未知モデルの価格は推測せず、古いスナップショットには警告します。使用量とコストはすべて **best-effort のローカルテレメトリであり、請求データではありません**。
 
 ## 内蔵プロファイル
 
