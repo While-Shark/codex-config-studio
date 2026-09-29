@@ -83,7 +83,7 @@ Model choices refresh from the official OpenAI Codex `models.json` catalog and a
 | Token Saver | GPT-6 Luna / low | Small edits, bulk replacements, explicit tasks |
 | Economy | GPT-6 Luna / medium | CRUD, frontend changes, routine API work |
 | Daily | GPT-6 Luna + GPT-6 Luna | Most day-to-day development |
-| Balanced | GPT-6 Sol + GPT-6 Luna | Cross-file work, refactors, integration |
+| Balanced | GPT-6.1 Sol + GPT-6 Luna | Cross-file work, refactors, integration |
 | Astra Director | GPT-6 Astra + GPT-6 Luna | Astra plans/reviews, Luna executes |
 | Max Quality | GPT-6 Astra xhigh + GPT-6 Luna high | Hard bugs, major refactors, pre-release review |
 
@@ -172,9 +172,9 @@ Codex Config Studio does not expose broad filesystem or shell access to the fron
 
 ## Profile version
 
-**GPT-6 / v0.4.0**
+**GPT-6.1 / GPT-6 (v0.5.0) / v0.4.0**
 
-Current recommendations use GPT-6. Complete older profiles remain in the archive. Browsing versions does not change configuration.
+Current balanced/complex recommendations use GPT-6.1 Sol. GPT-6 (v0.5.0) and the older v0.4.0 profiles remain immutable archive snapshots. Browsing versions does not change configuration.
 
 Archived snapshots retain their original models, reasoning levels and sub-agent settings; new recommendations never rewrite them.
 
