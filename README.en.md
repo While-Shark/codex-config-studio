@@ -6,7 +6,7 @@
 
 **A cross-platform Codex configuration manager for switching Astra / Sol / Terra / Luna profiles with one click.**
 
-Global scope · Project scope · Reasoning · Sub-agents · Safe backups
+Global/project config · Config Health · Model Integrity · Usage insights · Reasoning · Sub-agents · Safe updates
 
 [![Build Desktop](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml/badge.svg)](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml)
 [![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio?include_prereleases)](https://github.com/While-Shark/codex-config-studio/releases)
@@ -36,14 +36,43 @@ It is designed for people who frequently switch between Astra, Sol, Terra, and L
 | --- | --- |
 | 🌍 Global scope | Manage `~/.codex/config.toml` |
 | 📁 Project scope | Manage `<project>/.codex/config.toml` |
+| 🎯 Current Task switching | Quick Fix / Daily Development / Complex Problem / Architecture, each with editable model and reasoning preferences |
 | ⚡ One-click profiles | Token Saver, Economy, Daily, Balanced, Astra Director, Max Quality |
 | 🧠 Reasoning | Tune main, Plan Mode, and sub-agent reasoning independently |
 | 🤖 Sub-agents | Enable/disable, default model, reasoning and max concurrency |
 | 🧬 Per-field inheritance | Project fields can individually inherit lower-level settings |
 | 🛡️ Safe backups | Original backup on first write plus history backups before every write |
 | ↩️ Restore | Restore the configuration from before this app first touched it |
+| 🩺 Config Health | Validate against a recent authoritative Codex schema; preserve unknown/future fields by default and require confirmation + backup before cleanup |
+| 🔒 Model Integrity | Lock the effective model/reasoning target, detect config drift, and compare against observable local Codex rollout evidence |
+| 📊 Usage & reference cost | 7-day / 30-day / all-time usage, model trends, agent analysis, reroute timeline, and versioned reference-cost estimates |
+| 🗂️ Recent-project overview | Summarize recent project activity, tokens, sessions, leading model, and observable reroutes from Config Studio history |
+| 🔄 Safe updates | Stable-release checks plus signed in-app updates for formal builds; unsigned builds fall back safely to the Release page |
 | 🌐 Multilingual | Simplified Chinese, Traditional Chinese, English, Japanese, Korean |
 | 📦 Cross-platform builds | Windows / Linux / macOS |
+
+## Config Health, Model Integrity, and usage insights
+
+### Config Health
+
+Config Health prefers the **authoritative generated Codex configuration schema from the OpenAI Codex repository** and caches the latest trusted copy locally. Offline/fallback or over-age data can still be shown for context, but it is **not used to produce unknown-field deletion warnings**.
+
+- Normal writes only touch Studio-managed keys; unknown and future fields are preserved.
+- Removing an unknown field requires explicit confirmation and creates a backup/history entry first.
+- The app can show the detected local Codex CLI version and compare consecutive authoritative schemas for added, removed, or structurally changed fields.
+- Documentation-only schema edits are ignored by the change summary.
+
+### Model Integrity
+
+Model Integrity can lock the effective `model` and `model_reasoning_effort` for a scope, detect Studio-visible drift, and compare the lock against runtime evidence already recorded in local Codex rollout files. It shows the latest observed model/reasoning, observable reroutes, a five-entry recent evidence history, and a read-only refresh action.
+
+> This verifies **Studio-visible configuration plus locally recorded rollout evidence**. CLI-only temporary overrides, behavior not recorded locally, and unobservable server-side routing remain outside the local guarantee.
+
+### Project usage and reference cost
+
+The project usage dashboard reads local Codex rollout JSONL in read-only mode and supports 7-day, 30-day, and all-time views. It includes model/reasoning breakdowns, root vs sub-agent usage, daily/model trends, agent analysis, an observable reroute timeline, and a recent-project overview.
+
+Reference cost uses a **dated, versioned pricing snapshot**. Unknown models are excluded rather than assigned invented prices, and stale snapshots are flagged. All usage and cost values are **best-effort local telemetry, not billing data**.
 
 ## Built-in profiles
 
