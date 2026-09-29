@@ -2,6 +2,7 @@
 
 ## 简体中文
 
+- 🤖 **官方模型目录自动刷新**：主模型、默认子 Agent 和当前任务的候选模型会读取 OpenAI Codex 官方 `models.json`，仅采用官方标记为可列出的模型，并按官方优先级排序。本机缓存 24 小时；离线或刷新失败时继续使用最近缓存与内置兼容列表。不会自动迁移已有配置、任务偏好、历史、Preset 或自定义模型 ID。
 - 🧾 **Release 构建来源证明**：正式发布现在会为最终安装包、更新签名、`latest.json` 与 `SHA256SUMS.txt` 生成 GitHub artifact attestation。可使用 `gh attestation verify <文件> --repo While-Shark/codex-config-studio` 验证文件确实由本仓库 Release workflow 构建。该证明与 Windows/macOS 平台签名及 Tauri updater 签名相互独立、互为补充。
 - 📈 **可解释用量异常提示**：项目用量页现在会标记明显的每日 Token 突增。只使用精确逐响应数据；至少需要 3 个历史活跃日，以最近最多 7 个精确活跃日中位数为基线，基线至少 10K Token 且当天达到 2.5× 以上才提示。旧版估算数据不会触发，且该提示不评价模型质量、也不是账单告警。
 - 🧭 **配置健康与官方 schema 变更中心**：优先使用 OpenAI Codex 仓库生成的权威配置 schema，并安全缓存最近可信版本；未知/未来字段默认保留，只有在 schema 足够新且可信时才会给出未知字段清理提示，清理前必须确认并备份。配置健康页还会显示本机 Codex CLI 版本，并汇总权威 schema 的新增、移除和结构变化字段。
@@ -27,6 +28,7 @@
 
 ## 繁體中文
 
+- 🤖 **官方模型目錄自動更新**：主模型、預設子 Agent 與目前任務的候選模型會讀取 OpenAI Codex 官方 `models.json`，只採用官方標記為可列出的模型，並依官方優先順序排列。本機快取 24 小時；離線或更新失敗時繼續使用最近快取與內建相容清單。不會自動遷移既有設定、任務偏好、歷史、Preset 或自訂模型 ID。
 - 🧾 **Release 建置來源證明**：正式發佈現在會為最終安裝檔、更新簽名、`latest.json` 與 `SHA256SUMS.txt` 建立 GitHub artifact attestation。可使用 `gh attestation verify <檔案> --repo While-Shark/codex-config-studio` 驗證檔案確實由本儲存庫 Release workflow 建置。此證明與 Windows/macOS 平台簽名及 Tauri updater 簽名彼此獨立、互相補充。
 - 📈 **可解釋用量異常提示**：專案用量頁現在會標記明顯的每日 Token 突增。只使用精確逐回應資料；至少需要 3 個歷史活躍日，以最近最多 7 個精確活躍日中位數為基線，基線至少 10K Token 且當天達到 2.5× 以上才提示。舊版估算資料不會觸發，且此提示不評價模型品質，也不是帳單警報。
 - 🧭 **設定健康與官方 schema 變更中心**：優先使用 OpenAI Codex 儲存庫產生的權威設定 schema，並安全快取最近可信版本；未知/未來欄位預設保留，只有 schema 足夠新且可信時才會提供未知欄位清理提示，清理前必須確認並備份。設定健康頁亦會顯示本機 Codex CLI 版本，並摘要權威 schema 的新增、移除與結構變更欄位。
@@ -49,6 +51,7 @@
 
 ## English
 
+- 🤖 **Official model-catalog refresh**: Main-model, default sub-agent, and Current Task choices now read the official OpenAI Codex `models.json` catalog, accept only models marked visible for listing, and follow official priority ordering. The catalog is cached locally for 24 hours; offline/failed refreshes keep the latest cache and built-in compatibility list. Existing configuration, task preferences, history, presets, and custom model IDs are never migrated automatically.
 - 🧾 **Release build provenance**: Formal releases now create GitHub artifact attestations for final installers, updater signatures, `latest.json`, and `SHA256SUMS.txt`. Verify a downloaded file with `gh attestation verify <file> --repo While-Shark/codex-config-studio` to confirm it was produced by this repository's Release workflow. This provenance is independent from and complementary to Windows/macOS platform signing and Tauri updater signing.
 - 📈 **Explainable usage anomaly hints**: The project usage view now flags clear daily token spikes using exact response telemetry only. It requires at least 3 prior active days, uses the median of up to 7 exact active days as baseline, requires a baseline of at least 10K tokens, and flags only days at 2.5× or above. Legacy estimates never trigger it; this is neither a model-quality judgment nor a billing alert.
 - 🧭 **Config Health and authoritative schema change center**: Prefer the generated authoritative schema from the OpenAI Codex repository and safely cache the latest trusted copy. Unknown/future fields are preserved by default; cleanup suggestions only come from sufficiently fresh trusted schema data and require confirmation plus backup. Config Health also shows the detected local Codex CLI version and summarizes added, removed, and structurally changed fields across authoritative schema revisions.
@@ -74,6 +77,7 @@
 
 ## 日本語
 
+- 🤖 **公式モデルカタログの自動更新**：メインモデル、既定のサブ Agent、現在のタスクの候補を OpenAI Codex 公式 `models.json` から取得し、公式に一覧表示対象とされたモデルだけを優先順位どおりに使用します。24 時間ローカルキャッシュし、オフライン時や更新失敗時は最新キャッシュと内蔵互換リストを継続使用します。既存設定、タスク設定、履歴、Preset、カスタムモデル ID は自動移行しません。
 - 🧾 **Release ビルドの来歴証明**：正式 Release では、最終インストーラー、更新署名、`latest.json`、`SHA256SUMS.txt` に GitHub artifact attestation を作成します。`gh attestation verify <file> --repo While-Shark/codex-config-studio` で、本リポジトリの Release workflow が生成したファイルであることを検証できます。これは Windows/macOS のプラットフォーム署名や Tauri updater 署名とは独立した補完的な証明です。
 - 📈 **説明可能な使用量異常ヒント**：プロジェクト使用量画面で、明確な日次 Token 急増を表示します。正確な応答データだけを使い、過去のアクティブ日が少なくとも 3 日必要です。直近最大 7 日の正確なアクティブ日の中央値を基準とし、基準値が 10K Token 以上かつ当日が 2.5× 以上の場合だけ表示します。旧形式の推定値は発火せず、モデル品質評価や請求アラートでもありません。
 - 🧭 **Config Health と公式 schema 変更センター**：OpenAI Codex リポジトリで生成された公式 schema を優先し、最後に信頼できた版を安全にキャッシュします。未知/将来フィールドは既定で保持し、十分に新しく信頼できる schema の場合だけ削除候補を提示し、削除前には確認とバックアップが必要です。ローカル Codex CLI の版と、公式 schema 間の追加・削除・構造変更フィールドも表示します。
@@ -96,6 +100,7 @@
 
 ## 한국어
 
+- 🤖 **공식 모델 카탈로그 자동 새로고침**: 메인 모델, 기본 서브 Agent, 현재 작업의 모델 후보를 OpenAI Codex 공식 `models.json`에서 읽고 공식적으로 목록 표시가 허용된 모델만 우선순위에 따라 사용합니다. 24시간 로컬 캐시하며 오프라인이나 새로고침 실패 시 최근 캐시와 내장 호환 목록을 계속 사용합니다. 기존 설정, 작업 선호, 기록, Preset, 사용자 지정 모델 ID는 자동 마이그레이션하지 않습니다.
 - 🧾 **Release 빌드 출처 증명**: 정식 릴리스는 최종 설치 파일, 업데이트 서명, `latest.json`, `SHA256SUMS.txt`에 GitHub artifact attestation을 생성합니다. `gh attestation verify <file> --repo While-Shark/codex-config-studio`로 해당 파일이 이 저장소의 Release workflow에서 만들어졌는지 검증할 수 있습니다. 이 provenance는 Windows/macOS 플랫폼 서명 및 Tauri updater 서명과 독립적이며 서로 보완합니다.
 - 📈 **설명 가능한 사용량 이상 힌트**: 프로젝트 사용량 화면에서 뚜렷한 일별 Token 급증을 표시합니다. 정확한 응답 데이터만 사용하며 이전 활성일이 최소 3일 필요합니다. 최근 최대 7개의 정확한 활성일 중앙값을 기준으로, 기준이 10K Token 이상이고 당일이 2.5× 이상일 때만 표시합니다. 구형 추정 데이터는 경고를 만들지 않으며 모델 품질 평가나 청구 경고가 아닙니다.
 - 🧭 **Config Health 및 권위 schema 변경 센터**: OpenAI Codex 저장소에서 생성된 권위 있는 schema를 우선 사용하고 마지막으로 신뢰한 버전을 안전하게 캐시합니다. 알 수 없거나 미래의 필드는 기본 보존하며, 충분히 최신이고 신뢰 가능한 schema에서만 정리 후보를 제시하고 제거 전 확인과 백업을 요구합니다. 로컬 Codex CLI 버전과 권위 schema 사이의 추가/삭제/구조 변경 필드도 표시합니다.
