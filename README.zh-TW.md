@@ -70,7 +70,7 @@ Model Integrity 可為目前作用域鎖定有效的 `model` 與 `model_reasonin
 
 ### 專案用量與參考成本
 
-專案用量儀表板以唯讀方式彙總本機 Codex rollout JSONL，支援 7 天 / 30 天 / 全期間，並提供模型/Reasoning、主工作階段/子 Agent、每日趨勢、模型趨勢、Agent 使用、可觀測 reroute 時間線與近期專案總覽。
+專案用量儀表板以唯讀方式彙總本機 Codex rollout JSONL，支援 7 天 / 30 天 / 全期間，並提供模型/Reasoning、主工作階段/子 Agent、每日趨勢、模型趨勢、Agent 使用、可觀測 reroute 時間線、近期專案總覽，以及只依精確歷史每日用量判斷的可解釋 Token 突增提示。
 
 參考成本使用**帶日期與版本的價格快照**。未知模型不會猜測價格，快照過舊會提示。所有用量與成本都是 **best-effort 本機遙測，不是正式帳單資料**。
 

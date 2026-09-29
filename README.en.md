@@ -70,7 +70,7 @@ Model Integrity can lock the effective `model` and `model_reasoning_effort` for 
 
 ### Project usage and reference cost
 
-The project usage dashboard reads local Codex rollout JSONL in read-only mode and supports 7-day, 30-day, and all-time views. It includes model/reasoning breakdowns, root vs sub-agent usage, daily/model trends, agent analysis, an observable reroute timeline, and a recent-project overview.
+The project usage dashboard reads local Codex rollout JSONL in read-only mode and supports 7-day, 30-day, and all-time views. It includes model/reasoning breakdowns, root vs sub-agent usage, daily/model trends, agent analysis, an observable reroute timeline, a recent-project overview, and explainable token-spike hints based only on exact historical daily usage.
 
 Reference cost uses a **dated, versioned pricing snapshot**. Unknown models are excluded rather than assigned invented prices, and stale snapshots are flagged. All usage and cost values are **best-effort local telemetry, not billing data**.
 

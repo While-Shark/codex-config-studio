@@ -72,7 +72,7 @@ Model Integrity 可以给当前作用域锁定有效的 `model` 与 `model_reaso
 
 ### 项目用量与参考成本
 
-项目用量看板从本机 Codex rollout JSONL 只读汇总数据，支持 7 天 / 30 天 / 全部时间范围，并展示模型/Reasoning、主会话/子 Agent、每日趋势、模型趋势、Agent 使用、可观测 reroute 时间线和近期项目总览。
+项目用量看板从本机 Codex rollout JSONL 只读汇总数据，支持 7 天 / 30 天 / 全部时间范围，并展示模型/Reasoning、主会话/子 Agent、每日趋势、模型趋势、Agent 使用、可观测 reroute 时间线、近期项目总览，以及基于精确历史中位数的可解释 Token 用量突增提示。
 
 参考成本使用**带日期和版本的价格快照**计算覆盖范围内的估算值；未知模型不会猜价格，快照过旧会提示。所有用量与成本都属于 **best-effort 本地遥测，不是官方账单数据**。
 
