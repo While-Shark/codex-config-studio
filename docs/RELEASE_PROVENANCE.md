@@ -32,6 +32,8 @@ A successful verification proves that the file matches an attestation issued for
 
 ## CI permissions
 
+The Release workflow is least-privilege by default: its token starts with `contents: read`, the three platform build jobs are explicitly pinned to `contents: read`, and only `prepare-release` / `publish-release` receive `contents: write` for version commits, tags, and GitHub Releases. Tag-triggered releases must also reference a commit reachable from `origin/master`.
+
 Only the `publish-release` job receives the extra permissions needed to create attestations:
 
 - `id-token: write`
