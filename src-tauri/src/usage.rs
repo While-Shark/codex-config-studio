@@ -55,6 +55,16 @@ pub(crate) struct ServiceTierUsage {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub(crate) struct ModelTierUsage {
+    pub model: String,
+    pub reasoning: Option<String>,
+    pub service_tier: Option<String>,
+    pub responses: u64,
+    pub usage: UsageTokens,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub(crate) struct ModelReroute {
     pub timestamp: String,
     pub from_model: String,
@@ -104,6 +114,7 @@ pub(crate) struct UsageSession {
     pub usage: UsageTokens,
     pub models: Vec<ModelUsage>,
     pub service_tiers: Vec<ServiceTierUsage>,
+    pub model_tiers: Vec<ModelTierUsage>,
     pub daily_usage: Vec<DailyUsage>,
     pub daily_model_usage: Vec<DailyModelUsage>,
     pub reroutes: Vec<ModelReroute>,
@@ -173,6 +184,7 @@ struct SessionBuilder {
     has_exact_records: bool,
     model_usage: BTreeMap<(String, Option<String>), (u64, UsageTokens)>,
     service_tier_usage: BTreeMap<Option<String>, (u64, UsageTokens)>,
+    model_tier_usage: BTreeMap<(String, Option<String>, Option<String>), (u64, UsageTokens)>,
     daily_usage: BTreeMap<String, (u64, UsageTokens)>,
     daily_model_usage: BTreeMap<(String, String, Option<String>), (u64, UsageTokens)>,
     legacy_total: Option<UsageTokens>,
@@ -272,12 +284,20 @@ impl SessionBuilder {
         entry.1.add_assign(&usage);
 
         if self.service_tier_observed {
+            let service_tier = self.current_service_tier.clone();
             let tier_entry = self
                 .service_tier_usage
-                .entry(self.current_service_tier.clone())
+                .entry(service_tier.clone())
                 .or_insert_with(|| (0, UsageTokens::default()));
             tier_entry.0 += 1;
             tier_entry.1.add_assign(&usage);
+
+            let model_tier_entry = self
+                .model_tier_usage
+                .entry((selection.model.clone(), selection.reasoning.clone(), service_tier))
+                .or_insert_with(|| (0, UsageTokens::default()));
+            model_tier_entry.0 += 1;
+            model_tier_entry.1.add_assign(&usage);
         }
 
         if let Some(day) = utc_day(timestamp) {
@@ -380,6 +400,24 @@ impl SessionBuilder {
                 .cmp(&a.usage.total_tokens)
                 .then_with(|| a.service_tier.cmp(&b.service_tier))
         });
+        let mut model_tiers = self
+            .model_tier_usage
+            .into_iter()
+            .map(|((model, reasoning, service_tier), (responses, usage))| ModelTierUsage {
+                model,
+                reasoning,
+                service_tier,
+                responses,
+                usage,
+            })
+            .collect::<Vec<_>>();
+        model_tiers.sort_by(|a, b| {
+            b.usage
+                .total_tokens
+                .cmp(&a.usage.total_tokens)
+                .then_with(|| a.model.cmp(&b.model))
+                .then_with(|| a.service_tier.cmp(&b.service_tier))
+        });
 
         let mut daily_usage = self
             .daily_usage
@@ -468,6 +506,7 @@ impl SessionBuilder {
             usage,
             models,
             service_tiers,
+            model_tiers,
             daily_usage,
             daily_model_usage,
             reroutes: self.reroutes,
@@ -1041,6 +1080,14 @@ mod tests {
         assert_eq!(standard.usage.total_tokens, 100);
         assert_eq!(fast.responses, 1);
         assert_eq!(fast.usage.total_tokens, 200);
+        assert_eq!(session.model_tiers.len(), 2);
+        let model_fast = session
+            .model_tiers
+            .iter()
+            .find(|row| row.model == "gpt-6-luna" && row.service_tier.as_deref() == Some("priority"))
+            .unwrap();
+        assert_eq!(model_fast.responses, 1);
+        assert_eq!(model_fast.usage.total_tokens, 200);
     }
 
     #[test]

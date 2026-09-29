@@ -30,9 +30,9 @@ test('service tier summary only counts exact usage with durable tier evidence',(
   const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
   const base={cwd:'/p',startedAt:'',updatedAt:'',parentThreadId:null,agentRole:null,agentPath:null,isSubagent:false,turns:1,models:[],dailyUsage:[],dailyModelUsage:[],reroutes:[]};
   const report={source:'x',filesScanned:3,filesMatched:3,parseErrors:0,skippedLargeFiles:0,truncated:false,sessions:[
-    {...base,threadId:'fast',sessionId:'fast',responses:2,lastModel:'gpt-6-luna',lastReasoning:'high',serviceTierObserved:true,lastServiceTier:'priority',usageSource:'response_records',usage:tokens(200),serviceTiers:[{serviceTier:'priority',responses:2,usage:tokens(200)}]},
-    {...base,threadId:'default',sessionId:'default',responses:1,lastModel:'gpt-6-luna',lastReasoning:'high',serviceTierObserved:true,lastServiceTier:null,usageSource:'response_records',usage:tokens(100),serviceTiers:[{serviceTier:null,responses:1,usage:tokens(100)}]},
-    {...base,threadId:'old',sessionId:'old',responses:1,lastModel:'gpt-6-luna',lastReasoning:'high',serviceTierObserved:false,lastServiceTier:null,usageSource:'response_records',usage:tokens(100),serviceTiers:[]},
+    {...base,threadId:'fast',sessionId:'fast',responses:2,lastModel:'gpt-6-luna',lastReasoning:'high',serviceTierObserved:true,lastServiceTier:'priority',usageSource:'response_records',usage:tokens(200),serviceTiers:[{serviceTier:'priority',responses:2,usage:tokens(200)}],modelTiers:[{model:'gpt-6-luna',reasoning:'high',serviceTier:'priority',responses:2,usage:tokens(200)}]},
+    {...base,threadId:'default',sessionId:'default',responses:1,lastModel:'gpt-6-luna',lastReasoning:'high',serviceTierObserved:true,lastServiceTier:null,usageSource:'response_records',usage:tokens(100),serviceTiers:[{serviceTier:null,responses:1,usage:tokens(100)}],modelTiers:[{model:'gpt-6-luna',reasoning:'high',serviceTier:null,responses:1,usage:tokens(100)}]},
+    {...base,threadId:'old',sessionId:'old',responses:1,lastModel:'gpt-6-luna',lastReasoning:'high',serviceTierObserved:false,lastServiceTier:null,usageSource:'response_records',usage:tokens(100),serviceTiers:[],modelTiers:[]},
   ]};
   const summary=JSON.parse(JSON.stringify(usage.summarizeUsage(report)));
   assert.equal(summary.usage.totalTokens,400);
@@ -47,6 +47,10 @@ test('service tier summary only counts exact usage with durable tier evidence',(
   assert.equal(summary.serviceTierRows[0].share,2/3);
   assert.equal(summary.serviceTierRows[1].serviceTier,null);
   assert.equal(summary.serviceTierRows[1].share,1/3);
+  assert.equal(summary.modelTierRows.length,2);
+  assert.equal(summary.modelTierRows[0].model,'gpt-6-luna');
+  assert.equal(summary.modelTierRows[0].serviceTier,'priority');
+  assert.equal(summary.modelTierRows[0].usage.totalTokens,200);
 });
 
 test('period windows and token formatting are deterministic',()=>{
@@ -154,6 +158,69 @@ test('reference cost avoids double charging cached input and includes reasoning 
   assert.equal(Number(cost.toFixed(6)),0.164);
 });
 
+test('tier-aware cost applies model-specific Fast multipliers only to observed priority usage',()=>{
+  const tokens=(input,output=0)=>({inputTokens:input,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:output,reasoningOutputTokens:0,totalTokens:input+output});
+  const modelRows=[
+    {model:'gpt-6-luna',reasoning:'high',responses:2,usage:tokens(2_000_000)},
+    {model:'gpt-5.4',reasoning:'high',responses:1,usage:tokens(1_000_000)},
+  ];
+  const tierRows=[
+    {model:'gpt-6-luna',reasoning:'high',serviceTier:'priority',responses:1,usage:tokens(1_000_000)},
+    {model:'gpt-6-luna',reasoning:'high',serviceTier:null,responses:1,usage:tokens(1_000_000)},
+    {model:'gpt-5.4',reasoning:'high',serviceTier:'priority',responses:1,usage:tokens(1_000_000)},
+  ];
+  const result=pricing.estimateTierAwareUsageCost(modelRows,tierRows,3_000_000);
+  // Base: Luna $0.20 + GPT-5.4 $2.50. Fast surcharge: Luna $0.15 + GPT-5.4 $2.50.
+  assert.equal(Number(result.baseUsd.toFixed(6)),2.7);
+  assert.equal(Number(result.fastSurchargeUsd.toFixed(6)),2.65);
+  assert.equal(Number(result.usd.toFixed(6)),5.35);
+  assert.equal(result.tierCoverage,1);
+  assert.equal(result.fastAdjustedTokens,2_000_000);
+  assert.equal(result.tierAdjustmentComplete,true);
+});
+
+test('tier-aware cost keeps unobserved tier history approximate instead of assuming standard',()=>{
+  const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
+  const result=pricing.estimateTierAwareUsageCost(
+    [{model:'gpt-6-sol',reasoning:'high',responses:1,usage:tokens(1_000_000)}],
+    [],
+    1_000_000,
+  );
+  assert.equal(result.baseUsd,2);
+  assert.equal(result.fastSurchargeUsd,0);
+  assert.equal(result.tierCoverage,0);
+  assert.equal(result.tierAdjustmentComplete,false);
+});
+
+test('unsupported service tiers stay outside cost adjustment instead of being treated as standard',()=>{
+  const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
+  const row={model:'gpt-6-sol',reasoning:'high',responses:1,usage:tokens(1_000_000)};
+  const result=pricing.estimateTierAwareUsageCost(
+    [row],
+    [{...row,serviceTier:'flex'}],
+    1_000_000,
+  );
+  assert.equal(result.baseUsd,2);
+  assert.equal(result.fastSurchargeUsd,0);
+  assert.equal(result.tierCoverage,0);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.unsupportedServiceTiers)),['flex']);
+  assert.equal(result.tierAdjustmentComplete,false);
+});
+
+test('priced Fast model without a documented multiplier is surfaced without inventing one',()=>{
+  const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
+  const row={model:'gpt-5.4-mini',reasoning:'high',responses:1,usage:tokens(1_000_000)};
+  const result=pricing.estimateTierAwareUsageCost(
+    [row],
+    [{...row,serviceTier:'priority'}],
+    1_000_000,
+  );
+  assert.equal(result.baseUsd,0.75);
+  assert.equal(result.fastSurchargeUsd,0);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.unadjustedFastModels)),['gpt-5.4-mini']);
+  assert.equal(result.tierAdjustmentComplete,false);
+});
+
 test('reference cost reports pricing coverage and unknown models without inventing rates',()=>{
   const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
   const rows=[
@@ -165,9 +232,23 @@ test('reference cost reports pricing coverage and unknown models without inventi
   assert.deepEqual(result.unpricedModels,['custom-local-model']);
 });
 
+test('verified reference catalog exposes only documented Fast multipliers',()=>{
+  assert.equal(pricing.fastMultiplierForModel('gpt-6-astra'),2.5);
+  assert.equal(pricing.fastMultiplierForModel('gpt-6-sol'),2.5);
+  assert.equal(pricing.fastMultiplierForModel('gpt-6-luna'),2.5);
+  assert.equal(pricing.fastMultiplierForModel('gpt-5.6-terra'),2.5);
+  assert.equal(pricing.fastMultiplierForModel('gpt-5.5'),2.5);
+  assert.equal(pricing.fastMultiplierForModel('gpt-5.4'),2);
+  assert.equal(pricing.fastMultiplierForModel('gpt-5.4-mini'),null);
+  assert.equal(pricing.fastMultiplierForModel('gpt-5.2'),null);
+  assert.deepEqual(JSON.parse(JSON.stringify(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-5.4-mini'])),{input:0.75,cachedInput:0.075,output:4.5});
+  assert.deepEqual(JSON.parse(JSON.stringify(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-5.2'])),{input:1.75,cachedInput:0.175,output:14});
+  assert.deepEqual(JSON.parse(JSON.stringify(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-daybreak-red-latest'])),{input:12.5,cachedInput:1.25,output:75});
+});
+
 test('reference pricing snapshot is versioned and staleness is deterministic',()=>{
-  assert.equal(pricing.CODEX_USD_REFERENCE_CATALOG.snapshotDate,'2026-09-26');
-  assert.equal(pricing.pricingSnapshotAgeDays(pricing.CODEX_USD_REFERENCE_CATALOG,Date.UTC(2026,8,26,12)),0);
-  assert.equal(pricing.pricingSnapshotAgeDays(pricing.CODEX_USD_REFERENCE_CATALOG,Date.UTC(2026,9,28,12)),32);
+  assert.equal(pricing.CODEX_USD_REFERENCE_CATALOG.snapshotDate,'2026-09-29');
+  assert.equal(pricing.pricingSnapshotAgeDays(pricing.CODEX_USD_REFERENCE_CATALOG,Date.UTC(2026,8,29,12)),0);
+  assert.equal(pricing.pricingSnapshotAgeDays(pricing.CODEX_USD_REFERENCE_CATALOG,Date.UTC(2026,9,31,12)),32);
   assert.equal(pricing.formatUsd(0.12345),'$0.1235');
 });
