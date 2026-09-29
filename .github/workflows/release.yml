@@ -17,7 +17,7 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-desktop
@@ -27,6 +27,8 @@ jobs:
   prepare:
     name: prepare-release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       version: ${{ steps.release-meta.outputs.version }}
       tag: ${{ steps.release-meta.outputs.tag }}
@@ -87,6 +89,12 @@ jobs:
           fi
 
           commit_sha=$(git rev-parse HEAD)
+          git fetch origin master --no-tags
+          if ! git merge-base --is-ancestor "$commit_sha" origin/master; then
+            echo "::error::Release commit $commit_sha is not reachable from origin/master."
+            exit 1
+          fi
+
           previous_tag=$(git tag --list 'v*' --sort=-version:refname | grep -v "^${tag}$" | head -n 1 || true)
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -97,6 +105,8 @@ jobs:
   build:
     needs: prepare
     name: build-${{ matrix.name }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
