@@ -2,6 +2,7 @@
 
 ## 简体中文
 
+- ⚡ **Service Tier 遥测与 Fast 参考成本**：本机 rollout 中已持久化的 thread settings 现在会作为 service tier 证据；精确响应按“模型 × tier”归因。当前 Codex 的 `priority` 识别为 Fast，并仅在官方费率明确提供模型倍率时计入 Fast 附加成本。缺少 tier 证据、Flex/未知 tier 或 Fast 倍率不明确时会标记为近似值；不会猜测长上下文、区域处理或未知模型价格。
 - 🤖 **官方模型目录自动刷新**：主模型、默认子 Agent 和当前任务的候选模型会读取 OpenAI Codex 官方 `models.json`，仅采用官方标记为可列出的模型，并按官方优先级排序。本机缓存 24 小时；离线或刷新失败时继续使用最近缓存与内置兼容列表。不会自动迁移已有配置、任务偏好、历史、Preset 或自定义模型 ID。
 - 🧾 **Release 构建来源证明**：正式发布现在会为最终安装包、更新签名、`latest.json` 与 `SHA256SUMS.txt` 生成 GitHub artifact attestation。可使用 `gh attestation verify <文件> --repo While-Shark/codex-config-studio` 验证文件确实由本仓库 Release workflow 构建。该证明与 Windows/macOS 平台签名及 Tauri updater 签名相互独立、互为补充。
 - 📈 **可解释用量异常提示**：项目用量页现在会标记明显的每日 Token 突增。只使用精确逐响应数据；至少需要 3 个历史活跃日，以最近最多 7 个精确活跃日中位数为基线，基线至少 10K Token 且当天达到 2.5× 以上才提示。旧版估算数据不会触发，且该提示不评价模型质量、也不是账单告警。
@@ -28,6 +29,7 @@
 
 ## 繁體中文
 
+- ⚡ **Service Tier 遙測與 Fast 參考成本**：本機 rollout 中已持久化的 thread settings 現在會作為 service tier 證據；精確回應依「模型 × tier」歸屬。目前 Codex 的 `priority` 會識別為 Fast，且只有官方費率明確提供模型倍率時才計入 Fast 附加成本。缺少 tier 證據、Flex/未知 tier 或 Fast 倍率不明時會標記為近似值；不會猜測長上下文、區域處理或未知模型價格。
 - 🤖 **官方模型目錄自動更新**：主模型、預設子 Agent 與目前任務的候選模型會讀取 OpenAI Codex 官方 `models.json`，只採用官方標記為可列出的模型，並依官方優先順序排列。本機快取 24 小時；離線或更新失敗時繼續使用最近快取與內建相容清單。不會自動遷移既有設定、任務偏好、歷史、Preset 或自訂模型 ID。
 - 🧾 **Release 建置來源證明**：正式發佈現在會為最終安裝檔、更新簽名、`latest.json` 與 `SHA256SUMS.txt` 建立 GitHub artifact attestation。可使用 `gh attestation verify <檔案> --repo While-Shark/codex-config-studio` 驗證檔案確實由本儲存庫 Release workflow 建置。此證明與 Windows/macOS 平台簽名及 Tauri updater 簽名彼此獨立、互相補充。
 - 📈 **可解釋用量異常提示**：專案用量頁現在會標記明顯的每日 Token 突增。只使用精確逐回應資料；至少需要 3 個歷史活躍日，以最近最多 7 個精確活躍日中位數為基線，基線至少 10K Token 且當天達到 2.5× 以上才提示。舊版估算資料不會觸發，且此提示不評價模型品質，也不是帳單警報。
@@ -51,6 +53,7 @@
 
 ## English
 
+- ⚡ **Service-tier telemetry and Fast reference cost**: Durable thread-settings events in local rollout history now provide service-tier evidence, with exact responses attributed by model × tier. Current Codex `priority` is recognized as Fast, and a Fast surcharge is applied only when the official rate card documents a model-specific multiplier. Missing tier evidence, Flex/unknown tiers, or undocumented Fast multipliers keep the result approximate; long-context, regional-processing, and unknown-model pricing are never guessed.
 - 🤖 **Official model-catalog refresh**: Main-model, default sub-agent, and Current Task choices now read the official OpenAI Codex `models.json` catalog, accept only models marked visible for listing, and follow official priority ordering. The catalog is cached locally for 24 hours; offline/failed refreshes keep the latest cache and built-in compatibility list. Existing configuration, task preferences, history, presets, and custom model IDs are never migrated automatically.
 - 🧾 **Release build provenance**: Formal releases now create GitHub artifact attestations for final installers, updater signatures, `latest.json`, and `SHA256SUMS.txt`. Verify a downloaded file with `gh attestation verify <file> --repo While-Shark/codex-config-studio` to confirm it was produced by this repository's Release workflow. This provenance is independent from and complementary to Windows/macOS platform signing and Tauri updater signing.
 - 📈 **Explainable usage anomaly hints**: The project usage view now flags clear daily token spikes using exact response telemetry only. It requires at least 3 prior active days, uses the median of up to 7 exact active days as baseline, requires a baseline of at least 10K tokens, and flags only days at 2.5× or above. Legacy estimates never trigger it; this is neither a model-quality judgment nor a billing alert.
@@ -77,6 +80,7 @@
 
 ## 日本語
 
+- ⚡ **Service Tier テレメトリと Fast 参考コスト**：ローカル rollout に永続化された thread settings を service tier 証拠として使い、正確な応答を「モデル × tier」で帰属します。現在の Codex の `priority` は Fast として認識し、公式レートカードにモデル別倍率が明記されている場合だけ Fast 追加コストを反映します。tier 証拠不足、Flex/未知 tier、倍率不明の場合は概算扱いとし、長文脈・地域処理・未知モデル価格は推測しません。
 - 🤖 **公式モデルカタログの自動更新**：メインモデル、既定のサブ Agent、現在のタスクの候補を OpenAI Codex 公式 `models.json` から取得し、公式に一覧表示対象とされたモデルだけを優先順位どおりに使用します。24 時間ローカルキャッシュし、オフライン時や更新失敗時は最新キャッシュと内蔵互換リストを継続使用します。既存設定、タスク設定、履歴、Preset、カスタムモデル ID は自動移行しません。
 - 🧾 **Release ビルドの来歴証明**：正式 Release では、最終インストーラー、更新署名、`latest.json`、`SHA256SUMS.txt` に GitHub artifact attestation を作成します。`gh attestation verify <file> --repo While-Shark/codex-config-studio` で、本リポジトリの Release workflow が生成したファイルであることを検証できます。これは Windows/macOS のプラットフォーム署名や Tauri updater 署名とは独立した補完的な証明です。
 - 📈 **説明可能な使用量異常ヒント**：プロジェクト使用量画面で、明確な日次 Token 急増を表示します。正確な応答データだけを使い、過去のアクティブ日が少なくとも 3 日必要です。直近最大 7 日の正確なアクティブ日の中央値を基準とし、基準値が 10K Token 以上かつ当日が 2.5× 以上の場合だけ表示します。旧形式の推定値は発火せず、モデル品質評価や請求アラートでもありません。
@@ -100,6 +104,7 @@
 
 ## 한국어
 
+- ⚡ **Service Tier 텔레메트리와 Fast 참고 비용**: 로컬 rollout에 영구 저장된 thread settings를 service tier 증거로 사용하고 정확한 응답을 모델 × tier로 귀속합니다. 현재 Codex의 `priority`를 Fast로 인식하며 공식 요금표에 모델별 배율이 명시된 경우에만 Fast 추가 비용을 반영합니다. tier 증거 부족, Flex/알 수 없는 tier, 배율 미확인 상태는 근사값으로 처리하며 장문맥·지역 처리·알 수 없는 모델 가격은 추측하지 않습니다.
 - 🤖 **공식 모델 카탈로그 자동 새로고침**: 메인 모델, 기본 서브 Agent, 현재 작업의 모델 후보를 OpenAI Codex 공식 `models.json`에서 읽고 공식적으로 목록 표시가 허용된 모델만 우선순위에 따라 사용합니다. 24시간 로컬 캐시하며 오프라인이나 새로고침 실패 시 최근 캐시와 내장 호환 목록을 계속 사용합니다. 기존 설정, 작업 선호, 기록, Preset, 사용자 지정 모델 ID는 자동 마이그레이션하지 않습니다.
 - 🧾 **Release 빌드 출처 증명**: 정식 릴리스는 최종 설치 파일, 업데이트 서명, `latest.json`, `SHA256SUMS.txt`에 GitHub artifact attestation을 생성합니다. `gh attestation verify <file> --repo While-Shark/codex-config-studio`로 해당 파일이 이 저장소의 Release workflow에서 만들어졌는지 검증할 수 있습니다. 이 provenance는 Windows/macOS 플랫폼 서명 및 Tauri updater 서명과 독립적이며 서로 보완합니다.
 - 📈 **설명 가능한 사용량 이상 힌트**: 프로젝트 사용량 화면에서 뚜렷한 일별 Token 급증을 표시합니다. 정확한 응답 데이터만 사용하며 이전 활성일이 최소 3일 필요합니다. 최근 최대 7개의 정확한 활성일 중앙값을 기준으로, 기준이 10K Token 이상이고 당일이 2.5× 이상일 때만 표시합니다. 구형 추정 데이터는 경고를 만들지 않으며 모델 품질 평가나 청구 경고가 아닙니다.
