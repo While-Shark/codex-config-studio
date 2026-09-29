@@ -152,6 +152,18 @@ export function mergeModelCatalogIds(
   return result;
 }
 
+export function reasoningLevelsForModel(
+  model: string | null | undefined,
+  officialEntries: readonly OfficialModelCatalogEntry[],
+  fallbackLevels: readonly string[],
+): string[] {
+  const id=model?.trim();
+  if(!id)return [...fallbackLevels];
+  const entry=officialEntries.find(item=>item.id===id);
+  if(!entry||entry.reasoningLevels.length===0)return [...fallbackLevels];
+  return [...entry.reasoningLevels];
+}
+
 export async function loadOfficialModelCatalog(force = false): Promise<OfficialModelCatalogResult> {
   const cached = readCachedOfficialModelCatalog();
   const age = cached ? Date.now() - cached.fetchedAt : Number.POSITIVE_INFINITY;
