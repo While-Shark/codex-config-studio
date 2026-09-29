@@ -1019,6 +1019,41 @@ mod tests {
     }
 
     #[test]
+    fn durable_thread_settings_attribute_exact_usage_to_service_tier() {
+        let text = [
+            r#"{"timestamp":"2026-09-26T01:00:00Z","type":"session_meta","payload":{"id":"tiered","cwd":"/work/demo"}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:01Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"tiered","thread_settings":{"model":"gpt-6-luna","model_provider_id":"openai","approval_policy":"never","approvals_reviewer":"user","permission_profile":{"file_system":{"type":"read_only"},"network":{"enabled":false}},"cwd":"/work/demo","reasoning_effort":"high","collaboration_mode":{"mode":"default"},"disabled_plugin_ids":[]}}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:02Z","type":"turn_context","payload":{"turn_id":"t1","cwd":"/work/demo","model":"gpt-6-luna","effort":"high"}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:03Z","type":"token_usage_record","payload":{"thread_id":"tiered","turn_id":"t1","session_id":"tiered","root_turn_id":"t1","response_id":"standard","usage":{"input_tokens":90,"cached_input_tokens":0,"output_tokens":10,"reasoning_output_tokens":0,"total_tokens":100}}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:04Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"tiered","thread_settings":{"model":"gpt-6-luna","model_provider_id":"openai","service_tier":"fast","approval_policy":"never","approvals_reviewer":"user","permission_profile":{"file_system":{"type":"read_only"},"network":{"enabled":false}},"cwd":"/work/demo","reasoning_effort":"high","collaboration_mode":{"mode":"default"},"disabled_plugin_ids":[]}}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:05Z","type":"turn_context","payload":{"turn_id":"t2","cwd":"/work/demo","model":"gpt-6-luna","effort":"high"}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:06Z","type":"token_usage_record","payload":{"thread_id":"tiered","turn_id":"t2","session_id":"tiered","root_turn_id":"t2","response_id":"fast","usage":{"input_tokens":180,"cached_input_tokens":0,"output_tokens":20,"reasoning_output_tokens":0,"total_tokens":200}}}"#,
+        ].join("\n");
+        let (builder, errors) = parse_rollout(Cursor::new(text), None);
+        assert_eq!(errors, 0);
+        let session = builder.finish();
+        assert!(session.service_tier_observed);
+        assert_eq!(session.last_service_tier.as_deref(), Some("fast"));
+        assert_eq!(session.service_tiers.len(), 2);
+        let standard = session.service_tiers.iter().find(|row| row.service_tier.is_none()).unwrap();
+        let fast = session.service_tiers.iter().find(|row| row.service_tier.as_deref() == Some("fast")).unwrap();
+        assert_eq!(standard.responses, 1);
+        assert_eq!(standard.usage.total_tokens, 100);
+        assert_eq!(fast.responses, 1);
+        assert_eq!(fast.usage.total_tokens, 200);
+    }
+
+    #[test]
+    fn exact_usage_without_durable_tier_remains_unobserved() {
+        let (builder, errors) = parse_rollout(Cursor::new(sample_rollout()), None);
+        assert_eq!(errors, 0);
+        let session = builder.finish();
+        assert!(!session.service_tier_observed);
+        assert!(session.last_service_tier.is_none());
+        assert!(session.service_tiers.is_empty());
+    }
+
+    #[test]
     fn exact_usage_respects_day_cutoff_without_falling_back_to_legacy_totals() {
         let text = [
             r#"{"timestamp":"2026-09-20T01:00:00Z","type":"session_meta","payload":{"id":"cutoff","cwd":"/work/demo"}}"#,
