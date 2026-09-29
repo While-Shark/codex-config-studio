@@ -168,7 +168,7 @@ export const ja: Dictionary = {
   'preset.daily.usage': '日常的なプロジェクト開発の大半。',
   'preset.balanced.name': 'バランス',
   'preset.balanced.badge': '複雑な開発',
-  'preset.balanced.description': 'GPT-6 Sol が主導し、GPT-6 Luna が実行。',
+  'preset.balanced.description': 'GPT-6.1 Sol が主導し、GPT-6 Luna が実行。',
   'preset.balanced.usage': '複数ファイルの機能、通常のリファクタ、連携。',
   'preset.astra.name': 'Astra 指揮官',
   'preset.astra.badge': '高品質',
