@@ -72,7 +72,7 @@ Model Integrity can lock the effective `model` and `model_reasoning_effort` for 
 
 The project usage dashboard reads local Codex rollout JSONL in read-only mode and supports 7-day, 30-day, and all-time views. It includes model/reasoning breakdowns, root vs sub-agent usage, daily/model trends, agent analysis, an observable reroute timeline, a recent-project overview, and explainable token-spike hints based only on exact historical daily usage.
 
-Reference cost uses a **dated, versioned pricing snapshot**. Unknown models are excluded rather than assigned invented prices, and stale snapshots are flagged. All usage and cost values are **best-effort local telemetry, not billing data**.
+Reference cost uses a **dated, versioned pricing snapshot**. When local rollout history contains durable service-tier evidence, exact responses are priced by model + tier; current Codex `priority` is treated as Fast, and Fast surcharges are applied only where the official rate card provides a model-specific multiplier. Missing tier evidence, Flex/unknown tiers, or Fast models without a documented multiplier keep the result approximate; long-context and regional-processing multipliers are not inferred. Unknown models are never assigned invented prices. All usage and cost values are **best-effort local telemetry, not billing data**.
 
 Model choices refresh from the official OpenAI Codex `models.json` catalog and are cached locally for 24 hours. Offline or failed refreshes fall back to the latest cache plus the built-in compatibility list. Refreshes only change available choices; they never migrate existing configuration, task preferences, history, presets, or custom model IDs.
 
