@@ -17,6 +17,8 @@ The formal `Release` workflow has three macOS states:
 
 Nightly builds do not require Apple Developer credentials.
 
+After Apple signing is proven in a formal release, set the repository Actions variable `REQUIRE_MACOS_SIGNING=true`. From that point on, a formal macOS release fails if all Apple signing secrets are missing instead of silently returning to an unsigned artifact. This variable is intentionally separate from the secrets so it can act as a release policy switch.
+
 ## Required GitHub Actions secrets
 
 ### Developer ID certificate
@@ -77,7 +79,15 @@ The workflow then uploads the normal Universal macOS DMG/app updater artifacts. 
 
 Add secrets under:
 
-`Repository Settings -> Secrets and variables -> Actions`
+`Repository Settings -> Secrets and variables -> Actions -> Secrets`
+
+After the first signed/notarized formal release succeeds, add the non-sensitive policy switch under:
+
+`Repository Settings -> Secrets and variables -> Actions -> Variables`
+
+```text
+REQUIRE_MACOS_SIGNING=true
+```
 
 Do not place Apple signing values in repository variables, workflow YAML, `.env` files, or Tauri configuration files.
 
