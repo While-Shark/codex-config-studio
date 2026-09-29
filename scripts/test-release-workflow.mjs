@@ -105,3 +105,25 @@ test('formal release validates a complete artifact set before manifest and attes
   const attest = workflow.indexOf('Attest release build provenance');
   assert.ok(verify >= 0 && manifest > verify && attest > manifest, 'artifact integrity must be checked before manifest generation and attestation');
 });
+
+
+test('release workflow follows least-privilege token permissions', () => {
+  assert.match(workflow, /^permissions:\n  contents: read/m);
+  const prepareStart = workflow.indexOf('  prepare:');
+  const buildStart = workflow.indexOf('  build:');
+  const publishStart = workflow.indexOf('  publish:');
+  assert.ok(prepareStart >= 0 && buildStart > prepareStart && publishStart > buildStart);
+  const prepare = workflow.slice(prepareStart, buildStart);
+  const build = workflow.slice(buildStart, publishStart);
+  const publish = workflow.slice(publishStart);
+  assert.match(prepare, /permissions:\n      contents: write/);
+  assert.match(build, /permissions:\n      contents: read/);
+  assert.doesNotMatch(build, /contents: write/);
+  assert.match(publish, /permissions:[\s\S]*contents: write/);
+});
+
+test('tag-driven releases must point to a commit reachable from master', () => {
+  assert.match(workflow, /git fetch origin master --no-tags/);
+  assert.match(workflow, /git merge-base --is-ancestor "\$commit_sha" origin\/master/);
+  assert.match(workflow, /Release commit \$commit_sha is not reachable from origin\/master/);
+});
