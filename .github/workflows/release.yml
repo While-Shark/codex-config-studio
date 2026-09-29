@@ -335,9 +335,9 @@ jobs:
             exit 1
           }
           spctl --assess --type execute --verbose=4 "$app_path"
-          xcrun stapler validate "$dmg_path"
+          xcrun stapler validate "$app_path"
 
-          echo "Verified Developer ID signature and stapled notarization ticket."
+          echo "Verified Developer ID signature, Gatekeeper assessment, and stapled notarization ticket."
 
       - name: Run configuration regression tests before uploading
         shell: bash
