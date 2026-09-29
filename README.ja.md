@@ -83,7 +83,7 @@ Model Integrity はスコープの有効な `model` と `model_reasoning_effort`
 | Token 節約 | GPT-6 Luna / low | 小さな修正、明確な作業、一括置換 |
 | Economy | GPT-6 Luna / medium | CRUD、フロント修正、通常 API |
 | Daily | GPT-6 Luna + GPT-6 Luna | 日常開発の大半 |
-| Balanced | GPT-6 Sol + GPT-6 Luna | 複数ファイル機能、リファクタ、連携 |
+| Balanced | GPT-6.1 Sol + GPT-6 Luna | 複数ファイル機能、リファクタ、連携 |
 | Astra Director | GPT-6 Astra + GPT-6 Luna | Astra が計画/Review、Luna が実行 |
 | Max Quality | GPT-6 Astra xhigh + GPT-6 Luna high | 難しい Bug、大規模リファクタ、リリース前 Review |
 
@@ -133,9 +133,9 @@ bash ./run-dev.sh
 
 ## プロファイルの版
 
-**GPT-6 / v0.4.0**
+**GPT-6.1 / GPT-6 (v0.5.0) / v0.4.0**
 
-現在の推奨は GPT-6 を使用します。以前の設定は履歴に完全保存されています。閲覧だけでは設定を変更しません。
+現在の Balanced / 複雑なタスクでは GPT-6.1 Sol を推奨します。GPT-6（v0.5.0）と旧 v0.4.0 は不変の履歴スナップショットとして保存され、閲覧だけでは設定を変更しません。
 
 履歴には元のモデル、思考レベル、サブ Agent 設定を保存し、新しい推奨値で上書きしません。
 
