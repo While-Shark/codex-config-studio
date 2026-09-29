@@ -2,6 +2,7 @@
 
 ## 简体中文
 
+- 🧾 **Release 构建来源证明**：正式发布现在会为最终安装包、更新签名、`latest.json` 与 `SHA256SUMS.txt` 生成 GitHub artifact attestation。可使用 `gh attestation verify <文件> --repo While-Shark/codex-config-studio` 验证文件确实由本仓库 Release workflow 构建。该证明与 Windows/macOS 平台签名及 Tauri updater 签名相互独立、互为补充。
 - 📈 **可解释用量异常提示**：项目用量页现在会标记明显的每日 Token 突增。只使用精确逐响应数据；至少需要 3 个历史活跃日，以最近最多 7 个精确活跃日中位数为基线，基线至少 10K Token 且当天达到 2.5× 以上才提示。旧版估算数据不会触发，且该提示不评价模型质量、也不是账单告警。
 - 🧭 **配置健康与官方 schema 变更中心**：优先使用 OpenAI Codex 仓库生成的权威配置 schema，并安全缓存最近可信版本；未知/未来字段默认保留，只有在 schema 足够新且可信时才会给出未知字段清理提示，清理前必须确认并备份。配置健康页还会显示本机 Codex CLI 版本，并汇总权威 schema 的新增、移除和结构变化字段。
 - 📊 **项目用量、趋势与参考成本**：基于本机 Codex rollout JSONL 的只读遥测，支持 7 天 / 30 天 / 全部时间、模型与 Reasoning 分布、主会话/子 Agent、每日与模型趋势、Agent 分析、可观测 reroute 时间线、近期项目概览和版本化参考成本。旧格式数据会明确标记估算；未知模型不猜价格；这些数据是 best-effort 本地遥测，不是官方账单。
@@ -26,6 +27,7 @@
 
 ## 繁體中文
 
+- 🧾 **Release 建置來源證明**：正式發佈現在會為最終安裝檔、更新簽名、`latest.json` 與 `SHA256SUMS.txt` 建立 GitHub artifact attestation。可使用 `gh attestation verify <檔案> --repo While-Shark/codex-config-studio` 驗證檔案確實由本儲存庫 Release workflow 建置。此證明與 Windows/macOS 平台簽名及 Tauri updater 簽名彼此獨立、互相補充。
 - 📈 **可解釋用量異常提示**：專案用量頁現在會標記明顯的每日 Token 突增。只使用精確逐回應資料；至少需要 3 個歷史活躍日，以最近最多 7 個精確活躍日中位數為基線，基線至少 10K Token 且當天達到 2.5× 以上才提示。舊版估算資料不會觸發，且此提示不評價模型品質，也不是帳單警報。
 - 🧭 **設定健康與官方 schema 變更中心**：優先使用 OpenAI Codex 儲存庫產生的權威設定 schema，並安全快取最近可信版本；未知/未來欄位預設保留，只有 schema 足夠新且可信時才會提供未知欄位清理提示，清理前必須確認並備份。設定健康頁亦會顯示本機 Codex CLI 版本，並摘要權威 schema 的新增、移除與結構變更欄位。
 - 📊 **專案用量、趨勢與參考成本**：以唯讀方式分析本機 Codex rollout JSONL，支援 7 天 / 30 天 / 全期間、模型與 Reasoning 分布、主工作階段/子 Agent、每日與模型趨勢、Agent 分析、可觀測 reroute 時間線、近期專案總覽與版本化參考成本。舊格式資料會明確標記估算；未知模型不猜價格；所有數值都是 best-effort 本機遙測，不是正式帳單。
@@ -47,6 +49,7 @@
 
 ## English
 
+- 🧾 **Release build provenance**: Formal releases now create GitHub artifact attestations for final installers, updater signatures, `latest.json`, and `SHA256SUMS.txt`. Verify a downloaded file with `gh attestation verify <file> --repo While-Shark/codex-config-studio` to confirm it was produced by this repository's Release workflow. This provenance is independent from and complementary to Windows/macOS platform signing and Tauri updater signing.
 - 📈 **Explainable usage anomaly hints**: The project usage view now flags clear daily token spikes using exact response telemetry only. It requires at least 3 prior active days, uses the median of up to 7 exact active days as baseline, requires a baseline of at least 10K tokens, and flags only days at 2.5× or above. Legacy estimates never trigger it; this is neither a model-quality judgment nor a billing alert.
 - 🧭 **Config Health and authoritative schema change center**: Prefer the generated authoritative schema from the OpenAI Codex repository and safely cache the latest trusted copy. Unknown/future fields are preserved by default; cleanup suggestions only come from sufficiently fresh trusted schema data and require confirmation plus backup. Config Health also shows the detected local Codex CLI version and summarizes added, removed, and structurally changed fields across authoritative schema revisions.
 - 📊 **Project usage, trends, and reference cost**: Read-only analysis of local Codex rollout JSONL with 7-day / 30-day / all-time views, model and reasoning breakdowns, root/sub-agent usage, daily and per-model trends, agent analysis, observable reroute history, recent-project overview, and versioned reference-cost estimates. Legacy-only data is explicitly estimated, unknown-model pricing is never invented, and all values are best-effort local telemetry rather than billing data.
@@ -71,6 +74,7 @@
 
 ## 日本語
 
+- 🧾 **Release ビルドの来歴証明**：正式 Release では、最終インストーラー、更新署名、`latest.json`、`SHA256SUMS.txt` に GitHub artifact attestation を作成します。`gh attestation verify <file> --repo While-Shark/codex-config-studio` で、本リポジトリの Release workflow が生成したファイルであることを検証できます。これは Windows/macOS のプラットフォーム署名や Tauri updater 署名とは独立した補完的な証明です。
 - 📈 **説明可能な使用量異常ヒント**：プロジェクト使用量画面で、明確な日次 Token 急増を表示します。正確な応答データだけを使い、過去のアクティブ日が少なくとも 3 日必要です。直近最大 7 日の正確なアクティブ日の中央値を基準とし、基準値が 10K Token 以上かつ当日が 2.5× 以上の場合だけ表示します。旧形式の推定値は発火せず、モデル品質評価や請求アラートでもありません。
 - 🧭 **Config Health と公式 schema 変更センター**：OpenAI Codex リポジトリで生成された公式 schema を優先し、最後に信頼できた版を安全にキャッシュします。未知/将来フィールドは既定で保持し、十分に新しく信頼できる schema の場合だけ削除候補を提示し、削除前には確認とバックアップが必要です。ローカル Codex CLI の版と、公式 schema 間の追加・削除・構造変更フィールドも表示します。
 - 📊 **プロジェクト使用量・傾向・参考コスト**：ローカル Codex rollout JSONL を読み取り専用で分析し、7 日 / 30 日 / 全期間、モデル/Reasoning、ルート/サブ Agent、日次/モデル別傾向、Agent 分析、観測可能な reroute 履歴、最近のプロジェクト概要、版管理された参考コストを表示します。旧形式のみのデータは推定と明示し、未知モデルの価格は推測しません。すべて best-effort のローカルテレメトリであり、請求データではありません。
@@ -92,6 +96,7 @@
 
 ## 한국어
 
+- 🧾 **Release 빌드 출처 증명**: 정식 릴리스는 최종 설치 파일, 업데이트 서명, `latest.json`, `SHA256SUMS.txt`에 GitHub artifact attestation을 생성합니다. `gh attestation verify <file> --repo While-Shark/codex-config-studio`로 해당 파일이 이 저장소의 Release workflow에서 만들어졌는지 검증할 수 있습니다. 이 provenance는 Windows/macOS 플랫폼 서명 및 Tauri updater 서명과 독립적이며 서로 보완합니다.
 - 📈 **설명 가능한 사용량 이상 힌트**: 프로젝트 사용량 화면에서 뚜렷한 일별 Token 급증을 표시합니다. 정확한 응답 데이터만 사용하며 이전 활성일이 최소 3일 필요합니다. 최근 최대 7개의 정확한 활성일 중앙값을 기준으로, 기준이 10K Token 이상이고 당일이 2.5× 이상일 때만 표시합니다. 구형 추정 데이터는 경고를 만들지 않으며 모델 품질 평가나 청구 경고가 아닙니다.
 - 🧭 **Config Health 및 권위 schema 변경 센터**: OpenAI Codex 저장소에서 생성된 권위 있는 schema를 우선 사용하고 마지막으로 신뢰한 버전을 안전하게 캐시합니다. 알 수 없거나 미래의 필드는 기본 보존하며, 충분히 최신이고 신뢰 가능한 schema에서만 정리 후보를 제시하고 제거 전 확인과 백업을 요구합니다. 로컬 Codex CLI 버전과 권위 schema 사이의 추가/삭제/구조 변경 필드도 표시합니다.
 - 📊 **프로젝트 사용량, 추세 및 참고 비용**: 로컬 Codex rollout JSONL을 읽기 전용으로 분석해 7일 / 30일 / 전체 기간, 모델/Reasoning, 루트/서브 Agent, 일별/모델별 추세, Agent 분석, 관찰 가능한 reroute 기록, 최근 프로젝트 개요, 버전이 있는 참고 비용을 제공합니다. 구형 형식 데이터는 추정값으로 명시하며 알 수 없는 모델 가격은 추측하지 않습니다. 모든 값은 best-effort 로컬 텔레메트리이며 청구 데이터가 아닙니다.
