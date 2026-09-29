@@ -97,7 +97,7 @@ Model Integrity는 범위의 유효 `model` 및 `model_reasoning_effort`를 잠�
 | Linux x64 | `.AppImage` + `.deb` |
 | macOS Universal | `.dmg`, Apple Silicon / Intel 지원 |
 
-> macOS CI 빌드는 현재 서명 및 notarization이 적용되지 않았습니다. 테스트에는 사용할 수 있지만 공개 배포에는 Apple 서명/공증을 권장합니다.
+> 정식 Release 워크플로는 저장소 서명 자격 증명이 설정된 경우 Windows Authenticode와 macOS Developer ID + notarization을 선택적으로 활성화할 수 있습니다. 모든 정식 Release 파일에는 GitHub build provenance도 생성되며 `gh attestation verify <file> --repo While-Shark/codex-config-studio`로 출처를 검증할 수 있습니다.
 
 ## 로컬 개발
 

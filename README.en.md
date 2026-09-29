@@ -109,7 +109,7 @@ Download installers from **[GitHub Releases](https://github.com/While-Shark/code
 | Linux x64 | `.AppImage` + `.deb` |
 | macOS Universal | `.dmg`, supports Apple Silicon and Intel |
 
-> macOS CI builds are currently unsigned and not notarized. They are suitable for testing; public distribution should add Apple signing and notarization.
+> The formal Release workflow supports optional Windows Authenticode and macOS Developer ID + notarization when repository signing credentials are configured. Every formal Release file also receives GitHub build provenance and can be verified with `gh attestation verify <file> --repo While-Shark/codex-config-studio`.
 
 ## Local development
 

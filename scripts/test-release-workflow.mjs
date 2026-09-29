@@ -78,3 +78,21 @@ test('release workflow verifies and cleans Windows Authenticode signing material
   assert.ok(workflow.includes('Remove-Item "Cert:\\CurrentUser\\My\\$thumbprint"'));
   assert.match(workflow, /codex-config-studio-signing\.pfx/);
 });
+
+
+test('publish job grants only the permissions required for GitHub artifact attestations', () => {
+  assert.match(workflow, /publish:[\s\S]*permissions:[\s\S]*contents: write/);
+  assert.match(workflow, /publish:[\s\S]*id-token: write/);
+  assert.match(workflow, /publish:[\s\S]*attestations: write/);
+  assert.match(workflow, /publish:[\s\S]*artifact-metadata: write/);
+});
+
+test('release workflow attests the final collected release files before publishing', () => {
+  assert.match(workflow, /Attest release build provenance/);
+  assert.match(workflow, /uses: actions\/attest@v4/);
+  assert.match(workflow, /subject-path: release-files\/\*/);
+  const collect = workflow.indexOf('Collect release files and checksums');
+  const attest = workflow.indexOf('Attest release build provenance');
+  const publish = workflow.indexOf('Create or update GitHub Release');
+  assert.ok(collect >= 0 && attest > collect && publish > attest, 'attestation must cover final release files before publishing');
+});
