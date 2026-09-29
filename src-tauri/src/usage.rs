@@ -1025,7 +1025,7 @@ mod tests {
             r#"{"timestamp":"2026-09-26T01:00:01Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"tiered","thread_settings":{"model":"gpt-6-luna","model_provider_id":"openai","approval_policy":"never","approvals_reviewer":"user","permission_profile":{"file_system":{"type":"read_only"},"network":{"enabled":false}},"cwd":"/work/demo","reasoning_effort":"high","collaboration_mode":{"mode":"default"},"disabled_plugin_ids":[]}}}"#,
             r#"{"timestamp":"2026-09-26T01:00:02Z","type":"turn_context","payload":{"turn_id":"t1","cwd":"/work/demo","model":"gpt-6-luna","effort":"high"}}"#,
             r#"{"timestamp":"2026-09-26T01:00:03Z","type":"token_usage_record","payload":{"thread_id":"tiered","turn_id":"t1","session_id":"tiered","root_turn_id":"t1","response_id":"standard","usage":{"input_tokens":90,"cached_input_tokens":0,"output_tokens":10,"reasoning_output_tokens":0,"total_tokens":100}}}"#,
-            r#"{"timestamp":"2026-09-26T01:00:04Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"tiered","thread_settings":{"model":"gpt-6-luna","model_provider_id":"openai","service_tier":"fast","approval_policy":"never","approvals_reviewer":"user","permission_profile":{"file_system":{"type":"read_only"},"network":{"enabled":false}},"cwd":"/work/demo","reasoning_effort":"high","collaboration_mode":{"mode":"default"},"disabled_plugin_ids":[]}}}"#,
+            r#"{"timestamp":"2026-09-26T01:00:04Z","type":"event_msg","payload":{"type":"thread_settings_applied","thread_id":"tiered","thread_settings":{"model":"gpt-6-luna","model_provider_id":"openai","service_tier":"priority","approval_policy":"never","approvals_reviewer":"user","permission_profile":{"file_system":{"type":"read_only"},"network":{"enabled":false}},"cwd":"/work/demo","reasoning_effort":"high","collaboration_mode":{"mode":"default"},"disabled_plugin_ids":[]}}}"#,
             r#"{"timestamp":"2026-09-26T01:00:05Z","type":"turn_context","payload":{"turn_id":"t2","cwd":"/work/demo","model":"gpt-6-luna","effort":"high"}}"#,
             r#"{"timestamp":"2026-09-26T01:00:06Z","type":"token_usage_record","payload":{"thread_id":"tiered","turn_id":"t2","session_id":"tiered","root_turn_id":"t2","response_id":"fast","usage":{"input_tokens":180,"cached_input_tokens":0,"output_tokens":20,"reasoning_output_tokens":0,"total_tokens":200}}}"#,
         ].join("\n");
@@ -1033,10 +1033,10 @@ mod tests {
         assert_eq!(errors, 0);
         let session = builder.finish();
         assert!(session.service_tier_observed);
-        assert_eq!(session.last_service_tier.as_deref(), Some("fast"));
+        assert_eq!(session.last_service_tier.as_deref(), Some("priority"));
         assert_eq!(session.service_tiers.len(), 2);
         let standard = session.service_tiers.iter().find(|row| row.service_tier.is_none()).unwrap();
-        let fast = session.service_tiers.iter().find(|row| row.service_tier.as_deref() == Some("fast")).unwrap();
+        let fast = session.service_tiers.iter().find(|row| row.service_tier.as_deref() == Some("priority")).unwrap();
         assert_eq!(standard.responses, 1);
         assert_eq!(standard.usage.total_tokens, 100);
         assert_eq!(fast.responses, 1);
