@@ -22,7 +22,7 @@ import './history-tab.css';
 import { renderModelPicker, bindModelPickers, validateModelPickers } from './model-picker';
 import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog, reasoningLevelsForModel, reconcileReasoningLevelForModel, type OfficialModelCatalogEntry } from './model-catalog';
 import './model-picker.css';
-import { CURRENT_PRESET_VERSION, presetVersion, presetByReference, matchPresetVersion, presetSource, parsePresetSource, type PresetReference } from './preset-versions';
+import { CURRENT_PRESET_VERSION, GPT6_PRESET_VERSION, presetVersion, presetByReference, matchPresetVersion, presetSource, parsePresetSource, type PresetReference } from './preset-versions';
 import { renderPresetWorkspace, presetReferenceLabel } from './preset-version-view';
 import { presetVersionText } from './i18n/preset-versions';
 import './preset-versions.css';
@@ -96,7 +96,7 @@ const presets: Preset[] = [
   { id:'token-save', values:{model:'gpt-6-luna',modelReasoningEffort:'low',planModeReasoningEffort:'medium',agentsEnabled:false,defaultSubagentModel:null,defaultSubagentReasoningEffort:null,maxConcurrentThreadsPerSession:null}},
   { id:'economy', values:{model:'gpt-6-luna',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:false,defaultSubagentModel:null,defaultSubagentReasoningEffort:null,maxConcurrentThreadsPerSession:null}},
   { id:'daily', values:{model:'gpt-6-luna',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
-  { id:'balanced', values:{model:'gpt-6-sol',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
+  { id:'balanced', values:{model:'gpt-6.1-sol',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
   { id:'astra', values:{model:'gpt-6-astra',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
   { id:'max', values:{model:'gpt-6-astra',modelReasoningEffort:'xhigh',planModeReasoningEffort:'xhigh',agentsEnabled:true,defaultSubagentModel:'gpt-6-luna',defaultSubagentReasoningEffort:'high',maxConcurrentThreadsPerSession:3}},
 ];
@@ -764,7 +764,7 @@ function renderHistoryPage(host:HTMLElement):void {
   const navigation=`<div class="history-subtabs"><button data-history-view="projects" aria-pressed="${historyView==='projects'}" class="${historyView==='projects'?'active':''}">${ui.projectHistory}</button><button data-history-view="presets" aria-pressed="${historyView==='presets'}" class="${historyView==='presets'?'active':''}">${ui.presetHistory}</button></div>`;
   const bind=()=>host.querySelectorAll<HTMLButtonElement>('[data-history-view]').forEach(button=>button.onclick=()=>{
     historyView=button.dataset.historyView as 'projects'|'presets';
-    if(historyView==='presets')viewedPresetVersion='legacy-v0.4.0';
+    if(historyView==='presets')viewedPresetVersion=GPT6_PRESET_VERSION;
     renderHistoryPage(host);
   });
   if(historyView==='presets'){
