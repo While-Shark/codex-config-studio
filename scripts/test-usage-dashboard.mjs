@@ -55,6 +55,31 @@ test('daily trend merges same-day session usage and preserves legacy estimate fl
   assert.equal(trend[0].responses,1);assert.equal(trend[0].estimated,true);assert.equal(trend[0].share,1);
 });
 
+test('usage anomaly detection requires exact history and ignores estimates or tiny baselines',()=>{
+  const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
+  const exact=(day,total)=>({day,responses:1,usage:tokens(total),estimated:false});
+  const days=[
+    exact('2026-09-20',20_000),
+    exact('2026-09-21',22_000),
+    exact('2026-09-22',18_000),
+    exact('2026-09-23',21_000),
+    exact('2026-09-24',55_000),
+    {day:'2026-09-25',responses:0,usage:tokens(200_000),estimated:true},
+  ];
+  const anomalies=JSON.parse(JSON.stringify(usage.detectUsageAnomalies(days)));
+  assert.equal(anomalies.length,1);
+  assert.equal(anomalies[0].day,'2026-09-24');
+  assert.equal(anomalies[0].baselineTokens,20_500);
+  assert.equal(Number(anomalies[0].ratio.toFixed(3)),Number((55_000/20_500).toFixed(3)));
+
+  assert.deepEqual(JSON.parse(JSON.stringify(usage.detectUsageAnomalies([
+    exact('2026-09-20',1_000),exact('2026-09-21',1_100),exact('2026-09-22',900),exact('2026-09-23',10_000),
+  ]))),[]);
+  assert.deepEqual(JSON.parse(JSON.stringify(usage.detectUsageAnomalies([
+    exact('2026-09-20',20_000),exact('2026-09-21',21_000),exact('2026-09-22',60_000),
+  ]))),[]);
+});
+
 test('model trend keeps daily model shares separate and carries estimate flags',()=>{
   const tokens=(total)=>({inputTokens:total,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:total});
   const report={source:'x',filesScanned:1,filesMatched:1,parseErrors:0,skippedLargeFiles:0,truncated:false,sessions:[
