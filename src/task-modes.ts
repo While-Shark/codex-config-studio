@@ -2,9 +2,10 @@ export type TaskModeId = 'quick-fix' | 'daily' | 'complex' | 'architecture';
 export type TaskPreference = { model: string; reasoning: string };
 
 // Shared by the main-model, sub-agent and current-task selectors.
-// Latest family first; keep legacy IDs available without migrating saved preferences.
-// IDs: https://openai.com/index/introducing-gpt-6-sol-and-luna/
+// Latest official Codex models first; keep legacy IDs available without migrating saved preferences.
+// Live source: https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json
 export const commonTaskModels = [
+  'gpt-6.1-sol',
   'gpt-6-sol',
   'gpt-6-astra',
   'gpt-6-luna',
@@ -19,7 +20,7 @@ export const taskModeIds: TaskModeId[] = ['quick-fix', 'daily', 'complex', 'arch
 export const defaultTaskPreferences: Record<TaskModeId, TaskPreference> = {
   'quick-fix': { model: 'gpt-6-luna', reasoning: 'low' },
   daily: { model: 'gpt-6-luna', reasoning: 'medium' },
-  complex: { model: 'gpt-6-sol', reasoning: 'high' },
+  complex: { model: 'gpt-6.1-sol', reasoning: 'high' },
   architecture: { model: 'gpt-6-astra', reasoning: 'high' },
 };
 
