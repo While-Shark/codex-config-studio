@@ -105,6 +105,8 @@ jobs:
   build:
     needs: prepare
     name: build-${{ matrix.name }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
