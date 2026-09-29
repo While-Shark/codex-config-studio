@@ -1,5 +1,6 @@
 import { readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 export const RELEASE_ARTIFACT_RULES = [
   { label: 'Windows NSIS installer', suffix: '-setup.exe' },
@@ -44,7 +45,7 @@ export function verifyReleaseFiles(dirArg) {
   return Object.fromEntries(RELEASE_ARTIFACT_RULES.map(rule => [rule.label, selected.get(rule.suffix)]));
 }
 
-if (process.argv[1] && import.meta.url === new URL(`file://${resolve(process.argv[1])}`).href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const summary = verifyReleaseFiles(process.argv[2]);
   console.log('Verified release artifact set:');
   for (const [label, name] of Object.entries(summary)) console.log(`- ${label}: ${name}`);
