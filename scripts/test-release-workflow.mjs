@@ -9,6 +9,8 @@ const workflow = readFileSync(resolve(root, '.github/workflows/release.yml'), 'u
 
 test('release workflow keeps Apple platform signing optional but rejects partial configuration', () => {
   assert.match(workflow, /Prepare optional macOS Developer ID signing/);
+  assert.match(workflow, /REQUIRE_MACOS_SIGNING/);
+  assert.match(workflow, /REQUIRE_MACOS_SIGNING=true but Apple Developer signing\/notarization secrets are not configured/);
   assert.match(workflow, /APPLE_PLATFORM_SIGNING_ENABLED=false/);
   assert.match(workflow, /Apple Developer signing\/notarization is not configured; macOS artifacts remain unsigned/);
   assert.match(workflow, /APPLE_CERTIFICATE and APPLE_CERTIFICATE_PASSWORD must both be configured/);
