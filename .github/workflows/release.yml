@@ -494,6 +494,11 @@ jobs:
     needs: [prepare, build]
     name: publish-release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
 
     steps:
       - uses: actions/checkout@v7
@@ -527,6 +532,11 @@ jobs:
           test -n "$(find release-files -maxdepth 1 -type f -print -quit)"
           node scripts/build-updater-manifest.mjs release-files "${{ needs.prepare.outputs.version }}" "${{ needs.prepare.outputs.tag }}" "$GITHUB_REPOSITORY"
           (cd release-files && sha256sum * > SHA256SUMS.txt)
+
+      - name: Attest release build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: release-files/*
 
       - name: Build multilingual release notes
         shell: bash
