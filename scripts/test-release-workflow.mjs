@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const workflow = readFileSync(resolve(root, '.github/workflows/release.yml'), 'utf8');
+const workflow = readFileSync(resolve(root, '.github/workflows/release.yml'), 'utf8').replace(/\r\n/g, '\n');
 
 test('release workflow keeps Apple platform signing optional but rejects partial configuration', () => {
   assert.match(workflow, /Prepare optional macOS Developer ID signing/);
