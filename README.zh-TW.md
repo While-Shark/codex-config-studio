@@ -109,7 +109,7 @@ Built in:
 | Linux x64 | `.AppImage` + `.deb` |
 | macOS Universal | `.dmg`，同時支援 Apple Silicon 與 Intel |
 
-> macOS CI 目前未設定 Apple Developer 簽名與 notarization；測試建置可正常產生，正式公開發佈建議加入簽名與公證。
+> 正式 Release 工作流程已支援選用的 Windows Authenticode 與 macOS Developer ID + notarization；是否啟用取決於儲存庫簽名設定。所有正式 Release 檔案也會建立 GitHub build provenance，可用 `gh attestation verify <檔案> --repo While-Shark/codex-config-studio` 驗證來源。
 
 ## 本機開發
 
