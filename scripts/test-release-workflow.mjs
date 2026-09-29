@@ -47,3 +47,34 @@ test('release workflow verifies signed macOS apps and always cleans temporary si
   assert.match(workflow, /security delete-keychain/);
   assert.match(workflow, /AuthKey_\*\.p8/);
 });
+
+
+test('release workflow keeps Windows Authenticode optional but rejects partial or untimestamped configuration', () => {
+  assert.match(workflow, /Prepare optional Windows Authenticode signing/);
+  assert.match(workflow, /REQUIRE_WINDOWS_SIGNING/);
+  assert.match(workflow, /REQUIRE_WINDOWS_SIGNING=true but Windows Authenticode signing secrets are not configured/);
+  assert.match(workflow, /WINDOWS_PLATFORM_SIGNING_ENABLED=false/);
+  assert.match(workflow, /WINDOWS_CERTIFICATE and WINDOWS_CERTIFICATE_PASSWORD must both be configured/);
+  assert.match(workflow, /WINDOWS_TIMESTAMP_URL must be configured when Windows Authenticode signing is enabled/);
+});
+
+test('Windows signing derives Tauri config from the imported code-signing certificate', () => {
+  assert.match(workflow, /Import-PfxCertificate/);
+  assert.match(workflow, /1\.3\.6\.1\.5\.5\.7\.3\.3/);
+  assert.match(workflow, /certificateThumbprint = \$thumbprint/);
+  assert.match(workflow, /digestAlgorithm = 'sha256'/);
+  assert.match(workflow, /timestampUrl = \$env:WINDOWS_TIMESTAMP_URL/);
+  assert.match(workflow, /TAURI_CONFIG=\$windowsConfig/);
+});
+
+test('release workflow verifies and cleans Windows Authenticode signing material', () => {
+  assert.match(workflow, /Verify Windows Authenticode signature/);
+  assert.match(workflow, /Get-AuthenticodeSignature/);
+  assert.match(workflow, /signature\.Status -ne 'Valid'/);
+  assert.match(workflow, /signature\.SignerCertificate\.Thumbprint -ne \$env:WINDOWS_SIGNING_THUMBPRINT/);
+  assert.match(workflow, /signature\.TimeStamperCertificate/);
+  assert.match(workflow, /Cleanup Windows signing material/);
+  assert.match(workflow, /if: always\(\) && matrix\.name == 'windows-x64'/);
+  assert.ok(workflow.includes('Remove-Item "Cert:\\CurrentUser\\My\\$thumbprint"'));
+  assert.match(workflow, /codex-config-studio-signing\.pfx/);
+});
