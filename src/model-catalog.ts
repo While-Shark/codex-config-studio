@@ -2,6 +2,7 @@ export type OfficialModelCatalogEntry = {
   id: string;
   displayName: string;
   reasoningLevels: string[];
+  defaultReasoningLevel: string | null;
   priority: number;
   minimalClientVersion: string | null;
 };
@@ -61,6 +62,9 @@ export function parseOfficialModelCatalog(value: unknown): OfficialModelCatalogE
         ? raw.display_name.trim()
         : id,
       reasoningLevels: parseReasoningLevels(raw.supported_reasoning_levels),
+      defaultReasoningLevel: typeof raw.default_reasoning_level === 'string' && raw.default_reasoning_level.trim()
+        ? raw.default_reasoning_level.trim()
+        : null,
       priority,
       minimalClientVersion: typeof raw.minimal_client_version === 'string' && raw.minimal_client_version.trim()
         ? raw.minimal_client_version.trim()
@@ -80,6 +84,7 @@ function validCachedEntry(value: unknown): value is OfficialModelCatalogEntry {
     && typeof value.displayName === 'string'
     && Array.isArray(value.reasoningLevels)
     && value.reasoningLevels.every(level => typeof level === 'string')
+    && (value.defaultReasoningLevel === undefined || value.defaultReasoningLevel === null || typeof value.defaultReasoningLevel === 'string')
     && typeof value.priority === 'number'
     && Number.isFinite(value.priority)
     && (value.minimalClientVersion === null || typeof value.minimalClientVersion === 'string');
@@ -99,7 +104,10 @@ export function readCachedOfficialModelCatalog(): CachedModelCatalog | null {
       || parsed.entries.length === 0
     ) return null;
     return {
-      entries: parsed.entries,
+      entries: parsed.entries.map(entry => ({
+        ...entry,
+        defaultReasoningLevel: entry.defaultReasoningLevel ?? null,
+      })),
       fetchedAt: parsed.fetchedAt,
       sourceUrl: SOURCE_URL,
     };
@@ -162,6 +170,24 @@ export function reasoningLevelsForModel(
   const entry=officialEntries.find(item=>item.id===id);
   if(!entry||entry.reasoningLevels.length===0)return [...fallbackLevels];
   return [...entry.reasoningLevels];
+}
+
+export function reconcileReasoningLevelForModel(
+  model: string | null | undefined,
+  current: string | null,
+  officialEntries: readonly OfficialModelCatalogEntry[],
+  preserveUnset = false,
+): string | null {
+  if (current === null && preserveUnset) return null;
+  const id = model?.trim();
+  if (!id) return current;
+  const entry = officialEntries.find(item => item.id === id);
+  if (!entry || entry.reasoningLevels.length === 0) return current;
+  if (current && entry.reasoningLevels.includes(current)) return current;
+  if (entry.defaultReasoningLevel && entry.reasoningLevels.includes(entry.defaultReasoningLevel)) {
+    return entry.defaultReasoningLevel;
+  }
+  return entry.reasoningLevels[0] ?? current;
 }
 
 export async function loadOfficialModelCatalog(force = false): Promise<OfficialModelCatalogResult> {
