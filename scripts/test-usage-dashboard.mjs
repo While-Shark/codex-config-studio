@@ -202,7 +202,7 @@ test('priced Fast model without a documented multiplier is surfaced without inve
   );
   assert.equal(result.baseUsd,0.75);
   assert.equal(result.fastSurchargeUsd,0);
-  assert.deepEqual(result.unadjustedFastModels,['gpt-5.4-mini']);
+  assert.deepEqual(JSON.parse(JSON.stringify(result.unadjustedFastModels)),['gpt-5.4-mini']);
   assert.equal(result.isLowerBound,true);
 });
 
@@ -226,9 +226,9 @@ test('verified reference catalog exposes only documented Fast multipliers',()=>{
   assert.equal(pricing.fastMultiplierForModel('gpt-5.4'),2);
   assert.equal(pricing.fastMultiplierForModel('gpt-5.4-mini'),null);
   assert.equal(pricing.fastMultiplierForModel('gpt-5.2'),null);
-  assert.deepEqual(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-5.4-mini'],{input:0.75,cachedInput:0.075,output:4.5});
-  assert.deepEqual(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-5.2'],{input:1.75,cachedInput:0.175,output:14});
-  assert.deepEqual(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-daybreak-red-latest'],{input:12.5,cachedInput:1.25,output:75});
+  assert.deepEqual(JSON.parse(JSON.stringify(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-5.4-mini'])),{input:0.75,cachedInput:0.075,output:4.5});
+  assert.deepEqual(JSON.parse(JSON.stringify(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-5.2'])),{input:1.75,cachedInput:0.175,output:14});
+  assert.deepEqual(JSON.parse(JSON.stringify(pricing.CODEX_USD_REFERENCE_CATALOG.rates['gpt-daybreak-red-latest'])),{input:12.5,cachedInput:1.25,output:75});
 });
 
 test('reference pricing snapshot is versioned and staleness is deterministic',()=>{
