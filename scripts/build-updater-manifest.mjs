@@ -1,10 +1,12 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { verifyReleaseFiles } from './verify-release-files.mjs';
 
 const [dirArg, versionArg, tagArg, repoArg='While-Shark/codex-config-studio'] = process.argv.slice(2);
 if(!dirArg||!versionArg||!tagArg)throw new Error('Usage: node scripts/build-updater-manifest.mjs <dir> <version> <tag> [repo]');
 
 const dir=resolve(dirArg);
+verifyReleaseFiles(dir);
 const files=readdirSync(dir);
 const pick=(suffix)=>{
   const matches=files.filter(name=>name.endsWith(suffix));
