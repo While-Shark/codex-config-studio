@@ -160,3 +160,27 @@ test('formal release embeds updater trust while local builds stay disabled by de
   assert.match(workflow, /TAURI_UPDATER_PUBKEY: \$\{\{ secrets\.TAURI_UPDATER_PUBKEY \}\}/);
   assert.match(workflow, /TAURI_SIGNING_PRIVATE_KEY: \$\{\{ secrets\.TAURI_SIGNING_PRIVATE_KEY \}\}/);
 });
+
+
+test('release trigger branch can request a release without supplying build code', () => {
+  assert.match(workflow, /branches:\n      - release-trigger/);
+  assert.match(workflow, /paths:\n      - "\.release-trigger\/request\.txt"/);
+  assert.match(workflow, /refs\/heads\/release-trigger/);
+  assert.match(workflow, /release-trigger commits must use exactly: release: patch, release: minor, or release: major/);
+  assert.match(workflow, /"release: patch"\) bump="patch"/);
+  assert.match(workflow, /"release: minor"\) bump="minor"/);
+  assert.match(workflow, /"release: major"\) bump="major"/);
+});
+
+test('release trigger branch always builds current master and reuses normal safety gates', () => {
+  assert.match(
+    workflow,
+    /ref: \$\{\{ \(github\.event_name == 'workflow_dispatch' \|\| github\.ref == 'refs\/heads\/release-trigger'\) && 'master' \|\| github\.ref \}\}/,
+  );
+  assert.match(
+    workflow,
+    /if: github\.event_name == 'workflow_dispatch' \|\| github\.ref == 'refs\/heads\/release-trigger'/,
+  );
+  assert.match(workflow, /prepare-release\.mjs "\$\{\{ steps\.release-request\.outputs\.bump \}\}"/);
+  assert.match(workflow, /git push origin HEAD:master/);
+});
