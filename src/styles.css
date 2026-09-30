@@ -439,16 +439,16 @@ input::placeholder { color: var(--muted2); }
 .health-runtime { margin-top: 8px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel2); }
 .health-runtime span { font-family: var(--mono); font-size: 10px; color: var(--text); }
 .health-change-empty { margin-top: 8px; font-size: 10px; color: var(--muted2); }
-.schema-change-details ul { display: grid; gap: 5px; margin-top: 8px; padding: 0; list-style: none; }
-.schema-change-details li { display: grid; grid-template-columns: 18px minmax(0,1fr); gap: 6px; align-items: start; }
-.schema-change-details code { font-family: var(--mono); font-size: 10px; color: var(--text); overflow-wrap: anywhere; }
-.schema-change-details li > div { min-width: 0; }
-.schema-change-details li > div small { display: block; margin-top: 2px; color: var(--muted2); font-size: 9px; line-height: 1.45; overflow-wrap: anywhere; }
+.schema-change-details ul, .model-change-details ul { display: grid; gap: 5px; margin-top: 8px; padding: 0; list-style: none; }
+.schema-change-details li, .model-change-details li { display: grid; grid-template-columns: 18px minmax(0,1fr); gap: 6px; align-items: start; }
+.schema-change-details code, .model-change-details code { font-family: var(--mono); font-size: 10px; color: var(--text); overflow-wrap: anywhere; }
+.schema-change-details li > div, .model-change-details li > div { min-width: 0; }
+.schema-change-details li > div small, .model-change-details li > div small { display: block; margin-top: 2px; color: var(--muted2); font-size: 9px; line-height: 1.45; overflow-wrap: anywhere; }
 .schema-change-kind { font-family: var(--mono); font-weight: 800; font-size: 11px; text-align: center; }
 .schema-change-kind.added { color: var(--ok); }
 .schema-change-kind.removed { color: var(--danger); }
 .schema-change-kind.changed { color: var(--warning); }
-.schema-change-details > small { display: block; margin-top: 6px; color: var(--muted2); font-size: 9px; }
+.schema-change-details > small, .model-change-details > small { display: block; margin-top: 6px; color: var(--muted2); font-size: 9px; }
 
 
 .update-check-button { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
