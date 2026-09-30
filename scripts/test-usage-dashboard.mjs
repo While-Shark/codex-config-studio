@@ -133,7 +133,11 @@ test('agent role analysis groups sub-agent sessions without treating root sessio
   assert.equal(summary.agentRoles.length,2);
   assert.equal(summary.agentRoles[0].role,'worker');assert.equal(summary.agentRoles[0].sessions,2);
   assert.equal(summary.agentRoles[0].usage.totalTokens,100);assert.equal(summary.agentRoles[0].share,100/120);
+  assert.equal(summary.agentRoles[0].avgTokensPerSession,50);
+  assert.equal(summary.agentRoles[0].avgTokensPerTurn,50);
+  assert.equal(summary.agentRoles[0].avgTokensPerResponse,50);
   assert.equal(summary.agentRoles[1].role,'reviewer');assert.equal(summary.agentRoles[1].usage.totalTokens,20);
+  assert.equal(summary.agentRoles[1].avgTokensPerSession,20);
 });
 
 test('observable reroute timeline is sorted newest first and keeps session context',()=>{
