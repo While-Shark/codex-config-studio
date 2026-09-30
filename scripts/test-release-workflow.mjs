@@ -181,3 +181,10 @@ test('release trigger relay dispatches the formal workflow from master', () => {
   assert.match(releaseTriggerWorkflow, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.doesNotMatch(workflow, /release-trigger/);
 });
+
+
+test('macOS signing preflight stays compatible with the Bash version on GitHub macOS runners', () => {
+  assert.doesNotMatch(workflow, /\$\{REQUIRE_MACOS_SIGNING,,\}/);
+  assert.match(workflow, /require_macos_signing="\$\(printf '%s' "\$REQUIRE_MACOS_SIGNING" \| tr '\[:upper:\]' '\[:lower:\]'\)"/);
+  assert.match(workflow, /if \[ "\$require_macos_signing" = "true" \]; then/);
+});
