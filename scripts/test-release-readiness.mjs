@@ -6,7 +6,7 @@ test('release readiness keeps code-side checks green and secrets explicit',()=>{
   const result=releaseReadiness();
   assert.equal(result.version,'0.5.0');
   assert.equal(result.nextMinor,'0.6.0');
-  assert.equal(result.readyForDispatch,true);
+  assert.equal(result.readyForDispatch,true,JSON.stringify(result.checks,null,2));
   assert.ok(result.checks.length>=6);
   assert.ok(result.checks.every(item=>item.status==='ok'));
   assert.deepEqual(result.external.map(item=>item.name),[
