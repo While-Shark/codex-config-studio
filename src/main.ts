@@ -719,7 +719,7 @@ function renderConfigHealth():void {
   const changeSummary=changes.length
     ? `${copy.ruleChanges}: +${added} ${copy.fieldsAdded} · -${removed} ${copy.fieldsRemoved} · ~${changed} ${copy.fieldsChanged}`
     : copy.noRuleChanges;
-  const changeDetails=changes.slice(0,12).map(change=>`<li><span class="schema-change-kind ${change.kind}">${change.kind==='added'?'+':change.kind==='removed'?'-':'~'}</span><code>${esc(change.path)}</code></li>`).join('');
+  const changeDetails=changes.slice(0,12).map(change=>`<li><span class="schema-change-kind ${change.kind}">${change.kind==='added'?'+':change.kind==='removed'?'-':'~'}</span><div><code>${esc(change.path)}</code>${change.details?.length?`<small>${change.details.map(detail=>esc(detail)).join(' · ')}</small>`:''}</div></li>`).join('');
   const issueDetails=state.issues.map((issue,index)=>`<div class="health-issue">
     <div><strong>${esc(copy.unknown)}</strong><span>${esc(healthScopeLabel(issue.scopeKind))}</span></div>
     <code>${esc(issue.keyLabel)}</code>
