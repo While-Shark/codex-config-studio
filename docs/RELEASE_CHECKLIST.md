@@ -24,13 +24,29 @@ The formal Release workflow independently re-checks required updater secrets **b
 
 ## Dispatch v0.6.0
 
-From GitHub Actions, run the **Release** workflow from `master` with:
+Two equivalent dispatch paths are supported.
+
+### Manual GitHub Actions dispatch
+
+Run the **Release** workflow from `master` with:
 
 ```text
 bump = minor
 ```
 
-With the current `0.5.0` source version this resolves to `0.6.0`.
+### Automation trigger branch
+
+Automation clients that cannot call `workflow_dispatch` may push only `.release-trigger/request.txt` on the dedicated `release-trigger` branch and use one exact commit message:
+
+```text
+release: patch
+release: minor
+release: major
+```
+
+The trigger branch is a signal only. The Release workflow always checks out current `master` before version validation, mutation, build, signing, and publication. Changes elsewhere on `release-trigger` do not satisfy the path filter, and unrecognized commit messages fail before release mutation.
+
+With the current `0.5.0` source version, `release: minor` resolves to `0.6.0`.
 
 The prepare job must:
 
