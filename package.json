@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run test:preview && npm run test:history && npm run test:models && npm run test:presets && npm run test:workspace && npm run test:health && npm run test:environment && npm run test:integrity && npm run test:usage && npm run test:overview && npm run test:updates && npm run test:release-workflow && npm run test:release-files && npm run test:release-version && tsc && vite build",
+    "build": "npm run test:preview && npm run test:history && npm run test:models && npm run test:presets && npm run test:workspace && npm run test:health && npm run test:environment && npm run test:integrity && npm run test:usage && npm run test:overview && npm run test:updates && npm run test:release-workflow && npm run test:release-files && npm run test:release-version && npm run test:release-readiness && tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
@@ -24,7 +24,9 @@
     "test:release-workflow": "node --test scripts/test-release-workflow.mjs",
     "test:release-files": "node --test scripts/test-release-files.mjs",
     "test:release-version": "node --test scripts/test-release-version.mjs",
-    "test:environment": "node --test scripts/test-environment-status.mjs"
+    "test:environment": "node --test scripts/test-environment-status.mjs",
+    "release:check": "node scripts/release-readiness.mjs",
+    "test:release-readiness": "node --test scripts/test-release-readiness.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
