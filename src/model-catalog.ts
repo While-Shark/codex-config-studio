@@ -19,6 +19,18 @@ export type OfficialModelCatalogResult = {
   state: OfficialModelCatalogState;
 };
 
+export type ModelCatalogChange = {
+  kind: 'added' | 'removed' | 'changed';
+  model: string;
+  details: string[];
+};
+
+export type ModelCatalogChangeReport = {
+  fromFetchedAt: number;
+  toFetchedAt: number;
+  changes: ModelCatalogChange[];
+};
+
 type CachedModelCatalog = {
   entries: OfficialModelCatalogEntry[];
   fetchedAt: number;
@@ -27,6 +39,7 @@ type CachedModelCatalog = {
 
 const SOURCE_URL = 'https://raw.githubusercontent.com/openai/codex/main/codex-rs/models-manager/models.json';
 const CACHE_KEY = 'codex-config-studio.official-model-catalog.v1';
+const CHANGE_REPORT_KEY = 'codex-config-studio.official-model-catalog.changes.v1';
 const FRESH_MS = 24 * 60 * 60 * 1000;
 const MAX_RESPONSE_BYTES = 1_500_000;
 
@@ -114,6 +127,54 @@ export function readCachedOfficialModelCatalog(): CachedModelCatalog | null {
   } catch {
     return null;
   }
+}
+
+function sameStrings(left: readonly string[], right: readonly string[]): boolean {
+  return left.length===right.length&&left.every((value,index)=>value===right[index]);
+}
+
+export function compareOfficialModelCatalog(
+  previous: readonly OfficialModelCatalogEntry[],
+  current: readonly OfficialModelCatalogEntry[],
+): ModelCatalogChange[] {
+  const before=new Map(previous.map(entry=>[entry.id,entry]));
+  const after=new Map(current.map(entry=>[entry.id,entry]));
+  const changes:ModelCatalogChange[]=[];
+  for(const [id,entry] of after){
+    const old=before.get(id);
+    if(!old){
+      changes.push({kind:'added',model:id,details:[]});
+      continue;
+    }
+    const details:string[]=[];
+    if(!sameStrings(old.reasoningLevels,entry.reasoningLevels))details.push('reasoning levels changed');
+    if(old.defaultReasoningLevel!==entry.defaultReasoningLevel)details.push('default reasoning changed');
+    if(old.minimalClientVersion!==entry.minimalClientVersion)details.push('minimum client version changed');
+    if(details.length)changes.push({kind:'changed',model:id,details});
+  }
+  for(const id of before.keys())if(!after.has(id))changes.push({kind:'removed',model:id,details:[]});
+  return changes.sort((a,b)=>a.model.localeCompare(b.model)||a.kind.localeCompare(b.kind));
+}
+
+export function readOfficialModelCatalogChangeReport(): ModelCatalogChangeReport | null {
+  try{
+    const raw=localStorage.getItem(CHANGE_REPORT_KEY);
+    if(!raw)return null;
+    const parsed=JSON.parse(raw) as ModelCatalogChangeReport;
+    return parsed&&typeof parsed.fromFetchedAt==='number'&&typeof parsed.toFetchedAt==='number'&&Array.isArray(parsed.changes)?parsed:null;
+  }catch{return null;}
+}
+
+function storeChangeReport(previous:CachedModelCatalog|null,next:CachedModelCatalog):void {
+  if(!previous)return;
+  try{
+    const report:ModelCatalogChangeReport={
+      fromFetchedAt:previous.fetchedAt,
+      toFetchedAt:next.fetchedAt,
+      changes:compareOfficialModelCatalog(previous.entries,next.entries),
+    };
+    localStorage.setItem(CHANGE_REPORT_KEY,JSON.stringify(report));
+  }catch{/* optional local diagnostic cache */}
 }
 
 function writeCache(value: CachedModelCatalog): void {
@@ -281,7 +342,9 @@ export async function loadOfficialModelCatalog(force = false): Promise<OfficialM
   try {
     const entries = await fetchCatalog();
     const fetchedAt = Date.now();
-    writeCache({ entries, fetchedAt, sourceUrl: SOURCE_URL });
+    const next={ entries, fetchedAt, sourceUrl: SOURCE_URL };
+    storeChangeReport(cached,next);
+    writeCache(next);
     return {
       entries,
       state: {
