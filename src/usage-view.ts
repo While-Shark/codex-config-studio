@@ -181,6 +181,10 @@ export function renderUsageView(host: HTMLElement, options: UsageViewOptions): v
     ? '<div class="agent-role-list">' + summary.agentRoles.map(row =>
         '<div class="agent-role-row"><div><strong>' + esc(row.role === '__unclassified__' ? copy.uncategorizedAgent : row.role) +
         '</strong><small>' + row.sessions + ' ' + esc(copy.sessions) + ' · ' + row.turns + ' ' + esc(copy.turns) +
+        ' · ' + row.responses + ' ' + esc(copy.responses) + '</small><small>' +
+        esc(copy.avgPerSession) + ' ' + esc(formatTokens(row.avgTokensPerSession)) + ' · ' +
+        esc(copy.avgPerTurn) + ' ' + esc(formatTokens(row.avgTokensPerTurn)) + ' · ' +
+        esc(copy.avgPerResponse) + ' ' + esc(formatTokens(row.avgTokensPerResponse)) +
         '</small></div><div class="usage-bar"><i style="width:' + Math.max(1,Math.min(100,row.share*100)) +
         '%"></i></div><span>' + esc(formatTokens(row.usage.totalTokens)) + '</span><em>' + (row.share*100).toFixed(1) + '%</em></div>'
       ).join('') + '</div>'
