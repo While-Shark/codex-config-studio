@@ -421,6 +421,11 @@ input::placeholder { color: var(--muted2); }
 .overview-project-metrics > div { padding: 8px; border-radius: 9px; background: var(--panel3); min-width: 0; }
 .overview-project-metrics span { display: block; color: var(--muted2); font-size: 9px; }
 .overview-project-metrics strong { display: block; margin-top: 4px; font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.overview-agent-split { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+.overview-agent-split > div { padding: 8px; border: 1px solid var(--border); border-radius: 9px; background: var(--panel2); min-width: 0; }
+.overview-agent-split span { display: block; color: var(--muted2); font-size: 9px; }
+.overview-agent-split strong { display: block; margin-top: 4px; font-family: var(--mono); font-size: 11px; overflow-wrap: anywhere; }
+.overview-agent-split small { display: block; margin-top: 2px; color: var(--muted2); font-size: 8px; }
 .overview-project-detail { display: grid; gap: 6px; }
 .overview-project-detail p { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 8px; font-size: 10px; }
 .overview-project-detail p span { color: var(--muted); }
