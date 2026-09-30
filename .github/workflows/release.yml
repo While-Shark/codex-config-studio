@@ -12,6 +12,7 @@ on:
           - patch
           - minor
           - major
+          - current
   push:
     tags:
       - "v*"
@@ -68,7 +69,12 @@ jobs:
         id: auto-version
         shell: bash
         run: |
-          version=$(node scripts/prepare-release.mjs "${{ inputs.bump }}")
+          bump="${{ inputs.bump }}"
+          if [ "$bump" = "current" ]; then
+            version=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json','utf8')).version)")
+          else
+            version=$(node scripts/prepare-release.mjs "$bump")
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           npm ci
           npm run build
@@ -79,6 +85,10 @@ jobs:
         shell: bash
         run: |
           version="${{ steps.auto-version.outputs.version }}"
+          if [ "${{ inputs.bump }}" = "current" ]; then
+            echo "Current-version release requested for v${version}; no version commit is needed."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json
