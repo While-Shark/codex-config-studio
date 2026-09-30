@@ -6,6 +6,7 @@ import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const workflow = readFileSync(resolve(root, '.github/workflows/release.yml'), 'utf8').replace(/\r\n/g, '\n');
+const releaseTriggerWorkflow = readFileSync(resolve(root, '.github/workflows/release-trigger.yml'), 'utf8').replace(/\r\n/g, '\n');
 const updaterRust = readFileSync(resolve(root, 'src-tauri/src/updater.rs'), 'utf8').replace(/\r\n/g, '\n');
 const updaterPrepare = readFileSync(resolve(root, 'scripts/prepare-updater-build.mjs'), 'utf8').replace(/\r\n/g, '\n');
 const tauriConfig = JSON.parse(readFileSync(resolve(root, 'src-tauri/tauri.conf.json'), 'utf8'));
@@ -159,4 +160,24 @@ test('formal release embeds updater trust while local builds stay disabled by de
   assert.match(updaterPrepare, /createUpdaterArtifacts=true|createUpdaterArtifacts:true/);
   assert.match(workflow, /TAURI_UPDATER_PUBKEY: \$\{\{ secrets\.TAURI_UPDATER_PUBKEY \}\}/);
   assert.match(workflow, /TAURI_SIGNING_PRIVATE_KEY: \$\{\{ secrets\.TAURI_SIGNING_PRIVATE_KEY \}\}/);
+});
+
+
+test('release trigger branch uses a secretless relay with a narrow path filter', () => {
+  assert.match(releaseTriggerWorkflow, /branches:\n      - release-trigger/);
+  assert.match(releaseTriggerWorkflow, /paths:\n      - "\.release-trigger\/request\.txt"/);
+  assert.match(releaseTriggerWorkflow, /permissions:\n  contents: read\n  actions: write/);
+  assert.doesNotMatch(releaseTriggerWorkflow, /secrets\./);
+  assert.match(releaseTriggerWorkflow, /release-trigger commits must use exactly: release: patch, release: minor, or release: major/);
+  assert.match(releaseTriggerWorkflow, /"release: patch"\) bump="patch"/);
+  assert.match(releaseTriggerWorkflow, /"release: minor"\) bump="minor"/);
+  assert.match(releaseTriggerWorkflow, /"release: major"\) bump="major"/);
+});
+
+test('release trigger relay dispatches the formal workflow from master', () => {
+  assert.match(releaseTriggerWorkflow, /gh workflow run release\.yml/);
+  assert.match(releaseTriggerWorkflow, /--ref master/);
+  assert.match(releaseTriggerWorkflow, /-f bump="\$BUMP"/);
+  assert.match(releaseTriggerWorkflow, /GH_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.doesNotMatch(workflow, /release-trigger/);
 });
