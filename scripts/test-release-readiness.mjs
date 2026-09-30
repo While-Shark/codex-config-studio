@@ -4,7 +4,7 @@ import { releaseReadiness } from './release-readiness.mjs';
 
 test('release readiness keeps code-side checks green and secrets explicit',()=>{
   const result=releaseReadiness();
-  assert.match(result.version,/^\\d+\\.\\d+\\.\\d+$/);
+  assert.match(result.version,/^\d+\.\d+\.\d+$/);
   const [major,minor]=result.version.split('.').map(Number);
   assert.equal(result.nextMinor,String(major)+'.'+String(minor+1)+'.0');
   assert.equal(result.readyForDispatch,true,JSON.stringify(result.checks,null,2));
