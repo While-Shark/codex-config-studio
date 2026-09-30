@@ -6,7 +6,7 @@ export type SchemaState = {
   error: string | null;
   canWarnUnknown: boolean;
 };
-export type SchemaChange = { kind:'added'|'removed'|'changed'; path:string };
+export type SchemaChange = { kind:'added'|'removed'|'changed'; path:string; details?: string[] };
 export type SchemaChangeReport = { fromFetchedAt:number|null; toFetchedAt:number; changes:SchemaChange[] };
 export type HealthCopy = {
   title: string; healthy: string; loading: string; unavailable: string; stale: string; fresh: string;
@@ -66,8 +66,9 @@ function schemaFingerprint(value:unknown):string {
   if(!isRecord(value))return JSON.stringify(value)??String(value);
   return '{'+Object.keys(value).sort().filter(key=>!['description','markdownDescription','title','$schema'].includes(key)).map(key=>JSON.stringify(key)+':'+schemaFingerprint(value[key])).join(',')+'}';
 }
-function collectDeclaredFields(root:Record<string,unknown>):Map<string,string> {
-  const output=new Map<string,string>(),seen=new Set<unknown>();
+type DeclaredField = { fingerprint:string; node:Record<string,unknown> };
+function collectDeclaredFields(root:Record<string,unknown>):Map<string,DeclaredField> {
+  const output=new Map<string,DeclaredField>(),seen=new Set<unknown>();
   const visit=(node:unknown,prefix:string)=>{
     const resolved=dereference(root,node);
     if(!isRecord(resolved)||seen.has(resolved))return;
@@ -75,7 +76,8 @@ function collectDeclaredFields(root:Record<string,unknown>):Map<string,string> {
     const properties=isRecord(resolved.properties)?resolved.properties:null;
     if(properties)for(const [key,child] of Object.entries(properties)){
       const path=prefix?prefix+'.'+key:key;
-      output.set(path,schemaFingerprint(dereference(root,child)));
+      const resolvedChild=dereference(root,child);
+      if(isRecord(resolvedChild))output.set(path,{fingerprint:schemaFingerprint(resolvedChild),node:resolvedChild});
       visit(child,path);
     }
     seen.delete(resolved);
@@ -83,12 +85,31 @@ function collectDeclaredFields(root:Record<string,unknown>):Map<string,string> {
   visit(root,'');
   return output;
 }
+function compactValue(value:unknown):string {
+  const text=JSON.stringify(value);
+  if(text===undefined)return 'unset';
+  return text.length>120?text.slice(0,117)+'…':text;
+}
+function changedFieldDetails(before:Record<string,unknown>,after:Record<string,unknown>):string[] {
+  const details:string[]=[];
+  for(const key of ['type','default','enum','required'] as const){
+    const a=before[key],b=after[key];
+    if(schemaFingerprint(a)===schemaFingerprint(b))continue;
+    if(key==='type')details.push('type: '+compactValue(a)+' → '+compactValue(b));
+    else if(key==='default')details.push('default: '+compactValue(a)+' → '+compactValue(b));
+    else if(key==='enum')details.push('enum changed');
+    else details.push('required fields changed');
+  }
+  if(details.length===0)details.push('validation rules changed');
+  return details;
+}
 export function compareSchemas(previous:unknown,current:unknown):SchemaChange[] {
   if(!isSchemaDocument(previous)||!isSchemaDocument(current))return [];
   const before=collectDeclaredFields(previous),after=collectDeclaredFields(current),changes:SchemaChange[]=[];
-  for(const [path,fingerprint] of after){
-    if(!before.has(path))changes.push({kind:'added',path});
-    else if(before.get(path)!==fingerprint)changes.push({kind:'changed',path});
+  for(const [path,item] of after){
+    const previousItem=before.get(path);
+    if(!previousItem)changes.push({kind:'added',path});
+    else if(previousItem.fingerprint!==item.fingerprint)changes.push({kind:'changed',path,details:changedFieldDetails(previousItem.node,item.node)});
   }
   for(const path of before.keys())if(!after.has(path))changes.push({kind:'removed',path});
   return changes.sort((a,b)=>a.path.localeCompare(b.path)||a.kind.localeCompare(b.kind));
