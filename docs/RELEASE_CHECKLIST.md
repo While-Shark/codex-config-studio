@@ -42,7 +42,10 @@ Automation clients that cannot call `workflow_dispatch` may push only `.release-
 release: patch
 release: minor
 release: major
+release: current
 ```
+
+`release: current` is reserved for resuming a release after the version bump has already been committed but a later build/publish stage failed. It rebuilds the current semantic version without another version mutation.
 
 The trigger branch is a signal only. A separate **Release Trigger** relay runs without repository secrets, validates the exact commit message, and dispatches the formal **Release** workflow from `master`. Signing secrets are exposed only to the formal master workflow. Changes elsewhere on `release-trigger` do not satisfy the path filter, and unrecognized commit messages never dispatch a release.
 
