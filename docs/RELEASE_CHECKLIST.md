@@ -6,7 +6,7 @@ Use this checklist for the first formal release that includes the signed in-app 
 
 - `master` is green on the latest Nightly workflow.
 - Run `node scripts/check-release-version.mjs`; every release version source must still agree on the current version.
-- Confirm `RELEASE_NOTES.md` includes the GPT-6.1 Sol, model-aware Reasoning, client compatibility, usage/cost, release integrity, and updater bootstrap notes.
+- Confirm `RELEASE_NOTES.md` includes GPT-6.1 Sol, model-aware Reasoning, client compatibility, environment status, schema-diff details, agent/project usage insights, usage/cost, release integrity, and updater bootstrap notes.
 - The required updater secrets exist:
   - `TAURI_SIGNING_PRIVATE_KEY`
   - `TAURI_UPDATER_PUBKEY`
