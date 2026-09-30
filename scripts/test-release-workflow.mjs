@@ -7,6 +7,16 @@ import { dirname, resolve } from 'node:path';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const workflow = readFileSync(resolve(root, '.github/workflows/release.yml'), 'utf8').replace(/\r\n/g, '\n');
 
+test('required updater secrets are validated before release version mutation', () => {
+  const check=workflow.indexOf('Verify required updater signing secrets before release mutation');
+  const privateKey=workflow.indexOf('Missing TAURI_SIGNING_PRIVATE_KEY; refusing to bump the release version.');
+  const publicKey=workflow.indexOf('Missing TAURI_UPDATER_PUBKEY; refusing to bump the release version.');
+  const bump=workflow.indexOf('Prepare automatic version bump');
+  const commit=workflow.indexOf('Commit release version');
+  assert.ok(check>=0&&privateKey>check&&publicKey>check,'updater secret preflight is missing');
+  assert.ok(bump>check&&commit>bump,'required updater secrets must be checked before bump/push');
+});
+
 test('release verifies version consistency before any automatic bump', () => {
   const verify=workflow.indexOf('Verify release version sources');
   const command=workflow.indexOf('node scripts/check-release-version.mjs');
