@@ -1012,6 +1012,7 @@ async function refreshOfficialModelCatalog():Promise<void> {
     const result=await loadOfficialModelCatalog();
     officialModelEntries=result.entries;
     selectableModels=mergeModelCatalogIds(commonTaskModels,result.entries);
+    renderConfigHealth();
   } catch(error) {
     console.warn('official model catalog',error);
   }
