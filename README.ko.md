@@ -83,7 +83,7 @@ Model Integrity는 범위의 유효 `model` 및 `model_reasoning_effort`를 잠�
 | Token 절약 | GPT-6 Luna / low | 작은 수정, 일괄 치환, 명확한 작업 |
 | Economy | GPT-6 Luna / medium | CRUD, 프론트 수정, 일반 API |
 | Daily | GPT-6 Luna + GPT-6 Luna | 대부분의 일상 개발 |
-| Balanced | GPT-6 Sol + GPT-6 Luna | 다중 파일 기능, 리팩터링, 연동 |
+| Balanced | GPT-6.1 Sol + GPT-6 Luna | 다중 파일 기능, 리팩터링, 연동 |
 | Astra Director | GPT-6 Astra + GPT-6 Luna | Astra 계획/Review, Luna 실행 |
 | Max Quality | GPT-6 Astra xhigh + GPT-6 Luna high | 어려운 Bug, 대규모 리팩터링, 출시 전 Review |
 
@@ -133,9 +133,9 @@ bash ./run-dev.sh
 
 ## 프로필 버전
 
-**GPT-6 / v0.4.0**
+**GPT-6.1 / GPT-6 (v0.5.0) / v0.4.0**
 
-현재 추천은 GPT-6를 사용합니다. 이전 프로필은 기록에 완전히 보존됩니다. 버전을 살펴보는 것만으로 설정이 변경되지는 않습니다.
+현재 Balanced/복잡한 작업에는 GPT-6.1 Sol을 추천합니다. GPT-6(v0.5.0)와 이전 v0.4.0 프로필은 변경되지 않는 기록 스냅샷으로 보존되며, 버전을 살펴보는 것만으로 설정이 바뀌지 않습니다.
 
 보관된 스냅샷은 원래 모델, 사고 수준 및 서브 Agent 설정을 유지하며 새 추천값으로 덮어쓰지 않습니다.
 

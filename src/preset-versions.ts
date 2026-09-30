@@ -1,3 +1,4 @@
+import { gpt6PresetSnapshot } from './presets/gpt6-v0.5.0.js';
 import { legacyPresetSnapshot } from './presets/legacy-v0.4.0.js';
 
 export type PresetValues = {
@@ -14,12 +15,14 @@ export type PresetReference = { versionId: string; presetId: string };
 export type PresetVersion = {
   id: string; label: string; date: string; archived: boolean; family: string;
 };
-export const CURRENT_PRESET_VERSION = 'gpt6-2026-09-23';
+export const CURRENT_PRESET_VERSION = 'gpt6.1-2026-09-30';
+export const GPT6_PRESET_VERSION = 'gpt6-2026-09-23';
 export const LEGACY_PRESET_VERSION = 'legacy-v0.4.0';
 
 /** Append new revisions; never edit the snapshots already shipped to users. */
 export const presetVersions: readonly Readonly<PresetVersion>[] = Object.freeze([
-  Object.freeze({ id: CURRENT_PRESET_VERSION, label: 'GPT-6', date: '2026-09-23', archived: false, family: 'GPT-6 Luna / Sol / Astra' }),
+  Object.freeze({ id: CURRENT_PRESET_VERSION, label: 'GPT-6.1', date: '2026-09-30', archived: false, family: 'GPT-6.1 Sol / GPT-6 Luna / GPT-6 Astra' }),
+  Object.freeze({ id: GPT6_PRESET_VERSION, label: 'GPT-6', date: '2026-09-23', archived: true, family: 'GPT-6 Luna / Sol / Astra' }),
   Object.freeze({ id: LEGACY_PRESET_VERSION, label: 'v0.4.0', date: '2026-09-21', archived: true, family: 'GPT-5.6 Luna / Terra / Sol · GPT-6 Astra' }),
 ]);
 
@@ -28,6 +31,7 @@ export function presetVersion(id: string): Readonly<PresetVersion> | undefined {
 }
 export function versionPresets(current: readonly PresetDefinition[], versionId: string): readonly PresetDefinition[] {
   if (versionId === CURRENT_PRESET_VERSION) return current;
+  if (versionId === GPT6_PRESET_VERSION) return gpt6PresetSnapshot.presets;
   if (versionId === LEGACY_PRESET_VERSION) return legacyPresetSnapshot.presets;
   throw new Error(`Unknown preset version: ${versionId}`);
 }
@@ -46,8 +50,13 @@ export function matchPresetVersion(current: readonly PresetDefinition[], values:
 
 /** Archived descriptions must not change when translations of the current presets change. */
 export function archivedPresetDescription(versionId: string, locale: string, presetId: string): string | undefined {
-  if (versionId !== LEGACY_PRESET_VERSION) return undefined;
-  const descriptions = legacyPresetSnapshot.descriptions as Record<string, Record<string, string>>;
+  const snapshot = versionId === GPT6_PRESET_VERSION
+    ? gpt6PresetSnapshot
+    : versionId === LEGACY_PRESET_VERSION
+      ? legacyPresetSnapshot
+      : null;
+  if (!snapshot) return undefined;
+  const descriptions = snapshot.descriptions as Record<string, Record<string, string>>;
   return (descriptions[locale] ?? descriptions.en)?.[presetId];
 }
 export function presetSource(reference: PresetReference | null): string {
