@@ -307,8 +307,9 @@ jobs:
             fi
           done
 
+          require_macos_signing="$(printf '%s' "$REQUIRE_MACOS_SIGNING" | tr '[:upper:]' '[:lower:]')"
           if [ "$any_apple_secret" = false ]; then
-            if [ "${REQUIRE_MACOS_SIGNING,,}" = "true" ]; then
+            if [ "$require_macos_signing" = "true" ]; then
               echo "::error::REQUIRE_MACOS_SIGNING=true but Apple Developer signing/notarization secrets are not configured."
               exit 1
             fi
