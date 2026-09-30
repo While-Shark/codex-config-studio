@@ -6,6 +6,9 @@ import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const workflow = readFileSync(resolve(root, '.github/workflows/release.yml'), 'utf8').replace(/\r\n/g, '\n');
+const updaterRust = readFileSync(resolve(root, 'src-tauri/src/updater.rs'), 'utf8').replace(/\r\n/g, '\n');
+const updaterPrepare = readFileSync(resolve(root, 'scripts/prepare-updater-build.mjs'), 'utf8').replace(/\r\n/g, '\n');
+const tauriConfig = JSON.parse(readFileSync(resolve(root, 'src-tauri/tauri.conf.json'), 'utf8'));
 
 test('required updater secrets are validated before release version mutation', () => {
   const check=workflow.indexOf('Verify required updater signing secrets before release mutation');
@@ -143,4 +146,17 @@ test('tag-driven releases must point to a commit reachable from master', () => {
   assert.match(workflow, /git fetch origin master --no-tags/);
   assert.match(workflow, /git merge-base --is-ancestor "\$commit_sha" origin\/master/);
   assert.match(workflow, /Release commit \$commit_sha is not reachable from origin\/master/);
+});
+
+
+test('formal release embeds updater trust while local builds stay disabled by default', () => {
+  assert.equal(tauriConfig.plugins?.updater?.pubkey, '');
+  assert.match(updaterRust, /option_env!\("TAURI_UPDATER_PUBKEY"\)/);
+  assert.match(updaterRust, /builder\.pubkey\(pubkey\)\.build\(\)/);
+  assert.match(updaterRust, /Signed updater is not enabled in this build/);
+  assert.match(updaterPrepare, /TAURI_UPDATER_PUBKEY is required for signed release builds/);
+  assert.match(updaterPrepare, /TAURI_SIGNING_PRIVATE_KEY is required for signed release builds/);
+  assert.match(updaterPrepare, /createUpdaterArtifacts=true|createUpdaterArtifacts:true/);
+  assert.match(workflow, /TAURI_UPDATER_PUBKEY: \$\{\{ secrets\.TAURI_UPDATER_PUBKEY \}\}/);
+  assert.match(workflow, /TAURI_SIGNING_PRIVATE_KEY: \$\{\{ secrets\.TAURI_SIGNING_PRIVATE_KEY \}\}/);
 });
