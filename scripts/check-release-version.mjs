@@ -7,14 +7,14 @@ function readJson(path) {
 }
 
 function packageVersionFromCargo(path) {
-  const text = readFileSync(path, 'utf8');
+  const text = readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
   const match = text.match(/\[package\][\s\S]*?\nversion\s*=\s*"([^"]+)"/);
   if (!match) throw new Error(`Could not read package version from ${path}`);
   return match[1];
 }
 
 function packageVersionFromCargoLock(path) {
-  const text = readFileSync(path, 'utf8');
+  const text = readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
   const match = text.match(/\[\[package\]\]\nname = "codex-config-studio"\nversion = "([^"]+)"/);
   if (!match) throw new Error(`Could not read codex-config-studio version from ${path}`);
   return match[1];
