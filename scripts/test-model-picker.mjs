@@ -243,6 +243,34 @@ test('reasoning refresh reconciles only when an explicit model change requests i
   assert.equal(calls[0].preserveUnset, false);
 });
 
+test('client compatibility warnings use effective models, dedupe IDs and stay read-only', () => {
+  const calls=[];
+  const context={
+    values:{...pending,model:null,defaultSubagentModel:null,agentsEnabled:null},
+    scope:'project',
+    globalSnapshot:{values:{...pending,model:'gpt-6.1-sol',defaultSubagentModel:'gpt-6.1-sol',agentsEnabled:true}},
+    configHealthState:{runtime:{installed:true,version:'0.152.0'}},
+    officialModelEntries:[{id:'gpt-6.1-sol',minimalClientVersion:'0.153.0'}],
+    modelClientCompatibility:(model,version,entries)=>{
+      calls.push({model,version,entries});
+      return {model,installedVersion:version,minimalClientVersion:'0.153.0',status:'too-old'};
+    },
+  };
+  const code=['effectiveDraftModel','effectiveDraftAgentsEnabled','modelClientWarnings'].map(appFunction).join('\n');
+  const warnings=runInNewContext(code+'\nmodelClientWarnings();',context);
+  assert.equal(warnings.length,1);
+  assert.equal(warnings[0].model,'gpt-6.1-sol');
+  assert.equal(calls.length,1);
+
+  context.values={...pending,model:'gpt-6.1-sol',defaultSubagentModel:'gpt-other',agentsEnabled:false};
+  const disabled=runInNewContext(code+'\nmodelClientWarnings();',context);
+  assert.deepEqual(JSON.parse(JSON.stringify(disabled.map(item=>item.model))),['gpt-6.1-sol']);
+
+  context.configHealthState={runtime:{installed:false,version:null}};
+  const absent=runInNewContext(code+'\nmodelClientWarnings();',context);
+  assert.equal(absent.length,0);
+});
+
 test('actual form reading does not reset reasoning inheritance or unrelated agent settings', () => {
   const form = { ...pending, model: 'new/custom-model' };
   const context = { values: {}, document: { querySelector: selector => ({

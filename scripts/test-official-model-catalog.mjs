@@ -88,6 +88,28 @@ test('reasoning choices follow official model capabilities with safe fallbacks',
   assert.deepEqual(fallback, ['low','medium','high','xhigh','persistent']);
 });
 
+test('Codex client version comparison handles stable, prerelease and malformed values', () => {
+  assert.equal(catalog.compareCodexVersions('0.153.0','0.153.0'),0);
+  assert.equal(catalog.compareCodexVersions('0.152.9','0.153.0'),-1);
+  assert.equal(catalog.compareCodexVersions('0.154','0.153.0'),1);
+  assert.equal(catalog.compareCodexVersions('v1.2.3-beta.1','1.2.3'),-1);
+  assert.equal(catalog.compareCodexVersions('1.2.3','1.2.3-beta.9'),1);
+  assert.equal(catalog.compareCodexVersions('not-a-version','0.153.0'),null);
+});
+
+test('model client compatibility warns only when official minimum metadata is actionable', () => {
+  const entries=[
+    {id:'gpt-6.1-sol',displayName:'GPT-6.1 Sol',reasoningLevels:['low','medium'],defaultReasoningLevel:'low',priority:1,minimalClientVersion:'0.153.0'},
+    {id:'provider/custom',displayName:'Custom',reasoningLevels:[],defaultReasoningLevel:null,priority:2,minimalClientVersion:null},
+  ];
+  assert.equal(catalog.modelClientCompatibility('gpt-6.1-sol','0.152.9',entries).status,'too-old');
+  assert.equal(catalog.modelClientCompatibility('gpt-6.1-sol','0.153.0',entries).status,'compatible');
+  assert.equal(catalog.modelClientCompatibility('gpt-6.1-sol','development-build',entries).status,'unknown');
+  assert.equal(catalog.modelClientCompatibility('provider/custom','0.100.0',entries),null);
+  assert.equal(catalog.modelClientCompatibility('missing','0.100.0',entries),null);
+  assert.equal(catalog.modelClientCompatibility('gpt-6.1-sol',null,entries),null);
+});
+
 test('reasoning reconciliation uses the official default only for incompatible explicit model changes', () => {
   const entries = [
     { id: 'gpt-a', displayName: 'A', reasoningLevels: ['low','high','xhigh'], defaultReasoningLevel: 'high', priority: 1, minimalClientVersion: null },

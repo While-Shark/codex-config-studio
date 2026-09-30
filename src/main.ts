@@ -20,7 +20,7 @@ import './config-preview.css';
 import { historyText, filterHistoryEntries, renderHistoryEntries } from './history-tab';
 import './history-tab.css';
 import { renderModelPicker, bindModelPickers, validateModelPickers } from './model-picker';
-import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog, reasoningLevelsForModel, reconcileReasoningLevelForModel, type OfficialModelCatalogEntry } from './model-catalog';
+import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog, reasoningLevelsForModel, reconcileReasoningLevelForModel, modelClientCompatibility, type OfficialModelCatalogEntry, type ModelClientCompatibility } from './model-catalog';
 import './model-picker.css';
 import { CURRENT_PRESET_VERSION, GPT6_PRESET_VERSION, presetVersion, presetByReference, matchPresetVersion, presetSource, parsePresetSource, type PresetReference } from './preset-versions';
 import { renderPresetWorkspace, presetReferenceLabel } from './preset-version-view';
@@ -537,7 +537,7 @@ async function loadGlobalIntegritySnapshot():Promise<void> {
   globalIntegrityLoading=true;
   try{
     const snapshot=await safeInvoke<ConfigSnapshot>('read_config',{scope:{kind:'global',projectPath:null}},6000);
-    if(scope==='project'){globalSnapshot=snapshot;renderModelIntegrity();}
+    if(scope==='project'){globalSnapshot=snapshot;renderModelIntegrity();renderConfigHealth();}
   }catch(error){console.warn('model integrity global config',error);}
   finally{globalIntegrityLoading=false;}
 }
@@ -646,6 +646,36 @@ function healthStatusLine(inspection:ConfigHealthState['global'], kind:'global'|
   if(!inspection.validToml) return `${copy.invalidToml}: ${inspection.parseError??''}`;
   return `${kind==='global'?copy.globalValid:copy.projectValid} · ${inspection.managedFieldCount} ${copy.managed}`;
 }
+function effectiveDraftModel(field:'model'|'defaultSubagentModel'):string|null {
+  const local=values[field];
+  if(local!==null)return local;
+  return scope==='project'?(globalSnapshot?.values[field]??null):null;
+}
+function effectiveDraftAgentsEnabled():boolean|null {
+  if(values.agentsEnabled!==null)return values.agentsEnabled;
+  return scope==='project'?(globalSnapshot?.values.agentsEnabled??null):null;
+}
+function modelClientWarnings():ModelClientCompatibility[] {
+  const runtime=configHealthState?.runtime;
+  if(!runtime?.installed||!runtime.version)return[];
+  const models=[effectiveDraftModel('model')];
+  if(effectiveDraftAgentsEnabled()!==false)models.push(effectiveDraftModel('defaultSubagentModel'));
+  const seen=new Set<string>(),warnings:ModelClientCompatibility[]=[];
+  for(const model of models){
+    const id=model?.trim();if(!id||seen.has(id))continue;seen.add(id);
+    const compatibility=modelClientCompatibility(id,runtime.version,officialModelEntries);
+    if(compatibility?.status==='too-old')warnings.push(compatibility);
+  }
+  return warnings;
+}
+function renderClientCompatibilityWarning(copy:ReturnType<typeof healthText>,warning:ModelClientCompatibility):string {
+  const text=copy.modelClientTooOld
+    .replace('{model}',warning.model)
+    .replace('{minimum}',warning.minimalClientVersion)
+    .replace('{installed}',warning.installedVersion);
+  return `<p class="integrity-state warn">⚠ ${esc(text)}</p>`;
+}
+
 function renderConfigHealth():void {
   const host=document.querySelector<HTMLElement>('#healthCard');if(!host)return;
   const copy=healthText(getLocale());
@@ -661,6 +691,8 @@ function renderConfigHealth():void {
   const state=configHealthState;
   const schemaText=state.schema.status==='fresh'?copy.fresh:state.schema.status==='stale'?copy.stale:copy.unavailable;
   const issueCount=state.issues.length;
+  const clientWarnings=modelClientWarnings();
+  const warningCount=issueCount+clientWarnings.length;
   const runtimeText=state.runtime?.installed
     ? `${copy.codexVersion}: ${state.runtime.version??state.runtime.rawVersion??'—'}`
     : copy.codexMissing;
@@ -680,9 +712,10 @@ function renderConfigHealth():void {
     ${issue.removable?`<button class="text-button danger-text" data-health-remove="${index}">${copy.remove}</button>`:''}
   </div>`).join('');
   const rows=[state.global?healthStatusLine(state.global,'global'):'',state.project?healthStatusLine(state.project,'project'):''].filter(Boolean);
-  host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${copy.title}</h3><span class="health-status-dot ${issueCount?'warn':'ok'}"></span></div>
-    <div class="health-summary">${rows.map(row=>`<p>${esc(row)}</p>`).join('')}<p class="${issueCount?'warning-text':'ok-text'}">${issueCount?`⚠ ${issueCount} ${copy.issues}`:`✓ ${copy.healthy}`}</p></div>
+  host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${copy.title}</h3><span class="health-status-dot ${warningCount?'warn':'ok'}"></span></div>
+    <div class="health-summary">${rows.map(row=>`<p>${esc(row)}</p>`).join('')}<p class="${warningCount?'warning-text':'ok-text'}">${warningCount?`⚠ ${warningCount} ${copy.issues}`:`✓ ${copy.healthy}`}</p></div>
     <div class="health-runtime"><span>${esc(runtimeText)}</span></div>
+    ${clientWarnings.map(warning=>renderClientCompatibilityWarning(copy,warning)).join('')}
     <details class="health-details" ${issueCount?'':'hidden'}><summary>${copy.viewProblems}</summary>${issueDetails}</details>
     <details class="health-details schema-change-details" ${changes.length?'':'hidden'}><summary>${esc(changeSummary)}</summary><ul>${changeDetails}</ul>${changes.length>12?`<small>+${changes.length-12}</small>`:''}</details>
     ${changes.length?'' : `<p class="health-change-empty">${esc(changeSummary)}</p>`}
@@ -979,6 +1012,7 @@ async function refreshOfficialModelCatalog():Promise<void> {
     const result=await loadOfficialModelCatalog();
     officialModelEntries=result.entries;
     selectableModels=mergeModelCatalogIds(commonTaskModels,result.entries);
+    renderConfigHealth();
   } catch(error) {
     console.warn('official model catalog',error);
   }
