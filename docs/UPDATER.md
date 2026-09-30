@@ -1,5 +1,7 @@
 # Signed updater maintenance
 
+For the first signed-updater formal release, follow [`RELEASE_CHECKLIST.md`](./RELEASE_CHECKLIST.md).
+
 Codex Config Studio keeps normal local/Nightly builds independent from updater signing. Only the formal Release workflow requires updater signing secrets.
 
 ## One-time key setup
