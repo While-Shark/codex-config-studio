@@ -5,6 +5,10 @@
 - 🧠 **GPT-6.1 Sol 与方案版本化**：均衡方案和“复杂问题”默认升级到 GPT-6.1 Sol；GPT-6（v0.5.0）与 v0.4.0 方案继续作为不可变历史快照保留。浏览历史方案不会改写当前配置，已有项目也不会被自动迁移。
 - 🎚️ **按模型能力约束 Reasoning**：已知官方模型只展示 Codex 官方 `models.json` 声明支持的思考等级。读取旧配置或自定义模型时继续保留原值；只有用户主动切换到已知官方模型且旧等级不兼容时，才使用该模型官方默认 Reasoning，避免生成新的无效组合。
 - 🧩 **Codex 客户端兼容性提示**：Config Health 会读取官方模型目录中的 `minimal_client_version`，把当前主模型/子 Agent 与本机 Codex CLI 版本比较。客户端过旧时只显示只读警告，不隐藏模型、不阻止保存、不自动升级 Codex，也不改写配置。
+- 🩺 **环境状态中心**：Config Health 现在统一展示 Codex CLI、官方配置 Schema、官方模型目录与签名 Updater 的状态，并区分最新、缓存/较旧与不可用，附带最近更新时间；这些状态均为只读诊断。
+- 🔎 **Schema 规则级差异解释**：官方 Schema 更新后，变更字段不仅显示 `+ / - / ~`，还会进一步说明类型、默认值、枚举、required 或其他校验规则发生了什么变化；未知/未来字段仍默认保留，不会自动删除。
+- 📐 **Agent 效率指标**：Agent 分析新增每角色平均 Token/会话、平均 Token/轮次、平均 Token/响应，用于观察资源消耗结构；这些数值不被解释为质量评分。
+- 🧭 **项目级 Agent 摘要**：项目总览直接显示 Root Agent 与 Sub-agent 的 Token 和会话分布，并继续支持一键进入项目用量详情页；该摘要复用现有单次 rollout 扫描，不额外重复扫描项目历史。
 
 - ⚡ **Service Tier 遥测与 Fast 参考成本**：本机 rollout 中已持久化的 thread settings 现在会作为 service tier 证据；精确响应按“模型 × tier”归因。当前 Codex 的 `priority` 识别为 Fast，并仅在官方费率明确提供模型倍率时计入 Fast 附加成本。缺少 tier 证据、Flex/未知 tier 或 Fast 倍率不明确时会标记为近似值；不会猜测长上下文、区域处理或未知模型价格。
 - 🤖 **官方模型目录自动刷新**：主模型、默认子 Agent 和当前任务的候选模型会读取 OpenAI Codex 官方 `models.json`，仅采用官方标记为可列出的模型，并按官方优先级排序。本机缓存 24 小时；离线或刷新失败时继续使用最近缓存与内置兼容列表。不会自动迁移已有配置、任务偏好、历史、Preset 或自定义模型 ID。
@@ -36,6 +40,10 @@
 - 🧠 **GPT-6.1 Sol 與方案版本化**：均衡方案與「複雜問題」預設升級為 GPT-6.1 Sol；GPT-6（v0.5.0）與 v0.4.0 方案繼續以不可變歷史快照保留。瀏覽歷史方案不會改寫目前設定，既有專案也不會被自動遷移。
 - 🎚️ **依模型能力限制 Reasoning**：已知官方模型只顯示 Codex 官方 `models.json` 宣告支援的思考等級。讀取舊設定或自訂模型時仍保留原值；只有使用者主動切換到已知官方模型且舊等級不相容時，才使用該模型的官方預設 Reasoning，避免產生新的無效組合。
 - 🧩 **Codex 用戶端相容性提示**：Config Health 會讀取官方模型目錄中的 `minimal_client_version`，把目前主模型/子 Agent 與本機 Codex CLI 版本比較。用戶端過舊時只顯示唯讀警告，不會隱藏模型、阻止儲存、自動升級 Codex 或改寫設定。
+- 🩺 **環境狀態中心**：Config Health 現在統一顯示 Codex CLI、官方設定 Schema、官方模型目錄與簽名 Updater 狀態，區分最新、快取/較舊與無法使用，並顯示最近更新時間；所有狀態都只是唯讀診斷。
+- 🔎 **Schema 規則級差異說明**：官方 Schema 更新後，變更欄位除了 `+ / - / ~`，還會進一步說明型別、預設值、列舉、required 或其他驗證規則的變化；未知/未來欄位仍預設保留，不會自動刪除。
+- 📐 **Agent 效率指標**：Agent 分析新增每角色平均 Token/工作階段、平均 Token/輪次、平均 Token/回應，用於觀察資源消耗結構；這些數值不會被解讀為品質評分。
+- 🧭 **專案級 Agent 摘要**：專案總覽直接顯示 Root Agent 與 Sub-agent 的 Token 和工作階段分布，並可一鍵進入專案用量詳情；摘要重用既有單次 rollout 掃描，不會額外重複掃描歷史。
 
 - ⚡ **Service Tier 遙測與 Fast 參考成本**：本機 rollout 中已持久化的 thread settings 現在會作為 service tier 證據；精確回應依「模型 × tier」歸屬。目前 Codex 的 `priority` 會識別為 Fast，且只有官方費率明確提供模型倍率時才計入 Fast 附加成本。缺少 tier 證據、Flex/未知 tier 或 Fast 倍率不明時會標記為近似值；不會猜測長上下文、區域處理或未知模型價格。
 - 🤖 **官方模型目錄自動更新**：主模型、預設子 Agent 與目前任務的候選模型會讀取 OpenAI Codex 官方 `models.json`，只採用官方標記為可列出的模型，並依官方優先順序排列。本機快取 24 小時；離線或更新失敗時繼續使用最近快取與內建相容清單。不會自動遷移既有設定、任務偏好、歷史、Preset 或自訂模型 ID。
@@ -64,6 +72,10 @@
 - 🧠 **GPT-6.1 Sol and versioned profiles**: Balanced and Complex Problem defaults now use GPT-6.1 Sol. The GPT-6 (v0.5.0) and v0.4.0 profile sets remain immutable archive snapshots. Browsing archived profiles never rewrites current configuration, and existing projects are not migrated automatically.
 - 🎚️ **Model-aware Reasoning choices**: Known official models now expose only the reasoning levels declared by Codex `models.json`. Existing/custom values remain intact when loading configuration; only an explicit switch to a known official model reconciles an incompatible value to that model's official default, avoiding newly created invalid combinations.
 - 🧩 **Codex client compatibility warnings**: Config Health reads `minimal_client_version` from the official model catalog and compares effective main/sub-agent models with the detected local Codex CLI version. An older client gets a read-only warning only—models are not hidden, Apply is not blocked, Codex is not upgraded automatically, and configuration is not rewritten.
+- 🩺 **Environment status center**: Config Health now presents Codex CLI, the official config schema, the official model catalog, and signed-updater readiness in one place, distinguishing current, cached/stale, and unavailable states with last-updated timestamps. All of this is read-only diagnostics.
+- 🔎 **Rule-level schema diff explanations**: Changed official schema fields no longer stop at `+ / - / ~`; the UI explains type, default, enum, required-field, or other validation-rule changes. Unknown/future config remains preserved by default and is never removed automatically.
+- 📐 **Agent efficiency metrics**: Agent analysis now includes average tokens per session, turn, and response for each role. These are resource-consumption metrics only, not model- or agent-quality scores.
+- 🧭 **Project-level agent summary**: Project cards now show Root Agent versus Sub-agent token and session splits before opening the detailed usage view. The summary reuses the existing single rollout scan rather than adding another per-project history scan.
 
 - ⚡ **Service-tier telemetry and Fast reference cost**: Durable thread-settings events in local rollout history now provide service-tier evidence, with exact responses attributed by model × tier. Current Codex `priority` is recognized as Fast, and a Fast surcharge is applied only when the official rate card documents a model-specific multiplier. Missing tier evidence, Flex/unknown tiers, or undocumented Fast multipliers keep the result approximate; long-context, regional-processing, and unknown-model pricing are never guessed.
 - 🤖 **Official model-catalog refresh**: Main-model, default sub-agent, and Current Task choices now read the official OpenAI Codex `models.json` catalog, accept only models marked visible for listing, and follow official priority ordering. The catalog is cached locally for 24 hours; offline/failed refreshes keep the latest cache and built-in compatibility list. Existing configuration, task preferences, history, presets, and custom model IDs are never migrated automatically.
@@ -95,6 +107,10 @@
 - 🧠 **GPT-6.1 Sol とプロファイルの版管理**：Balanced と「複雑な問題」の既定値を GPT-6.1 Sol に更新しました。GPT-6（v0.5.0）と v0.4.0 は不変の履歴スナップショットとして保持します。履歴プロファイルを閲覧しても現在の設定は書き換えず、既存プロジェクトも自動移行しません。
 - 🎚️ **モデル能力に応じた Reasoning**：既知の公式モデルでは Codex 公式 `models.json` が宣言する思考レベルだけを表示します。既存設定やカスタムモデルの値は読み込み時に保持し、既知の公式モデルへ明示的に切り替えたときだけ、非対応の値をそのモデルの公式既定 Reasoning に調整します。
 - 🧩 **Codex クライアント互換性警告**：Config Health は公式モデルカタログの `minimal_client_version` を読み、現在のメイン/サブ Agent とローカル Codex CLI の版を比較します。古いクライアントには読み取り専用の警告だけを表示し、モデル非表示、保存停止、自動アップグレード、設定書き換えは行いません。
+- 🩺 **環境ステータスセンター**：Config Health に Codex CLI、公式設定 Schema、公式モデルカタログ、署名付き Updater の状態をまとめ、最新・キャッシュ/古い・利用不可を区別し、最終更新時刻も表示します。すべて読み取り専用の診断です。
+- 🔎 **Schema ルール差分の説明**：公式 Schema 更新時、変更フィールドは `+ / - / ~` だけでなく、型・既定値・enum・required・その他検証ルールの変化まで表示します。未知/将来フィールドは引き続き既定で保持し、自動削除しません。
+- 📐 **Agent 効率メトリクス**：Agent 分析にロール別の平均 Token/セッション、平均 Token/ターン、平均 Token/応答を追加しました。これは資源消費の観測値であり、品質スコアではありません。
+- 🧭 **プロジェクト別 Agent 要約**：プロジェクト概要カードで Root Agent / Sub-agent の Token とセッション比率を確認してから詳細使用量へ移動できます。既存の単一 rollout 走査を再利用し、追加の履歴走査は行いません。
 
 - ⚡ **Service Tier テレメトリと Fast 参考コスト**：ローカル rollout に永続化された thread settings を service tier 証拠として使い、正確な応答を「モデル × tier」で帰属します。現在の Codex の `priority` は Fast として認識し、公式レートカードにモデル別倍率が明記されている場合だけ Fast 追加コストを反映します。tier 証拠不足、Flex/未知 tier、倍率不明の場合は概算扱いとし、長文脈・地域処理・未知モデル価格は推測しません。
 - 🤖 **公式モデルカタログの自動更新**：メインモデル、既定のサブ Agent、現在のタスクの候補を OpenAI Codex 公式 `models.json` から取得し、公式に一覧表示対象とされたモデルだけを優先順位どおりに使用します。24 時間ローカルキャッシュし、オフライン時や更新失敗時は最新キャッシュと内蔵互換リストを継続使用します。既存設定、タスク設定、履歴、Preset、カスタムモデル ID は自動移行しません。
@@ -123,6 +139,10 @@
 - 🧠 **GPT-6.1 Sol 및 버전형 프로필**: Balanced와 복잡한 문제 기본값을 GPT-6.1 Sol로 업그레이드했습니다. GPT-6(v0.5.0)와 v0.4.0 프로필은 변경되지 않는 기록 스냅샷으로 계속 보존합니다. 기록 프로필을 탐색해도 현재 설정을 다시 쓰지 않으며 기존 프로젝트를 자동 마이그레이션하지 않습니다.
 - 🎚️ **모델 능력 기반 Reasoning 선택**: 알려진 공식 모델에는 Codex 공식 `models.json`이 지원한다고 선언한 사고 수준만 표시합니다. 기존 설정과 사용자 지정 모델 값은 읽을 때 그대로 유지하며, 사용자가 알려진 공식 모델로 명시적으로 전환했고 기존 수준이 호환되지 않을 때만 해당 모델의 공식 기본 Reasoning으로 조정합니다.
 - 🧩 **Codex 클라이언트 호환성 경고**: Config Health가 공식 모델 카탈로그의 `minimal_client_version`을 읽고 현재 메인/서브 Agent 모델과 로컬 Codex CLI 버전을 비교합니다. 클라이언트가 오래된 경우 읽기 전용 경고만 표시하며, 모델을 숨기거나 Apply를 막거나 Codex를 자동 업그레이드하거나 설정을 다시 쓰지 않습니다.
+- 🩺 **환경 상태 센터**: Config Health에서 Codex CLI, 공식 설정 Schema, 공식 모델 카탈로그, 서명 Updater 상태를 한곳에 표시하고 최신, 캐시/오래됨, 사용 불가를 구분하며 최근 업데이트 시각도 제공합니다. 모두 읽기 전용 진단입니다.
+- 🔎 **Schema 규칙 수준 변경 설명**: 공식 Schema가 바뀌면 `+ / - / ~`만 보여주지 않고 타입, 기본값, enum, required 또는 기타 검증 규칙의 변경 내용까지 설명합니다. 알 수 없거나 미래에 추가될 필드는 계속 기본 보존하며 자동 삭제하지 않습니다.
+- 📐 **Agent 효율 지표**: Agent 분석에 역할별 평균 Token/세션, 평균 Token/턴, 평균 Token/응답을 추가했습니다. 이는 자원 사용 구조를 보는 지표이며 품질 점수가 아닙니다.
+- 🧭 **프로젝트별 Agent 요약**: 프로젝트 개요 카드에서 Root Agent와 Sub-agent의 Token 및 세션 분포를 바로 확인한 뒤 상세 사용량으로 이동할 수 있습니다. 기존 단일 rollout 스캔을 재사용하며 프로젝트별 추가 재스캔은 하지 않습니다.
 
 - ⚡ **Service Tier 텔레메트리와 Fast 참고 비용**: 로컬 rollout에 영구 저장된 thread settings를 service tier 증거로 사용하고 정확한 응답을 모델 × tier로 귀속합니다. 현재 Codex의 `priority`를 Fast로 인식하며 공식 요금표에 모델별 배율이 명시된 경우에만 Fast 추가 비용을 반영합니다. tier 증거 부족, Flex/알 수 없는 tier, 배율 미확인 상태는 근사값으로 처리하며 장문맥·지역 처리·알 수 없는 모델 가격은 추측하지 않습니다.
 - 🤖 **공식 모델 카탈로그 자동 새로고침**: 메인 모델, 기본 서브 Agent, 현재 작업의 모델 후보를 OpenAI Codex 공식 `models.json`에서 읽고 공식적으로 목록 표시가 허용된 모델만 우선순위에 따라 사용합니다. 24시간 로컬 캐시하며 오프라인이나 새로고침 실패 시 최근 캐시와 내장 호환 목록을 계속 사용합니다. 기존 설정, 작업 선호, 기록, Preset, 사용자 지정 모델 ID는 자동 마이그레이션하지 않습니다.
