@@ -20,7 +20,7 @@ import './config-preview.css';
 import { historyText, filterHistoryEntries, renderHistoryEntries } from './history-tab';
 import './history-tab.css';
 import { renderModelPicker, bindModelPickers, validateModelPickers } from './model-picker';
-import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog, reasoningLevelsForModel, reconcileReasoningLevelForModel, modelClientCompatibility, type OfficialModelCatalogEntry, type ModelClientCompatibility } from './model-catalog';
+import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog, reasoningLevelsForModel, reconcileReasoningLevelForModel, modelClientCompatibility, type OfficialModelCatalogEntry, type OfficialModelCatalogState, type ModelClientCompatibility } from './model-catalog';
 import './model-picker.css';
 import { CURRENT_PRESET_VERSION, GPT6_PRESET_VERSION, presetVersion, presetByReference, matchPresetVersion, presetSource, parsePresetSource, type PresetReference } from './preset-versions';
 import { renderPresetWorkspace, presetReferenceLabel } from './preset-version-view';
@@ -50,6 +50,7 @@ import { renderUsageView } from './usage-view';
 import { recentProjectsFromHistory, type ProjectsUsageOverviewReport, type RecentProject } from './project-overview';
 import { renderProjectOverviewView } from './project-overview-view';
 import { checkStableUpdate, installSignedUpdate, openStableReleasePage, signedUpdaterEnabled, updateText, type UpdateState } from './update-checker';
+import { environmentStatusRows, environmentText } from './environment-status';
 
 type ScopeKind = 'global' | 'project';
 type WorkspaceTab = 'overview' | 'presets' | 'task' | 'advanced' | 'usage' | 'history';
@@ -142,9 +143,15 @@ let configHealthLoading = false;
 let configHealthRequestId = 0;
 let updateState: UpdateState = {status:'idle'};
 let updateRequestId = 0;
-let signedUpdaterReady = false;
+let signedUpdaterReady: boolean | null = null;
 const cachedOfficialModelCatalog = readCachedOfficialModelCatalog();
 let officialModelEntries: OfficialModelCatalogEntry[] = cachedOfficialModelCatalog?.entries ?? [];
+let officialModelCatalogState: OfficialModelCatalogState | null = cachedOfficialModelCatalog ? {
+  status: 'fresh',
+  sourceUrl: cachedOfficialModelCatalog.sourceUrl,
+  fetchedAt: cachedOfficialModelCatalog.fetchedAt,
+  error: null,
+} : null;
 let selectableModels = mergeModelCatalogIds(commonTaskModels, officialModelEntries);
 let confirmResolver: ((value: boolean) => void) | null = null;
 let themeMode = (safeGet('codex-config-studio.theme.mode') as ThemeMode | null) ?? 'system';
@@ -261,11 +268,11 @@ async function runUpdateCheck(silent=false):Promise<void> {
       title:copy.available,
       message:`${copy.currentVersion}: ${next.currentVersion}\n${copy.latestVersion}: ${next.latestVersion}`,
       detail:next.notes||undefined,
-      confirmText:signedUpdaterReady?copy.install:copy.openRelease,
+      confirmText:signedUpdaterReady===true?copy.install:copy.openRelease,
       readOnly:true,
     });
     if(proceed){
-      if(signedUpdaterReady){
+      if(signedUpdaterReady===true){
         toast(copy.installing);
         try{await installSignedUpdate();}
         catch(error){
@@ -693,9 +700,18 @@ function renderConfigHealth():void {
   const issueCount=state.issues.length;
   const clientWarnings=modelClientWarnings();
   const warningCount=issueCount+clientWarnings.length;
-  const runtimeText=state.runtime?.installed
-    ? `${copy.codexVersion}: ${state.runtime.version??state.runtime.rawVersion??'—'}`
-    : copy.codexMissing;
+  const environmentCopy=environmentText(getLocale());
+  const environmentRows=environmentStatusRows({
+    locale:getLocale(),
+    runtime:state.runtime,
+    schema:state.schema,
+    modelCatalog:officialModelCatalogState,
+    signedUpdaterReady,
+  });
+  const environmentHtml=environmentRows.map(row=>`<div class="environment-row ${row.status}">
+    <span>${esc(row.label)}</span>
+    <div><strong>${esc(row.value)}</strong>${row.detail?`<small>${esc(row.detail)}</small>`:''}</div>
+  </div>`).join('');
   const changes=state.schemaChanges?.changes??[];
   const added=changes.filter(change=>change.kind==='added').length;
   const removed=changes.filter(change=>change.kind==='removed').length;
@@ -714,7 +730,7 @@ function renderConfigHealth():void {
   const rows=[state.global?healthStatusLine(state.global,'global'):'',state.project?healthStatusLine(state.project,'project'):''].filter(Boolean);
   host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${copy.title}</h3><span class="health-status-dot ${warningCount?'warn':'ok'}"></span></div>
     <div class="health-summary">${rows.map(row=>`<p>${esc(row)}</p>`).join('')}<p class="${warningCount?'warning-text':'ok-text'}">${warningCount?`⚠ ${warningCount} ${copy.issues}`:`✓ ${copy.healthy}`}</p></div>
-    <div class="health-runtime"><span>${esc(runtimeText)}</span></div>
+    <details class="environment-status" open><summary>${esc(environmentCopy.title)}</summary><div class="environment-grid">${environmentHtml}</div></details>
     ${clientWarnings.map(warning=>renderClientCompatibilityWarning(copy,warning)).join('')}
     <details class="health-details" ${issueCount?'':'hidden'}><summary>${copy.viewProblems}</summary>${issueDetails}</details>
     <details class="health-details schema-change-details" ${changes.length?'':'hidden'}><summary>${esc(changeSummary)}</summary><ul>${changeDetails}</ul>${changes.length>12?`<small>+${changes.length-12}</small>`:''}</details>
@@ -1011,6 +1027,7 @@ async function refreshOfficialModelCatalog():Promise<void> {
   try {
     const result=await loadOfficialModelCatalog();
     officialModelEntries=result.entries;
+    officialModelCatalogState=result.state;
     selectableModels=mergeModelCatalogIds(commonTaskModels,result.entries);
     renderConfigHealth();
   } catch(error) {
@@ -1021,4 +1038,4 @@ async function refreshOfficialModelCatalog():Promise<void> {
 document.documentElement.lang=getLocale();
 applyTheme();
 renderApp();
-Promise.all([loadConfig(),loadHistory(),signedUpdaterEnabled().then(enabled=>{signedUpdaterReady=enabled;}),runUpdateCheck(true),refreshOfficialModelCatalog()]);
+Promise.all([loadConfig(),loadHistory(),signedUpdaterEnabled().then(enabled=>{signedUpdaterReady=enabled;renderConfigHealth();}),runUpdateCheck(true),refreshOfficialModelCatalog()]);
