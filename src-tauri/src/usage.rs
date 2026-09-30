@@ -142,6 +142,10 @@ pub(crate) struct ProjectUsageOverview {
     pub responses: u64,
     pub usage: UsageTokens,
     pub models: Vec<ModelUsage>,
+    pub root_sessions: usize,
+    pub subagent_sessions: usize,
+    pub root_tokens: i64,
+    pub subagent_tokens: i64,
     pub reroutes: usize,
 }
 
@@ -762,6 +766,10 @@ struct OverviewAccumulator {
     responses: u64,
     usage: UsageTokens,
     models: BTreeMap<(String, Option<String>), (u64, UsageTokens)>,
+    root_sessions: usize,
+    subagent_sessions: usize,
+    root_tokens: i64,
+    subagent_tokens: i64,
     reroutes: usize,
 }
 
@@ -771,6 +779,13 @@ impl OverviewAccumulator {
         self.turns += session.turns;
         self.responses += session.responses;
         self.usage.add_assign(&session.usage);
+        if session.is_subagent {
+            self.subagent_sessions += 1;
+            self.subagent_tokens += session.usage.total_tokens.max(0);
+        } else {
+            self.root_sessions += 1;
+            self.root_tokens += session.usage.total_tokens.max(0);
+        }
         self.reroutes += session.reroutes.len();
         for row in session.models {
             let entry = self
@@ -807,6 +822,10 @@ impl OverviewAccumulator {
             responses: self.responses,
             usage: self.usage,
             models,
+            root_sessions: self.root_sessions,
+            subagent_sessions: self.subagent_sessions,
+            root_tokens: self.root_tokens,
+            subagent_tokens: self.subagent_tokens,
             reroutes: self.reroutes,
         }
     }
@@ -1186,6 +1205,10 @@ mod tests {
         assert_eq!(overview.responses, 2);
         assert_eq!(overview.usage.total_tokens, 185);
         assert_eq!(overview.models.len(), 2);
+        assert_eq!(overview.root_sessions, 1);
+        assert_eq!(overview.subagent_sessions, 0);
+        assert_eq!(overview.root_tokens, 185);
+        assert_eq!(overview.subagent_tokens, 0);
         assert_eq!(overview.reroutes, 1);
     }
 
