@@ -20,7 +20,7 @@ import './config-preview.css';
 import { historyText, filterHistoryEntries, renderHistoryEntries } from './history-tab';
 import './history-tab.css';
 import { renderModelPicker, bindModelPickers, validateModelPickers } from './model-picker';
-import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog, reasoningLevelsForModel, reconcileReasoningLevelForModel, modelClientCompatibility, type OfficialModelCatalogEntry, type OfficialModelCatalogState, type ModelClientCompatibility } from './model-catalog';
+import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog, readOfficialModelCatalogChangeReport, reasoningLevelsForModel, reconcileReasoningLevelForModel, modelClientCompatibility, type OfficialModelCatalogEntry, type OfficialModelCatalogState, type ModelCatalogChangeReport, type ModelClientCompatibility } from './model-catalog';
 import './model-picker.css';
 import { CURRENT_PRESET_VERSION, GPT6_PRESET_VERSION, presetVersion, presetByReference, matchPresetVersion, presetSource, parsePresetSource, type PresetReference } from './preset-versions';
 import { renderPresetWorkspace, presetReferenceLabel } from './preset-version-view';
@@ -152,6 +152,7 @@ let officialModelCatalogState: OfficialModelCatalogState | null = cachedOfficial
   fetchedAt: cachedOfficialModelCatalog.fetchedAt,
   error: null,
 } : null;
+let officialModelCatalogChanges: ModelCatalogChangeReport | null = readOfficialModelCatalogChangeReport();
 let selectableModels = mergeModelCatalogIds(commonTaskModels, officialModelEntries);
 let confirmResolver: ((value: boolean) => void) | null = null;
 let themeMode = (safeGet('codex-config-studio.theme.mode') as ThemeMode | null) ?? 'system';
@@ -712,6 +713,11 @@ function renderConfigHealth():void {
     <span>${esc(row.label)}</span>
     <div><strong>${esc(row.value)}</strong>${row.detail?`<small>${esc(row.detail)}</small>`:''}</div>
   </div>`).join('');
+  const modelChanges=officialModelCatalogChanges?.changes??[];
+  const modelChangeSummary=modelChanges.length
+    ? environmentCopy.catalogChanges+' · '+modelChanges.length
+    : environmentCopy.noCatalogChanges;
+  const modelChangeDetails=modelChanges.slice(0,12).map(change=>`<li><span class="schema-change-kind ${change.kind}">${change.kind==='added'?'+':change.kind==='removed'?'-':'~'}</span><div><code>${esc(change.model)}</code>${change.details.length?`<small>${change.details.map(detail=>esc(detail)).join(' · ')}</small>`:''}</div></li>`).join('');
   const changes=state.schemaChanges?.changes??[];
   const added=changes.filter(change=>change.kind==='added').length;
   const removed=changes.filter(change=>change.kind==='removed').length;
@@ -731,6 +737,8 @@ function renderConfigHealth():void {
   host.innerHTML=`<div class="rail-title"><h3>${icon('shield')}${copy.title}</h3><span class="health-status-dot ${warningCount?'warn':'ok'}"></span></div>
     <div class="health-summary">${rows.map(row=>`<p>${esc(row)}</p>`).join('')}<p class="${warningCount?'warning-text':'ok-text'}">${warningCount?`⚠ ${warningCount} ${copy.issues}`:`✓ ${copy.healthy}`}</p></div>
     <details class="environment-status" open><summary>${esc(environmentCopy.title)}</summary><div class="environment-grid">${environmentHtml}</div></details>
+    <details class="health-details model-change-details" ${modelChanges.length?'':'hidden'}><summary>${esc(modelChangeSummary)}</summary><ul>${modelChangeDetails}</ul>${modelChanges.length>12?`<small>+${modelChanges.length-12}</small>`:''}</details>
+    ${modelChanges.length?'':`<p class="health-change-empty">${esc(modelChangeSummary)}</p>`}
     ${clientWarnings.map(warning=>renderClientCompatibilityWarning(copy,warning)).join('')}
     <details class="health-details" ${issueCount?'':'hidden'}><summary>${copy.viewProblems}</summary>${issueDetails}</details>
     <details class="health-details schema-change-details" ${changes.length?'':'hidden'}><summary>${esc(changeSummary)}</summary><ul>${changeDetails}</ul>${changes.length>12?`<small>+${changes.length-12}</small>`:''}</details>
@@ -1028,6 +1036,7 @@ async function refreshOfficialModelCatalog():Promise<void> {
     const result=await loadOfficialModelCatalog();
     officialModelEntries=result.entries;
     officialModelCatalogState=result.state;
+    officialModelCatalogChanges=readOfficialModelCatalogChangeReport();
     selectableModels=mergeModelCatalogIds(commonTaskModels,result.entries);
     renderConfigHealth();
   } catch(error) {
