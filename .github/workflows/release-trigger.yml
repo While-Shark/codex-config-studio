@@ -1,0 +1,49 @@
+name: Release Trigger
+
+on:
+  push:
+    branches:
+      - release-trigger
+    paths:
+      - ".release-trigger/request.txt"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: release-trigger
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    name: dispatch-master-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve release request
+        id: request
+        shell: bash
+        env:
+          TRIGGER_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          case "$TRIGGER_MESSAGE" in
+            "release: patch") bump="patch" ;;
+            "release: minor") bump="minor" ;;
+            "release: major") bump="major" ;;
+            *)
+              echo "::error::release-trigger commits must use exactly: release: patch, release: minor, or release: major"
+              exit 1
+              ;;
+          esac
+          echo "bump=$bump" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch formal Release from master
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUMP: ${{ steps.request.outputs.bump }}
+        run: |
+          gh workflow run release.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref master \
+            -f bump="$BUMP"
