@@ -12,6 +12,7 @@ on:
           - patch
           - minor
           - major
+          - current
   push:
     tags:
       - "v*"
@@ -68,14 +69,18 @@ jobs:
         id: auto-version
         shell: bash
         run: |
-          version=$(node scripts/prepare-release.mjs "${{ inputs.bump }}")
+          if [ "${{ inputs.bump }}" = "current" ]; then
+            version=$(node -e "console.log(JSON.parse(require('fs').readFileSync('package.json','utf8')).version)")
+          else
+            version=$(node scripts/prepare-release.mjs "${{ inputs.bump }}")
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           npm ci
           npm run build
           cargo metadata --manifest-path src-tauri/Cargo.toml --no-deps --format-version 1 >/dev/null
 
       - name: Commit release version
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && inputs.bump != 'current'
         shell: bash
         run: |
           version="${{ steps.auto-version.outputs.version }}"
@@ -308,7 +313,8 @@ jobs:
           done
 
           if [ "$any_apple_secret" = false ]; then
-            if [ "${REQUIRE_MACOS_SIGNING,,}" = "true" ]; then
+            require_macos_signing=$(printf '%s' "$REQUIRE_MACOS_SIGNING" | tr '[:upper:]' '[:lower:]')
+            if [ "$require_macos_signing" = "true" ]; then
               echo "::error::REQUIRE_MACOS_SIGNING=true but Apple Developer signing/notarization secrets are not configured."
               exit 1
             fi

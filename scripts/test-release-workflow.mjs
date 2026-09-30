@@ -32,6 +32,8 @@ test('release workflow keeps Apple platform signing optional but rejects partial
   assert.match(workflow, /Prepare optional macOS Developer ID signing/);
   assert.match(workflow, /REQUIRE_MACOS_SIGNING/);
   assert.match(workflow, /REQUIRE_MACOS_SIGNING=true but Apple Developer signing\/notarization secrets are not configured/);
+  assert.doesNotMatch(workflow, /\$\{REQUIRE_MACOS_SIGNING,,\}/);
+  assert.match(workflow, /tr '\[:upper:\]' '\[:lower:\]'/);
   assert.match(workflow, /APPLE_PLATFORM_SIGNING_ENABLED=false/);
   assert.match(workflow, /Apple Developer signing\/notarization is not configured; macOS artifacts remain unsigned/);
   assert.match(workflow, /APPLE_CERTIFICATE and APPLE_CERTIFICATE_PASSWORD must both be configured/);
@@ -168,10 +170,11 @@ test('release trigger branch uses a secretless relay with a narrow path filter',
   assert.match(releaseTriggerWorkflow, /paths:\n      - "\.release-trigger\/request\.txt"/);
   assert.match(releaseTriggerWorkflow, /permissions:\n  contents: read\n  actions: write/);
   assert.doesNotMatch(releaseTriggerWorkflow, /secrets\./);
-  assert.match(releaseTriggerWorkflow, /release-trigger commits must use exactly: release: patch, release: minor, or release: major/);
+  assert.match(releaseTriggerWorkflow, /release-trigger commits must use exactly: release: patch, release: minor, release: major, or release: current/);
   assert.match(releaseTriggerWorkflow, /"release: patch"\) bump="patch"/);
   assert.match(releaseTriggerWorkflow, /"release: minor"\) bump="minor"/);
   assert.match(releaseTriggerWorkflow, /"release: major"\) bump="major"/);
+  assert.match(releaseTriggerWorkflow, /"release: current"\) bump="current"/);
 });
 
 test('release trigger relay dispatches the formal workflow from master', () => {
@@ -180,4 +183,11 @@ test('release trigger relay dispatches the formal workflow from master', () => {
   assert.match(releaseTriggerWorkflow, /-f bump="\$BUMP"/);
   assert.match(releaseTriggerWorkflow, /GH_TOKEN: \$\{\{ github\.token \}\}/);
   assert.doesNotMatch(workflow, /release-trigger/);
+});
+
+
+test('formal release can retry the already prepared current version without another bump', () => {
+  assert.match(workflow, /- current/);
+  assert.match(workflow, /if \[ "\$\{\{ inputs\.bump \}\}" = "current" \]; then/);
+  assert.match(workflow, /if: github\.event_name == 'workflow_dispatch' && inputs\.bump != 'current'/);
 });
