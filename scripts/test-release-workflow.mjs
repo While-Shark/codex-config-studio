@@ -168,7 +168,7 @@ test('release trigger branch uses a secretless relay with a narrow path filter',
   assert.match(releaseTriggerWorkflow, /paths:\n      - "\.release-trigger\/request\.txt"/);
   assert.match(releaseTriggerWorkflow, /permissions:\n  contents: read\n  actions: write/);
   assert.doesNotMatch(releaseTriggerWorkflow, /secrets\./);
-  assert.match(releaseTriggerWorkflow, /release-trigger commits must use exactly: release: patch, release: minor, or release: major/);
+  assert.match(releaseTriggerWorkflow, /release-trigger commits must use exactly: release: patch, release: minor, release: major, or release: current/);
   assert.match(releaseTriggerWorkflow, /"release: patch"\) bump="patch"/);
   assert.match(releaseTriggerWorkflow, /"release: minor"\) bump="minor"/);
   assert.match(releaseTriggerWorkflow, /"release: major"\) bump="major"/);
