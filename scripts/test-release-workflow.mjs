@@ -154,14 +154,15 @@ test('tag-driven releases must point to a commit reachable from master', () => {
 
 test('formal release embeds updater trust while local builds stay disabled by default', () => {
   assert.equal(tauriConfig.plugins?.updater?.pubkey, '');
-  assert.match(updaterRust, /option_env!\("TAURI_UPDATER_PUBKEY"\)/);
+  assert.match(updaterRust, /option_env!\("CODEX_UPDATER_PUBKEY"\)/);
   assert.match(updaterRust, /builder\.pubkey\(pubkey\)\.build\(\)/);
   assert.match(updaterRust, /Signed updater is not enabled in this build/);
-  assert.match(updaterPrepare, /TAURI_UPDATER_PUBKEY is required for signed release builds/);
+  assert.match(updaterPrepare, /CODEX_UPDATER_PUBKEY is required for signed release builds/);
   assert.match(updaterPrepare, /TAURI_SIGNING_PRIVATE_KEY is required for signed release builds/);
   assert.match(updaterPrepare, /createUpdaterArtifacts=true|createUpdaterArtifacts:true/);
-  assert.match(workflow, /TAURI_UPDATER_PUBKEY: \$\{\{ secrets\.TAURI_UPDATER_PUBKEY \}\}/);
+  assert.match(workflow, /CODEX_UPDATER_PUBKEY: \$\{\{ secrets\.TAURI_UPDATER_PUBKEY \}\}/);
   assert.match(workflow, /TAURI_SIGNING_PRIVATE_KEY: \$\{\{ secrets\.TAURI_SIGNING_PRIVATE_KEY \}\}/);
+  assert.doesNotMatch(workflow, /^\s*TAURI_UPDATER_PUBKEY:/m);
 });
 
 
