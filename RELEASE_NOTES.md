@@ -2,6 +2,10 @@
 
 ## 简体中文
 
+- 🧠 **GPT-6.1 Sol 与方案版本化**：均衡方案和“复杂问题”默认升级到 GPT-6.1 Sol；GPT-6（v0.5.0）与 v0.4.0 方案继续作为不可变历史快照保留。浏览历史方案不会改写当前配置，已有项目也不会被自动迁移。
+- 🎚️ **按模型能力约束 Reasoning**：已知官方模型只展示 Codex 官方 `models.json` 声明支持的思考等级。读取旧配置或自定义模型时继续保留原值；只有用户主动切换到已知官方模型且旧等级不兼容时，才使用该模型官方默认 Reasoning，避免生成新的无效组合。
+- 🧩 **Codex 客户端兼容性提示**：Config Health 会读取官方模型目录中的 `minimal_client_version`，把当前主模型/子 Agent 与本机 Codex CLI 版本比较。客户端过旧时只显示只读警告，不隐藏模型、不阻止保存、不自动升级 Codex，也不改写配置。
+
 - ⚡ **Service Tier 遥测与 Fast 参考成本**：本机 rollout 中已持久化的 thread settings 现在会作为 service tier 证据；精确响应按“模型 × tier”归因。当前 Codex 的 `priority` 识别为 Fast，并仅在官方费率明确提供模型倍率时计入 Fast 附加成本。缺少 tier 证据、Flex/未知 tier 或 Fast 倍率不明确时会标记为近似值；不会猜测长上下文、区域处理或未知模型价格。
 - 🤖 **官方模型目录自动刷新**：主模型、默认子 Agent 和当前任务的候选模型会读取 OpenAI Codex 官方 `models.json`，仅采用官方标记为可列出的模型，并按官方优先级排序。本机缓存 24 小时；离线或刷新失败时继续使用最近缓存与内置兼容列表。不会自动迁移已有配置、任务偏好、历史、Preset 或自定义模型 ID。
 - 🧾 **Release 构建来源证明**：正式发布现在会为最终安装包、更新签名、`latest.json` 与 `SHA256SUMS.txt` 生成 GitHub artifact attestation。可使用 `gh attestation verify <文件> --repo While-Shark/codex-config-studio` 验证文件确实由本仓库 Release workflow 构建。该证明与 Windows/macOS 平台签名及 Tauri updater 签名相互独立、互为补充。
@@ -29,6 +33,10 @@
 
 ## 繁體中文
 
+- 🧠 **GPT-6.1 Sol 與方案版本化**：均衡方案與「複雜問題」預設升級為 GPT-6.1 Sol；GPT-6（v0.5.0）與 v0.4.0 方案繼續以不可變歷史快照保留。瀏覽歷史方案不會改寫目前設定，既有專案也不會被自動遷移。
+- 🎚️ **依模型能力限制 Reasoning**：已知官方模型只顯示 Codex 官方 `models.json` 宣告支援的思考等級。讀取舊設定或自訂模型時仍保留原值；只有使用者主動切換到已知官方模型且舊等級不相容時，才使用該模型的官方預設 Reasoning，避免產生新的無效組合。
+- 🧩 **Codex 用戶端相容性提示**：Config Health 會讀取官方模型目錄中的 `minimal_client_version`，把目前主模型/子 Agent 與本機 Codex CLI 版本比較。用戶端過舊時只顯示唯讀警告，不會隱藏模型、阻止儲存、自動升級 Codex 或改寫設定。
+
 - ⚡ **Service Tier 遙測與 Fast 參考成本**：本機 rollout 中已持久化的 thread settings 現在會作為 service tier 證據；精確回應依「模型 × tier」歸屬。目前 Codex 的 `priority` 會識別為 Fast，且只有官方費率明確提供模型倍率時才計入 Fast 附加成本。缺少 tier 證據、Flex/未知 tier 或 Fast 倍率不明時會標記為近似值；不會猜測長上下文、區域處理或未知模型價格。
 - 🤖 **官方模型目錄自動更新**：主模型、預設子 Agent 與目前任務的候選模型會讀取 OpenAI Codex 官方 `models.json`，只採用官方標記為可列出的模型，並依官方優先順序排列。本機快取 24 小時；離線或更新失敗時繼續使用最近快取與內建相容清單。不會自動遷移既有設定、任務偏好、歷史、Preset 或自訂模型 ID。
 - 🧾 **Release 建置來源證明**：正式發佈現在會為最終安裝檔、更新簽名、`latest.json` 與 `SHA256SUMS.txt` 建立 GitHub artifact attestation。可使用 `gh attestation verify <檔案> --repo While-Shark/codex-config-studio` 驗證檔案確實由本儲存庫 Release workflow 建置。此證明與 Windows/macOS 平台簽名及 Tauri updater 簽名彼此獨立、互相補充。
@@ -52,6 +60,10 @@
 - 🛡️ **設定安全**：持續支援全域/專案級 Codex 設定、逐項繼承、安全備份、歷史備份與原始設定還原。
 
 ## English
+
+- 🧠 **GPT-6.1 Sol and versioned profiles**: Balanced and Complex Problem defaults now use GPT-6.1 Sol. The GPT-6 (v0.5.0) and v0.4.0 profile sets remain immutable archive snapshots. Browsing archived profiles never rewrites current configuration, and existing projects are not migrated automatically.
+- 🎚️ **Model-aware Reasoning choices**: Known official models now expose only the reasoning levels declared by Codex `models.json`. Existing/custom values remain intact when loading configuration; only an explicit switch to a known official model reconciles an incompatible value to that model's official default, avoiding newly created invalid combinations.
+- 🧩 **Codex client compatibility warnings**: Config Health reads `minimal_client_version` from the official model catalog and compares effective main/sub-agent models with the detected local Codex CLI version. An older client gets a read-only warning only—models are not hidden, Apply is not blocked, Codex is not upgraded automatically, and configuration is not rewritten.
 
 - ⚡ **Service-tier telemetry and Fast reference cost**: Durable thread-settings events in local rollout history now provide service-tier evidence, with exact responses attributed by model × tier. Current Codex `priority` is recognized as Fast, and a Fast surcharge is applied only when the official rate card documents a model-specific multiplier. Missing tier evidence, Flex/unknown tiers, or undocumented Fast multipliers keep the result approximate; long-context, regional-processing, and unknown-model pricing are never guessed.
 - 🤖 **Official model-catalog refresh**: Main-model, default sub-agent, and Current Task choices now read the official OpenAI Codex `models.json` catalog, accept only models marked visible for listing, and follow official priority ordering. The catalog is cached locally for 24 hours; offline/failed refreshes keep the latest cache and built-in compatibility list. Existing configuration, task preferences, history, presets, and custom model IDs are never migrated automatically.
@@ -80,6 +92,10 @@
 
 ## 日本語
 
+- 🧠 **GPT-6.1 Sol とプロファイルの版管理**：Balanced と「複雑な問題」の既定値を GPT-6.1 Sol に更新しました。GPT-6（v0.5.0）と v0.4.0 は不変の履歴スナップショットとして保持します。履歴プロファイルを閲覧しても現在の設定は書き換えず、既存プロジェクトも自動移行しません。
+- 🎚️ **モデル能力に応じた Reasoning**：既知の公式モデルでは Codex 公式 `models.json` が宣言する思考レベルだけを表示します。既存設定やカスタムモデルの値は読み込み時に保持し、既知の公式モデルへ明示的に切り替えたときだけ、非対応の値をそのモデルの公式既定 Reasoning に調整します。
+- 🧩 **Codex クライアント互換性警告**：Config Health は公式モデルカタログの `minimal_client_version` を読み、現在のメイン/サブ Agent とローカル Codex CLI の版を比較します。古いクライアントには読み取り専用の警告だけを表示し、モデル非表示、保存停止、自動アップグレード、設定書き換えは行いません。
+
 - ⚡ **Service Tier テレメトリと Fast 参考コスト**：ローカル rollout に永続化された thread settings を service tier 証拠として使い、正確な応答を「モデル × tier」で帰属します。現在の Codex の `priority` は Fast として認識し、公式レートカードにモデル別倍率が明記されている場合だけ Fast 追加コストを反映します。tier 証拠不足、Flex/未知 tier、倍率不明の場合は概算扱いとし、長文脈・地域処理・未知モデル価格は推測しません。
 - 🤖 **公式モデルカタログの自動更新**：メインモデル、既定のサブ Agent、現在のタスクの候補を OpenAI Codex 公式 `models.json` から取得し、公式に一覧表示対象とされたモデルだけを優先順位どおりに使用します。24 時間ローカルキャッシュし、オフライン時や更新失敗時は最新キャッシュと内蔵互換リストを継続使用します。既存設定、タスク設定、履歴、Preset、カスタムモデル ID は自動移行しません。
 - 🧾 **Release ビルドの来歴証明**：正式 Release では、最終インストーラー、更新署名、`latest.json`、`SHA256SUMS.txt` に GitHub artifact attestation を作成します。`gh attestation verify <file> --repo While-Shark/codex-config-studio` で、本リポジトリの Release workflow が生成したファイルであることを検証できます。これは Windows/macOS のプラットフォーム署名や Tauri updater 署名とは独立した補完的な証明です。
@@ -103,6 +119,10 @@
 - 🛡️ **安全な設定管理**：グローバル/プロジェクト設定、項目単位の継承、元設定バックアップ、履歴バックアップ、復元機能を引き続き提供します。
 
 ## 한국어
+
+- 🧠 **GPT-6.1 Sol 및 버전형 프로필**: Balanced와 복잡한 문제 기본값을 GPT-6.1 Sol로 업그레이드했습니다. GPT-6(v0.5.0)와 v0.4.0 프로필은 변경되지 않는 기록 스냅샷으로 계속 보존합니다. 기록 프로필을 탐색해도 현재 설정을 다시 쓰지 않으며 기존 프로젝트를 자동 마이그레이션하지 않습니다.
+- 🎚️ **모델 능력 기반 Reasoning 선택**: 알려진 공식 모델에는 Codex 공식 `models.json`이 지원한다고 선언한 사고 수준만 표시합니다. 기존 설정과 사용자 지정 모델 값은 읽을 때 그대로 유지하며, 사용자가 알려진 공식 모델로 명시적으로 전환했고 기존 수준이 호환되지 않을 때만 해당 모델의 공식 기본 Reasoning으로 조정합니다.
+- 🧩 **Codex 클라이언트 호환성 경고**: Config Health가 공식 모델 카탈로그의 `minimal_client_version`을 읽고 현재 메인/서브 Agent 모델과 로컬 Codex CLI 버전을 비교합니다. 클라이언트가 오래된 경우 읽기 전용 경고만 표시하며, 모델을 숨기거나 Apply를 막거나 Codex를 자동 업그레이드하거나 설정을 다시 쓰지 않습니다.
 
 - ⚡ **Service Tier 텔레메트리와 Fast 참고 비용**: 로컬 rollout에 영구 저장된 thread settings를 service tier 증거로 사용하고 정확한 응답을 모델 × tier로 귀속합니다. 현재 Codex의 `priority`를 Fast로 인식하며 공식 요금표에 모델별 배율이 명시된 경우에만 Fast 추가 비용을 반영합니다. tier 증거 부족, Flex/알 수 없는 tier, 배율 미확인 상태는 근사값으로 처리하며 장문맥·지역 처리·알 수 없는 모델 가격은 추측하지 않습니다.
 - 🤖 **공식 모델 카탈로그 자동 새로고침**: 메인 모델, 기본 서브 Agent, 현재 작업의 모델 후보를 OpenAI Codex 공식 `models.json`에서 읽고 공식적으로 목록 표시가 허용된 모델만 우선순위에 따라 사용합니다. 24시간 로컬 캐시하며 오프라인이나 새로고침 실패 시 최근 캐시와 내장 호환 목록을 계속 사용합니다. 기존 설정, 작업 선호, 기록, Preset, 사용자 지정 모델 ID는 자동 마이그레이션하지 않습니다.
