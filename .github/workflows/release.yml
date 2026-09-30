@@ -49,6 +49,10 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - name: Verify release version sources
+        shell: bash
+        run: node scripts/check-release-version.mjs
+
       - name: Prepare automatic version bump
         if: github.event_name == 'workflow_dispatch'
         id: auto-version
