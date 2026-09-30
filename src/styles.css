@@ -467,3 +467,16 @@ input::placeholder { color: var(--muted2); }
 .integrity-history strong { display: block; font-family: var(--mono); font-size: 9px; overflow-wrap: anywhere; }
 .integrity-history small { display: block; margin-top: 2px; color: var(--muted2); font-size: 8px; }
 .integrity-history li > span { color: var(--warning); font-family: var(--mono); font-size: 9px; }
+
+
+.environment-status { margin-top: 9px; border-top: 1px solid var(--border); padding-top: 7px; }
+.environment-status > summary { cursor: pointer; color: var(--accent); font-size: 11px; padding: 4px 0; }
+.environment-grid { display: grid; gap: 6px; margin-top: 7px; }
+.environment-row { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 8px; align-items: start; padding: 7px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel2); }
+.environment-row > span { color: var(--muted2); font-size: 9px; }
+.environment-row > div { min-width: 0; }
+.environment-row strong { display: block; font-family: var(--mono); font-size: 10px; overflow-wrap: anywhere; }
+.environment-row small { display: block; margin-top: 2px; color: var(--muted2); font-size: 8px; overflow-wrap: anywhere; }
+.environment-row.ok strong { color: var(--ok); }
+.environment-row.warn strong { color: var(--warning); }
+.environment-row.unknown strong { color: var(--muted); }
