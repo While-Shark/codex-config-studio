@@ -30,8 +30,9 @@ jobs:
             "release: patch") bump="patch" ;;
             "release: minor") bump="minor" ;;
             "release: major") bump="major" ;;
+            "release: current") bump="current" ;;
             *)
-              echo "::error::release-trigger commits must use exactly: release: patch, release: minor, or release: major"
+              echo "::error::release-trigger commits must use exactly: release: patch, release: minor, release: major, or release: current"
               exit 1
               ;;
           esac
