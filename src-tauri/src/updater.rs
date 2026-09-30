@@ -2,7 +2,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Runtime};
 use tauri_plugin_updater::UpdaterExt;
 
-const PUBKEY: Option<&str> = option_env!("TAURI_UPDATER_PUBKEY");
+const PUBKEY: Option<&str> = option_env!("CODEX_UPDATER_PUBKEY");
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn unsigned_development_build_reports_updater_disabled() {
-        if option_env!("TAURI_UPDATER_PUBKEY").is_none() {
+        if option_env!("CODEX_UPDATER_PUBKEY").is_none() {
             assert!(!signed_updater_enabled());
         }
     }
