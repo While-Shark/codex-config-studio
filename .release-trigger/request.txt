@@ -1,2 +1,2 @@
-bump=minor
-request=1
+bump=current
+request=2
