@@ -188,3 +188,12 @@ test('macOS signing preflight stays compatible with the Bash version on GitHub m
   assert.match(workflow, /require_macos_signing="\$\(printf '%s' "\$REQUIRE_MACOS_SIGNING" \| tr '\[:upper:\]' '\[:lower:\]'\)"/);
   assert.match(workflow, /if \[ "\$require_macos_signing" = "true" \]; then/);
 });
+
+
+test('formal release can retry the already-bumped current version without another mutation', () => {
+  assert.match(workflow, /- current/);
+  assert.match(workflow, /if \[ "\$bump" = "current" \]; then/);
+  assert.match(workflow, /Current-version release requested for v\$\{version\}; no version commit is needed/);
+  assert.match(releaseTriggerWorkflow, /"release: current"\) bump="current"/);
+  assert.match(releaseTriggerWorkflow, /release: current/);
+});
