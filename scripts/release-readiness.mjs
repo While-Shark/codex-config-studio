@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { assertReleaseVersionsAligned } from './check-release-version.mjs';
 
 function read(path){ return readFileSync(resolve(path),'utf8').replace(/\r\n/g,'\n'); }
@@ -52,7 +53,7 @@ export function releaseReadiness(root=process.cwd()){
   };
 }
 
-if(process.argv[1]){
+if(process.argv[1] && import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
   const result=releaseReadiness();
   for(const item of result.checks)console.log((item.status==='ok'?'✓':'✗')+' '+item.name+': '+item.detail);
   for(const item of result.external)console.log('? '+item.name+': '+item.detail);
