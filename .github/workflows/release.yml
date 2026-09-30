@@ -13,10 +13,6 @@ on:
           - minor
           - major
   push:
-    branches:
-      - release-trigger
-    paths:
-      - ".release-trigger/request.txt"
     tags:
       - "v*"
 
@@ -42,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/release-trigger') && 'master' || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'master' || github.ref }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v6
@@ -53,38 +49,12 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: Resolve release request
-        id: release-request
-        shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          REF_NAME: ${{ github.ref }}
-          MANUAL_BUMP: ${{ inputs.bump }}
-          TRIGGER_MESSAGE: ${{ github.event.head_commit.message }}
-        run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            bump="$MANUAL_BUMP"
-          elif [ "$REF_NAME" = "refs/heads/release-trigger" ]; then
-            case "$TRIGGER_MESSAGE" in
-              "release: patch") bump="patch" ;;
-              "release: minor") bump="minor" ;;
-              "release: major") bump="major" ;;
-              *)
-                echo "::error::release-trigger commits must use exactly: release: patch, release: minor, or release: major"
-                exit 1
-                ;;
-            esac
-          else
-            bump=""
-          fi
-          echo "bump=$bump" >> "$GITHUB_OUTPUT"
-
       - name: Verify release version sources
         shell: bash
         run: node scripts/check-release-version.mjs
 
       - name: Verify required updater signing secrets before release mutation
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/release-trigger'
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -94,18 +64,18 @@ jobs:
           test -n "$TAURI_UPDATER_PUBKEY" || { echo "::error::Missing TAURI_UPDATER_PUBKEY; refusing to bump the release version."; exit 1; }
 
       - name: Prepare automatic version bump
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/release-trigger'
+        if: github.event_name == 'workflow_dispatch'
         id: auto-version
         shell: bash
         run: |
-          version=$(node scripts/prepare-release.mjs "${{ steps.release-request.outputs.bump }}")
+          version=$(node scripts/prepare-release.mjs "${{ inputs.bump }}")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           npm ci
           npm run build
           cargo metadata --manifest-path src-tauri/Cargo.toml --no-deps --format-version 1 >/dev/null
 
       - name: Commit release version
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/release-trigger'
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
           version="${{ steps.auto-version.outputs.version }}"
@@ -119,7 +89,7 @@ jobs:
         id: release-meta
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.ref }}" = "refs/heads/release-trigger" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             version="${{ steps.auto-version.outputs.version }}"
             tag="v${version}"
           else
