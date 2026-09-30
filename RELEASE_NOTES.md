@@ -14,7 +14,7 @@
 - 📊 **项目用量、趋势与参考成本**：基于本机 Codex rollout JSONL 的只读遥测，支持 7 天 / 30 天 / 全部时间、模型与 Reasoning 分布、主会话/子 Agent、每日与模型趋势、Agent 分析、可观测 reroute 时间线、近期项目概览和版本化参考成本。旧格式数据会明确标记估算；未知模型不猜价格；这些数据是 best-effort 本地遥测，不是官方账单。
 - 🔒 **Model Integrity 运行时核验**：可按作用域锁定有效模型与 Reasoning、检测 Studio 可见配置漂移，并与本机 rollout 已记录的运行时证据核对。界面展示最近主会话的实际模型/Reasoning、reroute 次数、最近 5 条证据，并支持只读手动刷新。仅 CLI 临时覆盖、未被本机记录的行为和不可观测的服务端内部路由仍不属于本地保证范围。
 
-- 🔄 **稳定版更新与签名原地升级**：应用会检查 GitHub 最新稳定版；正式签名构建可在应用内下载、校验签名并安装更新，Windows 使用 NSIS，Linux 会按 AppImage / deb 安装来源匹配更新包，macOS 使用签名更新包并在安装后重启。Nightly / 本地未签名构建继续回退到 GitHub Release 页面，不会因为缺少签名密钥而影响开发构建。
+- 🔄 **稳定版更新与签名原地升级**：应用会检查 GitHub 最新稳定版；正式签名构建可在应用内下载、校验签名并安装更新，Windows 使用 NSIS，Linux 会按 AppImage / deb 安装来源匹配更新包，macOS 使用签名更新包并在安装后重启。`v0.5.0` 尚未包含 Updater，因此升级到 `v0.6.0` 需要从 GitHub Releases 手动安装一次；从 `v0.6.0` 开始才具备后续签名原地升级能力。Nightly / 本地未签名构建继续回退到 GitHub Release 页面。
 
 - **工作台 UI/UX 重构**：简洁双栏布局、固定应用区、分组高级设置、项目/方案历史子页与只读预览；加入草稿放弃确认、弹窗焦点管理和键盘导航。五语言、深浅主题、完整预览、继承配置和历史方案提示均保留。写入较慢时不再提前解锁，避免重复提交。
 - **方案版本 · v0.4.0**: 历史快照保留原有模型、思考等级和子 Agent 参数，不随新版推荐变动。 确认后只载入预览，不会立即写入配置。
@@ -45,7 +45,7 @@
 - 📊 **專案用量、趨勢與參考成本**：以唯讀方式分析本機 Codex rollout JSONL，支援 7 天 / 30 天 / 全期間、模型與 Reasoning 分布、主工作階段/子 Agent、每日與模型趨勢、Agent 分析、可觀測 reroute 時間線、近期專案總覽與版本化參考成本。舊格式資料會明確標記估算；未知模型不猜價格；所有數值都是 best-effort 本機遙測，不是正式帳單。
 - 🔒 **Model Integrity 執行階段核驗**：可依作用域鎖定有效模型與 Reasoning、偵測 Studio 可見設定偏移，並與本機 rollout 已記錄的執行階段證據比對。介面會顯示最近主工作階段的實際模型/Reasoning、reroute 次數、最近 5 筆證據，並支援唯讀手動重新整理。僅 CLI 臨時覆寫、未被本機記錄的行為與不可觀測的服務端內部路由仍不在本機保證範圍內。
 
-- 🔄 **穩定版更新與簽名原地升級**：應用會檢查 GitHub 最新穩定版；正式簽名建置可在應用內下載、驗證簽名並安裝更新，Windows 使用 NSIS，Linux 依 AppImage / deb 安裝來源配對更新包，macOS 使用簽名更新包並於安裝後重新啟動。Nightly / 本機未簽名建置仍會回退到 GitHub Release 頁面，不會因缺少簽名金鑰而影響開發建置。
+- 🔄 **穩定版更新與簽名原地升級**：應用會檢查 GitHub 最新穩定版；正式簽名建置可在應用內下載、驗證簽名並安裝更新，Windows 使用 NSIS，Linux 依 AppImage / deb 安裝來源配對更新包，macOS 使用簽名更新包並於安裝後重新啟動。`v0.5.0` 尚未包含 Updater，因此升級到 `v0.6.0` 需先從 GitHub Releases 手動安裝一次；從 `v0.6.0` 開始才具備後續簽名原地升級能力。Nightly / 本機未簽名建置仍會回退到 GitHub Release 頁面。
 
 - **工作台 UI/UX 重構**：簡潔雙欄佈局、固定套用區、分組進階設定、專案/方案歷史分頁與唯讀預覽；新增放棄草稿確認、對話框焦點管理與鍵盤導覽。保留五語言、深淺主題、繼承設定與舊方案提示。寫入完成前不會提前解鎖。
 - **方案版本 · v0.4.0**: 歷史快照保留原有模型、思考等級與子 Agent 參數，不隨新版推薦變動。 確認後只載入預覽，不會立即寫入設定。
@@ -73,7 +73,7 @@
 - 📊 **Project usage, trends, and reference cost**: Read-only analysis of local Codex rollout JSONL with 7-day / 30-day / all-time views, model and reasoning breakdowns, root/sub-agent usage, daily and per-model trends, agent analysis, observable reroute history, recent-project overview, and versioned reference-cost estimates. Legacy-only data is explicitly estimated, unknown-model pricing is never invented, and all values are best-effort local telemetry rather than billing data.
 - 🔒 **Runtime Model Integrity verification**: Lock the effective model/reasoning target per scope, detect Studio-visible config drift, and compare it with runtime evidence already recorded in local rollout files. The UI shows the latest observed model/reasoning, reroute count, five recent evidence entries, and a read-only refresh action. CLI-only temporary overrides, behavior not recorded locally, and unobservable server-side routing remain outside the local guarantee.
 
-- 🔄 **Stable update checks and signed in-place upgrades**: The app checks the latest stable GitHub release. Formal signed builds can download, verify, and install updates in-app: NSIS on Windows, installer-matched AppImage/deb packages on Linux, and signed updater bundles on macOS with restart after installation. Unsigned Nightly/local builds keep the GitHub Release-page fallback, so development builds do not depend on signing secrets.
+- 🔄 **Stable update checks and signed in-place upgrades**: The app checks the latest stable GitHub release. Formal signed builds can download, verify, and install updates in-app: NSIS on Windows, installer-matched AppImage/deb packages on Linux, and signed updater bundles on macOS with restart after installation. `v0.5.0` predates the updater, so moving to `v0.6.0` requires one manual install from GitHub Releases; `v0.6.0` becomes the first baseline capable of later signed in-place upgrades. Unsigned Nightly/local builds keep the GitHub Release-page fallback.
 
 - **Workspace UI/UX redesign**: Clean split layout, pinned apply controls, grouped advanced settings, project/profile history views and read-only previews. Added unsaved-draft confirmation, accessible modal focus handling and keyboard tabs. Preserved five languages, themes, complete configuration previews, inheritance and archived-profile warnings. Slow writes keep their lock until the native operation actually finishes.
 - **Profile version · v0.4.0**: Archived snapshots retain their original models, reasoning levels and sub-agent settings; new recommendations never rewrite them. Confirming only loads a preview; it does not write configuration.
@@ -104,7 +104,7 @@
 - 📊 **プロジェクト使用量・傾向・参考コスト**：ローカル Codex rollout JSONL を読み取り専用で分析し、7 日 / 30 日 / 全期間、モデル/Reasoning、ルート/サブ Agent、日次/モデル別傾向、Agent 分析、観測可能な reroute 履歴、最近のプロジェクト概要、版管理された参考コストを表示します。旧形式のみのデータは推定と明示し、未知モデルの価格は推測しません。すべて best-effort のローカルテレメトリであり、請求データではありません。
 - 🔒 **Model Integrity の実行時検証**：スコープごとに有効モデル/Reasoning をロックし、Studio から見える設定ドリフトを検出し、ローカル rollout に記録済みの実行時証拠と照合します。最新モデル/Reasoning、reroute 数、最近 5 件の証拠を表示し、読み取り専用で再取得できます。CLI の一時上書き、ローカルに記録されない挙動、観測不能なサーバー内部ルーティングは保証対象外です。
 
-- 🔄 **安定版チェックと署名付きアプリ内更新**：GitHub の最新安定版を確認し、正式な署名付きビルドではアプリ内で更新をダウンロード、署名検証、インストールできます。Windows は NSIS、Linux は AppImage / deb のインストール元に一致する更新パッケージ、macOS は署名付き更新パッケージを使用し、インストール後に再起動します。未署名の Nightly / ローカルビルドは GitHub Release ページへフォールバックします。
+- 🔄 **安定版チェックと署名付きアプリ内更新**：GitHub の最新安定版を確認し、正式な署名付きビルドではアプリ内で更新をダウンロード、署名検証、インストールできます。Windows は NSIS、Linux は AppImage / deb のインストール元に一致する更新パッケージ、macOS は署名付き更新パッケージを使用し、インストール後に再起動します。`v0.5.0` には Updater が含まれていないため、`v0.6.0` への移行は GitHub Releases から一度手動インストールする必要があります。`v0.6.0` 以降が後続の署名付きアプリ内更新の基準になります。
 
 - **UI/UX を刷新**：二列レイアウト、固定適用ボタン、設定のグループ化、プロジェクト/プロファイル履歴と読み取り専用プレビュー。草稿破棄の確認、フォーカス管理、キーボード操作を追加。多言語、テーマ、継承と履歴警告を維持し、書き込み完了前のロック解除を防止。
 - **プロファイルの版 · v0.4.0**: 履歴には元のモデル、思考レベル、サブ Agent 設定を保存し、新しい推奨値で上書きしません。 確認後はプレビューのみで、設定は書き込みません。
@@ -132,7 +132,7 @@
 - 📊 **프로젝트 사용량, 추세 및 참고 비용**: 로컬 Codex rollout JSONL을 읽기 전용으로 분석해 7일 / 30일 / 전체 기간, 모델/Reasoning, 루트/서브 Agent, 일별/모델별 추세, Agent 분석, 관찰 가능한 reroute 기록, 최근 프로젝트 개요, 버전이 있는 참고 비용을 제공합니다. 구형 형식 데이터는 추정값으로 명시하며 알 수 없는 모델 가격은 추측하지 않습니다. 모든 값은 best-effort 로컬 텔레메트리이며 청구 데이터가 아닙니다.
 - 🔒 **Model Integrity 런타임 검증**: 범위별 유효 모델/Reasoning을 잠그고 Studio에서 보이는 설정 드리프트를 감지하며 로컬 rollout에 이미 기록된 런타임 증거와 비교합니다. 최근 모델/Reasoning, reroute 횟수, 최근 5개 증거를 표시하고 읽기 전용 새로고침을 제공합니다. CLI 임시 재정의, 로컬에 기록되지 않은 동작, 관찰할 수 없는 서버 내부 라우팅은 로컬 보장 범위 밖입니다.
 
-- 🔄 **안정 버전 확인 및 서명된 인앱 업데이트**: GitHub 최신 안정 버전을 확인하고, 정식 서명 빌드에서는 앱 안에서 업데이트를 다운로드하고 서명을 검증한 뒤 설치할 수 있습니다. Windows는 NSIS, Linux는 설치 출처에 맞는 AppImage/deb 패키지, macOS는 서명된 업데이트 패키지를 사용하며 설치 후 재시작합니다. 서명되지 않은 Nightly/로컬 빌드는 GitHub Release 페이지로 안전하게 폴백합니다.
+- 🔄 **안정 버전 확인 및 서명된 인앱 업데이트**: GitHub 최신 안정 버전을 확인하고, 정식 서명 빌드에서는 앱 안에서 업데이트를 다운로드하고 서명을 검증한 뒤 설치할 수 있습니다. Windows는 NSIS, Linux는 설치 출처에 맞는 AppImage/deb 패키지, macOS는 서명된 업데이트 패키지를 사용하며 설치 후 재시작합니다. `v0.5.0`에는 Updater가 없으므로 `v0.6.0`으로 이동할 때는 GitHub Releases에서 한 번 수동 설치해야 하며, `v0.6.0`부터 이후 서명된 인앱 업데이트의 기준 버전이 됩니다.
 
 - **UI/UX 개선**: 두 열 레이아웃, 고정 적용 영역, 설정 그룹, 프로젝트/프로필 기록 및 읽기 전용 미리보기. 초안 폐기 확인, 포커스 관리 및 키보드 탭 조작을 추가했습니다. 다국어, 테마, 상속, 보관 프로필 경고를 유지하며 쓰기 완료 전 잠금을 해제하지 않습니다.
 - **프로필 버전 · v0.4.0**: 보관된 스냅샷은 원래 모델, 사고 수준 및 서브 Agent 설정을 유지하며 새 추천값으로 덮어쓰지 않습니다. 확인하면 미리보기만 불러오며 설정 파일에 쓰지 않습니다.
