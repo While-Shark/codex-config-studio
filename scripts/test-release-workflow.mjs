@@ -7,6 +7,13 @@ import { dirname, resolve } from 'node:path';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const workflow = readFileSync(resolve(root, '.github/workflows/release.yml'), 'utf8').replace(/\r\n/g, '\n');
 
+test('release verifies version consistency before any automatic bump', () => {
+  const verify=workflow.indexOf('Verify release version sources');
+  const command=workflow.indexOf('node scripts/check-release-version.mjs');
+  const bump=workflow.indexOf('Prepare automatic version bump');
+  assert.ok(verify>=0&&command>verify&&bump>command,'version preflight must run before automatic bump');
+});
+
 test('release workflow keeps Apple platform signing optional but rejects partial configuration', () => {
   assert.match(workflow, /Prepare optional macOS Developer ID signing/);
   assert.match(workflow, /REQUIRE_MACOS_SIGNING/);
