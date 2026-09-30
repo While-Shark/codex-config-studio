@@ -21,7 +21,7 @@ export function releaseReadiness(root=process.cwd()){
     check('release workflow secret preflight',
       workflow.includes('Verify required updater signing secrets before release mutation')
         && workflow.includes('TAURI_SIGNING_PRIVATE_KEY')
-        && workflow.includes('TAURI_UPDATER_PUBKEY'),
+        && workflow.includes('CODEX_UPDATER_PUBKEY: ${{ secrets.TAURI_UPDATER_PUBKEY }}'),
       'Updater signing inputs are validated before release mutation'),
     check('formal updater artifacts',
       workflow.includes('Enable signed updater artifacts')
@@ -29,7 +29,7 @@ export function releaseReadiness(root=process.cwd()){
         && workflow.includes('build-updater-manifest.mjs'),
       'Formal release enables signed updater artifacts and publishes latest.json'),
     check('local updater disabled by default',
-      tauri.plugins?.updater?.pubkey==='' && updater.includes('option_env!("TAURI_UPDATER_PUBKEY")'),
+      tauri.plugins?.updater?.pubkey==='' && updater.includes('option_env!("CODEX_UPDATER_PUBKEY")'),
       'Nightly/local builds keep updater trust disabled unless the release environment injects the public key'),
     check('v0.6.0 notes cover current features',
       ['GPT-6.1 Sol','Environment status center','Rule-level schema diff explanations','Agent efficiency metrics','Project-level agent summary'].every(token=>notes.includes(token))
