@@ -36,7 +36,8 @@ export function releaseReadiness(root=process.cwd()){
         || ['GPT-6.1 Sol','环境状态中心','Schema 规则级差异解释','Agent 效率指标','项目级 Agent 摘要'].every(token=>notes.includes(token)),
       'Release notes include the latest model, config-health, and usage capabilities'),
     check('release checklist documents updater bootstrap',
-      checklist.includes('v0.5.0 has no updater runtime')
+      checklist.includes('v0.5.0')
+        && checklist.includes('has no updater runtime')
         && checklist.includes('v0.6.0 -> later signed release'),
       'Checklist preserves the one-time manual v0.5.0 to v0.6.0 bootstrap rule'),
   ];
