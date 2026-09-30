@@ -46,3 +46,14 @@ test('overview copy is complete in five languages',()=>{
     assert.ok(Object.values(copy).every(value=>typeof value==='string'&&value.trim()));
   }
 });
+
+
+test('overview project shape keeps agent split totals',()=>{
+  const project={
+    projectPath:'/a',available:true,sessions:3,turns:4,responses:5,
+    usage:{inputTokens:0,cachedInputTokens:0,cacheWriteInputTokens:0,outputTokens:0,reasoningOutputTokens:0,totalTokens:300},
+    models:[],rootSessions:1,subagentSessions:2,rootTokens:180,subagentTokens:120,reroutes:0,
+  };
+  assert.equal(project.rootTokens+project.subagentTokens,project.usage.totalTokens);
+  assert.equal(project.rootSessions+project.subagentSessions,project.sessions);
+});

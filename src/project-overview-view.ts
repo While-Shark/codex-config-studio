@@ -64,6 +64,8 @@ export function renderProjectOverviewView(host:HTMLElement,options:ProjectOvervi
       '<div class="overview-project-metrics"><div><span>'+esc(copy.totalTokens)+'</span><strong>'+esc(formatTokens(usage))+'</strong></div>'+
       '<div><span>'+esc(copy.sessions)+'</span><strong>'+sessions+'</strong></div>'+
       '<div><span>'+esc(copy.reroutes)+'</span><strong>'+reroutes+'</strong></div></div>'+
+      '<div class="overview-agent-split"><div><span>'+esc(copy.rootAgent)+'</span><strong>'+esc(formatTokens(project?.rootTokens??0))+'</strong><small>'+String(project?.rootSessions??0)+' '+esc(copy.sessions)+'</small></div>'+
+      '<div><span>'+esc(copy.subagents)+'</span><strong>'+esc(formatTokens(project?.subagentTokens??0))+'</strong><small>'+String(project?.subagentSessions??0)+' '+esc(copy.sessions)+'</small></div></div>'+
       '<div class="overview-project-detail"><p><span>'+esc(copy.topModel)+'</span><code>'+esc(project?topModelLabel(project):'—')+'</code></p>'+
       '<p><span>'+esc(copy.lastConfig)+'</span><code>'+esc((recent.model??'—')+(recent.reasoning?' · '+recent.reasoning:''))+'</code></p>'+
       '<small>'+esc(formatDate(recent.lastTimestampMs,options.locale))+'</small></div>'+
