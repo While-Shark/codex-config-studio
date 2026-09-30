@@ -8,6 +8,10 @@ export type ProjectUsageOverview = {
   responses: number;
   usage: UsageTokens;
   models: ModelUsage[];
+  rootSessions: number;
+  subagentSessions: number;
+  rootTokens: number;
+  subagentTokens: number;
   reroutes: number;
 };
 
@@ -60,6 +64,8 @@ export type OverviewCopy = {
   topModel: string;
   unavailable: string;
   openUsage: string;
+  rootAgent: string;
+  subagents: string;
   files: string;
   scanWarning: string;
   parseWarning: string;
@@ -72,7 +78,7 @@ const copies: Record<string, OverviewCopy> = {
     loading:'Reading recent projects and local Codex usage…',empty:'No project history is available yet.',refresh:'Refresh',
     sevenDayUsage:'Last 7 days',recentProjects:'Recent projects',projects:'Known projects',activeProjects:'With usage',sessions:'Sessions',
     reroutes:'Observed reroutes',totalTokens:'Total tokens',lastConfig:'Last recorded config',topModel:'Top model',unavailable:'Project path unavailable',
-    openUsage:'Open usage',files:'rollout files scanned',scanWarning:'The rollout scan hit its safety limit; older data may be omitted.',
+    openUsage:'Open usage',rootAgent:'Root agent',subagents:'Sub-agents',files:'rollout files scanned',scanWarning:'The rollout scan hit its safety limit; older data may be omitted.',
     parseWarning:'Some rollout records could not be parsed.',historyHint:'Projects are discovered from Config Studio history. Usage is read-only local Codex telemetry.',
   },
   'zh-CN': {
@@ -80,7 +86,7 @@ const copies: Record<string, OverviewCopy> = {
     loading:'正在读取最近项目和本机 Codex 用量…',empty:'还没有可用于总览的项目历史。',refresh:'刷新',
     sevenDayUsage:'最近 7 天',recentProjects:'最近项目',projects:'已记录项目',activeProjects:'有用量项目',sessions:'会话',
     reroutes:'可观测路由',totalTokens:'总 Token',lastConfig:'最近记录配置',topModel:'主要模型',unavailable:'项目路径当前不可用',
-    openUsage:'打开用量',files:'个 rollout 文件已扫描',scanWarning:'rollout 扫描达到安全上限，较旧数据可能未纳入。',
+    openUsage:'打开用量',rootAgent:'主 Agent',subagents:'子 Agent',files:'个 rollout 文件已扫描',scanWarning:'rollout 扫描达到安全上限，较旧数据可能未纳入。',
     parseWarning:'部分 rollout 记录无法解析。',historyHint:'项目来源于 Config Studio 历史记录；用量来自本机 Codex 只读遥测。',
   },
   'zh-TW': {
@@ -88,7 +94,7 @@ const copies: Record<string, OverviewCopy> = {
     loading:'正在讀取最近專案和本機 Codex 用量…',empty:'目前沒有可用於總覽的專案歷史。',refresh:'重新整理',
     sevenDayUsage:'最近 7 天',recentProjects:'最近專案',projects:'已記錄專案',activeProjects:'有用量專案',sessions:'工作階段',
     reroutes:'可觀測路由',totalTokens:'總 Token',lastConfig:'最近記錄設定',topModel:'主要模型',unavailable:'專案路徑目前不可用',
-    openUsage:'開啟用量',files:'個 rollout 檔案已掃描',scanWarning:'rollout 掃描達到安全上限，較舊資料可能未納入。',
+    openUsage:'開啟用量',rootAgent:'主 Agent',subagents:'子 Agent',files:'個 rollout 檔案已掃描',scanWarning:'rollout 掃描達到安全上限，較舊資料可能未納入。',
     parseWarning:'部分 rollout 記錄無法解析。',historyHint:'專案來自 Config Studio 歷史記錄；用量來自本機 Codex 唯讀遙測。',
   },
   ja: {
@@ -96,7 +102,7 @@ const copies: Record<string, OverviewCopy> = {
     loading:'最近のプロジェクトとローカル Codex 使用量を読み込み中…',empty:'概要に表示できるプロジェクト履歴がまだありません。',refresh:'更新',
     sevenDayUsage:'直近7日',recentProjects:'最近のプロジェクト',projects:'記録済みプロジェクト',activeProjects:'使用量あり',sessions:'セッション',
     reroutes:'観測 reroute',totalTokens:'総 Token',lastConfig:'最後に記録した設定',topModel:'主要モデル',unavailable:'プロジェクトパスを利用できません',
-    openUsage:'使用量を開く',files:' rollout ファイルを走査',scanWarning:'走査が安全上限に達したため、古いデータが省略されている可能性があります。',
+    openUsage:'使用量を開く',rootAgent:'Root Agent',subagents:'Sub-Agent',files:' rollout ファイルを走査',scanWarning:'走査が安全上限に達したため、古いデータが省略されている可能性があります。',
     parseWarning:'一部の rollout 記録を解析できませんでした。',historyHint:'プロジェクトは Config Studio の履歴から検出し、使用量はローカル Codex の読み取り専用テレメトリです。',
   },
   ko: {
@@ -104,7 +110,7 @@ const copies: Record<string, OverviewCopy> = {
     loading:'최근 프로젝트와 로컬 Codex 사용량을 읽는 중…',empty:'개요에 표시할 프로젝트 기록이 아직 없습니다.',refresh:'새로고침',
     sevenDayUsage:'최근 7일',recentProjects:'최근 프로젝트',projects:'기록된 프로젝트',activeProjects:'사용량 있음',sessions:'세션',
     reroutes:'관찰된 reroute',totalTokens:'총 Token',lastConfig:'최근 기록 설정',topModel:'주요 모델',unavailable:'프로젝트 경로를 사용할 수 없음',
-    openUsage:'사용량 열기',files:'개 rollout 파일 스캔',scanWarning:'rollout 스캔이 안전 한도에 도달해 오래된 데이터가 누락될 수 있습니다.',
+    openUsage:'사용량 열기',rootAgent:'Root Agent',subagents:'Sub-Agent',files:'개 rollout 파일 스캔',scanWarning:'rollout 스캔이 안전 한도에 도달해 오래된 데이터가 누락될 수 있습니다.',
     parseWarning:'일부 rollout 기록을 파싱하지 못했습니다.',historyHint:'프로젝트는 Config Studio 기록에서 찾고 사용량은 로컬 Codex 읽기 전용 텔레메트리에서 가져옵니다.',
   },
 };
