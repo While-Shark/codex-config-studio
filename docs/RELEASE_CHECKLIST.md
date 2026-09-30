@@ -5,7 +5,7 @@ Use this checklist for the first formal release that includes the signed in-app 
 ## Before dispatch
 
 - `master` is green on the latest Nightly workflow.
-- Run `node scripts/check-release-version.mjs`; every release version source must still agree on the current version.
+- Run `npm run release:check`; it verifies release-version alignment, updater wiring, release-note coverage, and updater bootstrap assumptions. GitHub updater secrets remain the only manual readiness check.
 - Confirm `RELEASE_NOTES.md` includes GPT-6.1 Sol, model-aware Reasoning, client compatibility, environment status, schema-diff details, agent/project usage insights, usage/cost, release integrity, and updater bootstrap notes.
 - The required updater secrets exist:
   - `TAURI_SIGNING_PRIVATE_KEY`
