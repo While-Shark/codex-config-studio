@@ -60,6 +60,7 @@ Config Health prefers the **authoritative generated Codex configuration schema f
 - Normal writes only touch Studio-managed keys; unknown and future fields are preserved.
 - Removing an unknown field requires explicit confirmation and creates a backup/history entry first.
 - The app can show the detected local Codex CLI version and compare consecutive authoritative schemas for added, removed, or structurally changed fields.
+- When the official model catalog declares `minimal_client_version`, Config Health compares the effective main/sub-agent models with the local Codex version. An older client gets a read-only warning; models are not hidden, saving is not blocked, and configuration is never rewritten automatically.
 - Documentation-only schema edits are ignored by the change summary.
 
 ### Model Integrity
