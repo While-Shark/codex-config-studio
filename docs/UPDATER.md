@@ -39,6 +39,16 @@ A successful signed release publishes:
 
 `latest.json` contains installer-specific target keys so AppImage and deb installations receive their matching package.
 
+## Rollout baseline
+
+`v0.5.0` predates the signed updater implementation and does not contain the updater runtime, `latest.json` support, or updater signature verification. It therefore cannot upgrade itself to `v0.6.0` in-app.
+
+Treat `v0.6.0` as the first signed-updater-capable baseline release:
+
+- users on `v0.5.0` or older install `v0.6.0` manually once from GitHub Releases;
+- verify that `v0.6.0` detects and installs a later signed test/stable release (for example `v0.6.1`) before declaring the in-app updater rollout fully proven;
+- do not use `v0.5.0 -> v0.6.0` as an updater acceptance test, because the source build has no updater code.
+
 ## Runtime behavior
 
 - Signed formal builds offer in-app install/restart.
