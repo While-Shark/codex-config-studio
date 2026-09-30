@@ -184,3 +184,43 @@ test('invalid remote documents never replace the safe built-in fallback path', a
   assert.deepEqual(result.entries, []);
   assert.match(result.state.error, /no visible models/);
 });
+
+
+test('model catalog comparison reports capability changes without treating priority as capability',()=>{
+  const before=[
+    {id:'a',displayName:'A',reasoningLevels:['low','high'],defaultReasoningLevel:'high',priority:1,minimalClientVersion:'1.0.0'},
+    {id:'removed',displayName:'Removed',reasoningLevels:[],defaultReasoningLevel:null,priority:2,minimalClientVersion:null},
+  ];
+  const after=[
+    {id:'a',displayName:'A',reasoningLevels:['low','high','xhigh'],defaultReasoningLevel:'xhigh',priority:99,minimalClientVersion:'1.1.0'},
+    {id:'added',displayName:'Added',reasoningLevels:['high'],defaultReasoningLevel:'high',priority:1,minimalClientVersion:null},
+  ];
+  const changes=catalog.compareOfficialModelCatalog(before,after);
+  assert.deepEqual(changes.map(change=>[change.kind,change.model]),[
+    ['changed','a'],['added','added'],['removed','removed']
+  ]);
+  const changed=changes.find(change=>change.model==='a');
+  assert.deepEqual(changed.details,[
+    'reasoning levels changed','default reasoning changed','minimum client version changed'
+  ]);
+});
+
+test('successful refresh stores a readable model catalog change report',async()=>{
+  const key='codex-config-studio.official-model-catalog.v1';
+  const data=installStorage(new Map([[key,JSON.stringify({
+    entries:[{id:'old',displayName:'Old',reasoningLevels:['high'],defaultReasoningLevel:'high',priority:1,minimalClientVersion:null}],
+    fetchedAt:Date.now()-3*24*60*60*1000,
+    sourceUrl:catalog.OFFICIAL_MODEL_CATALOG_SOURCE,
+  })]]));
+  globalThis.fetch=async()=>new Response(JSON.stringify({models:[{
+    slug:'new',display_name:'New',visibility:'list',priority:1,default_reasoning_level:'high',
+    supported_reasoning_levels:[{effort:'high'}],
+  }]}),{status:200});
+  const result=await catalog.loadOfficialModelCatalog(true);
+  assert.equal(result.state.status,'fresh');
+  const report=catalog.readOfficialModelCatalogChangeReport();
+  assert.ok(report);
+  assert.ok(report.changes.some(change=>change.kind==='removed'&&change.model==='old'));
+  assert.ok(report.changes.some(change=>change.kind==='added'&&change.model==='new'));
+  assert.ok([...data.keys()].some(storageKey=>storageKey.includes('official-model-catalog.changes')));
+});
