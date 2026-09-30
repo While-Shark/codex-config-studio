@@ -44,7 +44,7 @@ release: minor
 release: major
 ```
 
-The trigger branch is a signal only. The Release workflow always checks out current `master` before version validation, mutation, build, signing, and publication. Changes elsewhere on `release-trigger` do not satisfy the path filter, and unrecognized commit messages fail before release mutation.
+The trigger branch is a signal only. A separate **Release Trigger** relay runs without repository secrets, validates the exact commit message, and dispatches the formal **Release** workflow from `master`. Signing secrets are exposed only to the formal master workflow. Changes elsewhere on `release-trigger` do not satisfy the path filter, and unrecognized commit messages never dispatch a release.
 
 With the current `0.5.0` source version, `release: minor` resolves to `0.6.0`.
 
