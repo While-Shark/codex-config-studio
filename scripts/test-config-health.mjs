@@ -125,7 +125,9 @@ test('schema comparison reports added removed and changed declared fields',()=>{
     definitions:{Agents:{type:'object',additionalProperties:false,properties:{enabled:{type:'boolean'},mode:{type:'string'}}}},
   };
   const changes=JSON.parse(JSON.stringify(health.compareSchemas(before,after)));
-  assert.ok(changes.some(change=>change.kind==='changed'&&change.path==='model'));
+  const modelChange=changes.find(change=>change.kind==='changed'&&change.path==='model');
+  assert.ok(modelChange);
+  assert.ok(modelChange.details.includes('enum changed'));
   assert.ok(changes.some(change=>change.kind==='removed'&&change.path==='old_field'));
   assert.ok(changes.some(change=>change.kind==='added'&&change.path==='new_field'));
   assert.ok(changes.some(change=>change.kind==='added'&&change.path==='agents.mode'));
@@ -135,4 +137,15 @@ test('schema comparison ignores documentation-only edits',()=>{
   const before={properties:{model:{type:'string',description:'old'}},definitions:{}};
   const after={properties:{model:{type:'string',description:'new',markdownDescription:'new docs'}},definitions:{}};
   assert.deepEqual(JSON.parse(JSON.stringify(health.compareSchemas(before,after))),[]);
+});
+
+
+test('schema comparison explains type and default changes without exposing docs churn',()=>{
+  const before={properties:{model:{type:'string',default:'a'}},definitions:{}};
+  const after={properties:{model:{type:['string','null'],default:null}},definitions:{}};
+  const [change]=JSON.parse(JSON.stringify(health.compareSchemas(before,after)));
+  assert.equal(change.kind,'changed');
+  assert.equal(change.path,'model');
+  assert.ok(change.details.some(detail=>detail.startsWith('type:')));
+  assert.ok(change.details.some(detail=>detail.startsWith('default:')));
 });
