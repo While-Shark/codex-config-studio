@@ -50,6 +50,7 @@ import { renderUsageView } from './usage-view';
 import { recentProjectsFromHistory, type ProjectsUsageOverviewReport, type RecentProject } from './project-overview';
 import { renderProjectOverviewView } from './project-overview-view';
 import { checkStableUpdate, installSignedUpdate, openStableReleasePage, signedUpdaterEnabled, updateText, type UpdateState } from './update-checker';
+import { AUTO_UPDATE_CHECK_INTERVAL_MS, automaticUpdatePromptRecord, shouldPromptAutomaticUpdate, shouldRunAutomaticUpdateCheck } from './update-policy';
 import { environmentStatusRows, environmentText } from './environment-status';
 
 type ScopeKind = 'global' | 'project';
@@ -143,7 +144,9 @@ let configHealthLoading = false;
 let configHealthRequestId = 0;
 let updateState: UpdateState = {status:'idle'};
 let updateRequestId = 0;
+let lastUpdateCheckAt = 0;
 let signedUpdaterReady: boolean | null = null;
+const autoUpdatePromptKey='codex-config-studio.update.prompt';
 const cachedOfficialModelCatalog = readCachedOfficialModelCatalog();
 let officialModelEntries: OfficialModelCatalogEntry[] = cachedOfficialModelCatalog?.entries ?? [];
 let officialModelCatalogState: OfficialModelCatalogState | null = cachedOfficialModelCatalog ? {
@@ -256,36 +259,54 @@ function renderUpdateStatus():void {
   if(updateState.status==='error'){button.classList.add('error');if(label)label.textContent=copy.check;button.title=`${copy.failed}: ${updateState.message}`;return;}
   if(label)label.textContent=copy.check;button.title='';
 }
-async function runUpdateCheck(silent=false):Promise<void> {
+type UpdateCheckMode='manual'|'automatic';
+
+async function presentAvailableUpdate(next:Extract<UpdateState,{status:'available'}>):Promise<void> {
+  if(busy||confirmResolver)return;
+  const copy=updateText(getLocale());
+  const proceed=await askConfirm({
+    title:copy.available,
+    message:`${copy.currentVersion}: ${next.currentVersion}\n${copy.latestVersion}: ${next.latestVersion}`,
+    detail:next.notes||undefined,
+    confirmText:signedUpdaterReady===true?copy.install:copy.openRelease,
+    readOnly:true,
+  });
+  if(!proceed)return;
+  if(signedUpdaterReady===true){
+    toast(copy.installing);
+    try{await installSignedUpdate();}
+    catch(error){
+      toast(String(error),true);
+      try{await openStableReleasePage();}catch(openError){console.warn('open stable release fallback',openError);}
+    }
+  }else{
+    try{await openStableReleasePage();}catch(error){toast(String(error),true);}
+  }
+}
+
+async function runUpdateCheck(mode:UpdateCheckMode):Promise<void> {
   if(updateState.status==='checking')return;
   const request=++updateRequestId;
   updateState={status:'checking'};renderUpdateStatus();
   const next=await checkStableUpdate();
   if(request!==updateRequestId)return;
+  const now=Date.now();
+  lastUpdateCheckAt=now;
   updateState=next;renderUpdateStatus();
-  if(next.status==='available'&&!silent){
-    const copy=updateText(getLocale());
-    const proceed=await askConfirm({
-      title:copy.available,
-      message:`${copy.currentVersion}: ${next.currentVersion}\n${copy.latestVersion}: ${next.latestVersion}`,
-      detail:next.notes||undefined,
-      confirmText:signedUpdaterReady===true?copy.install:copy.openRelease,
-      readOnly:true,
-    });
-    if(proceed){
-      if(signedUpdaterReady===true){
-        toast(copy.installing);
-        try{await installSignedUpdate();}
-        catch(error){
-          toast(String(error),true);
-          try{await openStableReleasePage();}catch(openError){console.warn('open stable release fallback',openError);}
-        }
-      }else{
-        try{await openStableReleasePage();}catch(error){toast(String(error),true);}
-      }
+
+  if(next.status==='available'){
+    if(mode==='manual'){
+      await presentAvailableUpdate(next);
+      return;
     }
-  }else if(next.status==='current'&&!silent)toast(updateText(getLocale()).current);
-  else if(next.status==='error'&&!silent)toast(`${updateText(getLocale()).failed}: ${next.message}`,true);
+    if(!busy&&!confirmResolver&&shouldPromptAutomaticUpdate(next.latestVersion,safeGet(autoUpdatePromptKey),now)){
+      safeSet(autoUpdatePromptKey,automaticUpdatePromptRecord(next.latestVersion,now));
+      await presentAvailableUpdate(next);
+    }
+    return;
+  }
+  if(mode==='manual'&&next.status==='current')toast(updateText(getLocale()).current);
+  else if(mode==='manual'&&next.status==='error')toast(`${updateText(getLocale()).failed}: ${next.message}`,true);
 }
 
 function renderStatus():void {
@@ -1006,7 +1027,7 @@ function askConfirm(spec:ConfirmSpec):Promise<boolean> {
 function finishConfirm(value:boolean):void { const modal=document.querySelector<HTMLElement>('#confirmModal');modal?.classList.add('hidden');const r=confirmResolver;confirmResolver=null;setModalActive(false);r?.(value); }
 
 function bindStaticEvents():void {
-  document.querySelector<HTMLButtonElement>('#updateCheckBtn')?.addEventListener('click',()=>{void runUpdateCheck(false);});
+  document.querySelector<HTMLButtonElement>('#updateCheckBtn')?.addEventListener('click',()=>{void runUpdateCheck('manual');});
   $<HTMLSelectElement>('#languageSelect').onchange=e=>{if(busy||confirmResolver||!validateModelPickers(document)){(e.currentTarget as HTMLSelectElement).value=getLocale();return;}setLocale((e.currentTarget as HTMLSelectElement).value as Locale);document.documentElement.lang=getLocale();renderApp();};
   $<HTMLSelectElement>('#themeMode').value=themeMode;
   $<HTMLSelectElement>('#themeMode').onchange=e=>{themeMode=(e.currentTarget as HTMLSelectElement).value as ThemeMode;safeSet('codex-config-studio.theme.mode',themeMode);applyTheme();};
@@ -1026,6 +1047,9 @@ function bindStaticEvents():void {
 
 document.addEventListener('click',e=>closePopovers(e.target));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!confirmResolver)closePopovers(null);});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&shouldRunAutomaticUpdateCheck(lastUpdateCheckAt,Date.now()))void runUpdateCheck('automatic');
+});
 
 window.addEventListener('unhandledrejection',e=>{console.error(e.reason);toast(t('error.unexpected',{error:String(e.reason)}),true);});
 window.addEventListener('error',e=>{console.error(e.error);toast(t('error.unexpected',{error:String(e.message)}),true);});
@@ -1044,7 +1068,14 @@ async function refreshOfficialModelCatalog():Promise<void> {
   }
 }
 
+async function initializeUpdateMonitoring():Promise<void> {
+  signedUpdaterReady=await signedUpdaterEnabled();
+  renderConfigHealth();
+  await runUpdateCheck('automatic');
+  window.setInterval(()=>{void runUpdateCheck('automatic');},AUTO_UPDATE_CHECK_INTERVAL_MS);
+}
+
 document.documentElement.lang=getLocale();
 applyTheme();
 renderApp();
-Promise.all([loadConfig(),loadHistory(),signedUpdaterEnabled().then(enabled=>{signedUpdaterReady=enabled;renderConfigHealth();}),runUpdateCheck(true),refreshOfficialModelCatalog()]);
+Promise.all([loadConfig(),loadHistory(),initializeUpdateMonitoring(),refreshOfficialModelCatalog()]);
