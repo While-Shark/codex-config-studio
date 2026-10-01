@@ -1,2 +1,2 @@
-bump=current
-request=8
+bump=patch
+request=9
