@@ -17,7 +17,7 @@ writeFileSync(configPath,JSON.stringify(config,null,2)+'\n');
 if(process.env.GITHUB_ENV){
   appendFileSync(
     process.env.GITHUB_ENV,
-    `CODEX_UPDATER_PUBKEY=${pubkey}\nTAURI_UPDATER_PUBKEY=${pubkey}\n`,
+    `CODEX_UPDATER_PUBKEY=${pubkey}\n`,
   );
 }
 
