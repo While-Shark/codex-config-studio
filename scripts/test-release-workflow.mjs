@@ -163,7 +163,8 @@ test('formal release embeds updater trust through a transient Tauri config overl
   assert.match(updaterPrepare, /TAURI_SIGNING_PRIVATE_KEY is required for signed release builds/);
   assert.match(updaterPrepare, /normalizeUpdaterPublicKey/);
   assert.match(updaterPrepare, /GITHUB_ENV/);
-  assert.match(updaterPrepare, /TAURI_CONFIG/);
+  assert.match(updaterPrepare, /CODEX_TAURI_RELEASE_CONFIG_PATH/);
+  assert.match(updaterPrepare, /writeFileSync\(releaseConfigPath/);
   assert.match(updaterPrepare, /createUpdaterArtifacts:true/);
   assert.match(updaterPrepare, /updater:\s*\{[\s\S]*pubkey/);
   assert.doesNotMatch(updaterPrepare, /TAURI_UPDATER_PUBKEY=\$\{pubkey\}/);
@@ -173,11 +174,14 @@ test('formal release embeds updater trust through a transient Tauri config overl
   assert.doesNotMatch(workflow, /Build desktop bundle[\s\S]{0,500}CODEX_UPDATER_PUBKEY: \$\{\{ secrets\.TAURI_UPDATER_PUBKEY \}\}/);
   assert.match(workflow, /TAURI_SIGNING_PRIVATE_KEY: \$\{\{ secrets\.TAURI_SIGNING_PRIVATE_KEY \}\}/);
   assert.doesNotMatch(workflow, /^\s*TAURI_UPDATER_PUBKEY:/m);
+  const releaseConfigArgs=workflow.match(/--config src-tauri\/tauri\.release\.conf\.json/g)??[];
+  assert.equal(releaseConfigArgs.length,3,'all formal release platforms must load the transient updater config through Tauri CLI');
 });
 
-test('updater preparation preserves an existing Windows TAURI_CONFIG overlay', () => {
+test('updater preparation writes a CLI config file and preserves the Windows signing overlay', () => {
   const dir=mkdtempSync(join(tmpdir(),'ccs-updater-overlay-'));
   const githubEnv=join(dir,'github-env.txt');
+  const releaseConfig=join(dir,'tauri.release.conf.json');
   const keyFile='untrusted comment: minisign public key: E044F290F8608BD0\n'
     +'RWTQi2D4kPJE4D8JgpqNOiyzGfQYCoRxHiY0VYmWCLhLzU9+YXiOFjxA\n';
   const canonical=Buffer.from(keyFile,'utf8').toString('base64');
@@ -201,17 +205,18 @@ test('updater preparation preserves an existing Windows TAURI_CONFIG overlay', (
         TAURI_SIGNING_PRIVATE_KEY:'test-private-key',
         TAURI_CONFIG:JSON.stringify(windowsConfig),
         GITHUB_ENV:githubEnv,
+        CODEX_TAURI_RELEASE_CONFIG_PATH:releaseConfig,
       },
     });
     assert.equal(run.status,0,run.stderr);
 
     const envLines=readFileSync(githubEnv,'utf8').trim().split('\n');
     const normalized=envLines.find(line=>line.startsWith('CODEX_UPDATER_PUBKEY='))?.slice('CODEX_UPDATER_PUBKEY='.length);
-    const overlayText=envLines.find(line=>line.startsWith('TAURI_CONFIG='))?.slice('TAURI_CONFIG='.length);
+    const tauriConfigEnv=envLines.find(line=>line.startsWith('TAURI_CONFIG='))?.slice('TAURI_CONFIG='.length);
     assert.equal(normalized,canonical);
-    assert.ok(overlayText,'TAURI_CONFIG overlay was not written');
+    assert.equal(tauriConfigEnv,'','TAURI_CONFIG should be cleared after it is materialized into the release config file');
 
-    const overlay=JSON.parse(overlayText);
+    const overlay=JSON.parse(readFileSync(releaseConfig,'utf8'));
     assert.deepEqual(overlay.bundle.windows,windowsConfig.bundle.windows);
     assert.equal(overlay.bundle.createUpdaterArtifacts,true);
     assert.equal(overlay.plugins.updater.pubkey,canonical);
