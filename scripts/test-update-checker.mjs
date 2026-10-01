@@ -36,7 +36,7 @@ test('release opener is a fixed native command without URL input',()=>{
 test('signed updater stays behind compile-time public key and fixed latest manifest',()=>{
   const rust=readFileSync(resolve(root,'src-tauri/src/updater.rs'),'utf8');
   const config=JSON.parse(readFileSync(resolve(root,'src-tauri/tauri.conf.json'),'utf8'));
-  assert.match(rust,/option_env!\("TAURI_UPDATER_PUBKEY"\)/);
+  assert.match(rust,/option_env!\("CODEX_UPDATER_PUBKEY"\)/);
   assert.match(rust,/download_and_install/);
   assert.match(rust,/app\.restart\(\)/);
   assert.equal(config.plugins.updater.pubkey,'');
@@ -90,10 +90,12 @@ test('updater manifest generator emits matching signed package URLs',()=>{
     assert.equal(run.status,0,run.stderr);
     const manifest=JSON.parse(readFileSync(join(dir,'latest.json'),'utf8'));
     assert.equal(manifest.version,'1.2.3');
-    assert.match(manifest.platforms['windows-x86_64-nsis'].url,/-setup\.exe$/);
-    assert.match(manifest.platforms['linux-x86_64-appimage'].url,/\.AppImage$/);
-    assert.match(manifest.platforms['linux-x86_64-deb'].url,/\.deb$/);
-    assert.match(manifest.platforms['darwin-aarch64-app'].url,/\.app\.tar\.gz$/);
-    assert.equal(manifest.platforms['linux-x86_64-deb'].signature,'trusted-signature');
-  }finally{rmSync(dir,{recursive:true,force:true});}
+    assert.match(manifest.platforms['windows-x86_64-nsis'].url,/Codex_1\.2\.3_x64-setup\.exe$/);
+    assert.match(manifest.platforms['linux-x86_64-appimage'].url,/Codex_1\.2\.3_amd64\.AppImage$/);
+    assert.match(manifest.platforms['linux-x86_64-deb'].url,/Codex_1\.2\.3_amd64\.deb$/);
+    assert.match(manifest.platforms['darwin-universal-app'].url,/Codex\.app\.tar\.gz$/);
+    assert.equal(manifest.platforms['windows-x86_64-nsis'].signature,'trusted-signature');
+  }finally{
+    rmSync(dir,{recursive:true,force:true});
+  }
 });
