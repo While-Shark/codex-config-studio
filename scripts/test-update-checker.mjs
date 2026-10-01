@@ -6,9 +6,24 @@ import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { loadTypeScript } from './helpers/load-typescript.mjs';
+import { normalizeUpdaterPublicKey } from './updater-public-key.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const updates=loadTypeScript(resolve(root,'src/update-version.ts'));
+
+
+test('updater public key normalizer accepts canonical and common stored formats',()=>{
+  const keyLine='RWTQi2D4kPJE4D8JgpqNOiyzGfQYCoRxHiY0VYmWCLhLzU9+YXiOFjxA';
+  const keyFile='untrusted comment: minisign public key: E044F290F8608BD0\n'+keyLine+'\n';
+  const canonical=Buffer.from(keyFile,'utf8').toString('base64');
+  const synthesized=Buffer.from('untrusted comment: minisign public key\n'+keyLine+'\n','utf8').toString('base64');
+
+  assert.equal(normalizeUpdaterPublicKey(canonical),canonical);
+  assert.equal(normalizeUpdaterPublicKey(keyFile),canonical);
+  assert.equal(normalizeUpdaterPublicKey(keyLine),synthesized);
+  assert.equal(normalizeUpdaterPublicKey(Buffer.from(keyLine,'utf8').toString('base64')),synthesized);
+  assert.throws(()=>normalizeUpdaterPublicKey('not-a-public-key'),/TAURI_UPDATER_PUBKEY must be/);
+});
 
 test('semantic version comparison handles normal release versions',()=>{
   assert.equal(updates.compareVersions('0.5.0','0.5.0'),0);
