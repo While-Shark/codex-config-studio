@@ -34,7 +34,7 @@ export function releaseReadiness(root=process.cwd()){
         && updaterPrepare.includes('createUpdaterArtifacts:true')
         && updaterPrepare.includes('pubkey,')
         && !updaterPrepare.includes('TAURI_UPDATER_PUBKEY=')
-        && (workflow.match(/--config src-tauri\\/tauri\\.release\\.conf\\.json/g)??[]).length===3,
+        && (workflow.match(/--config src-tauri\/tauri\.release\.conf\.json/g)??[]).length===3,
       'Formal release materializes a transient updater config and passes it to every Tauri CLI build before publishing latest.json'),
     check('local updater disabled by default',
       tauri.plugins?.updater?.pubkey==='' && updater.includes('option_env!("CODEX_UPDATER_PUBKEY")'),
