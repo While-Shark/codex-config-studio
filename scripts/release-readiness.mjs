@@ -29,11 +29,13 @@ export function releaseReadiness(root=process.cwd()){
         && workflow.includes('prepare-updater-build.mjs')
         && workflow.includes('build-updater-manifest.mjs')
         && updaterPrepare.includes('normalizeUpdaterPublicKey')
-        && updaterPrepare.includes('TAURI_CONFIG')
+        && updaterPrepare.includes('CODEX_TAURI_RELEASE_CONFIG_PATH')
+        && updaterPrepare.includes('writeFileSync(releaseConfigPath')
         && updaterPrepare.includes('createUpdaterArtifacts:true')
         && updaterPrepare.includes('pubkey,')
-        && !updaterPrepare.includes('TAURI_UPDATER_PUBKEY='),
-      'Formal release normalizes updater public-key material, injects it through a transient Tauri config overlay, enables signed artifacts, and publishes latest.json'),
+        && !updaterPrepare.includes('TAURI_UPDATER_PUBKEY=')
+        && (workflow.match(/--config src-tauri\\/tauri\\.release\\.conf\\.json/g)??[]).length===3,
+      'Formal release materializes a transient updater config and passes it to every Tauri CLI build before publishing latest.json'),
     check('local updater disabled by default',
       tauri.plugins?.updater?.pubkey==='' && updater.includes('option_env!("CODEX_UPDATER_PUBKEY")'),
       'Nightly/local builds keep updater trust disabled unless the release environment injects the public key'),
