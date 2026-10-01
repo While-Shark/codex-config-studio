@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const workflow = readFileSync(resolve(root, '.github/workflows/release.yml'), 'utf8').replace(/\r\n/g, '\n');
@@ -152,7 +154,7 @@ test('tag-driven releases must point to a commit reachable from master', () => {
 });
 
 
-test('formal release embeds updater trust while local builds stay disabled by default', () => {
+test('formal release embeds updater trust through a transient Tauri config overlay', () => {
   assert.equal(tauriConfig.plugins?.updater?.pubkey, '');
   assert.match(updaterRust, /option_env!\("CODEX_UPDATER_PUBKEY"\)/);
   assert.match(updaterRust, /builder\.pubkey\(pubkey\)\.build\(\)/);
@@ -161,13 +163,60 @@ test('formal release embeds updater trust while local builds stay disabled by de
   assert.match(updaterPrepare, /TAURI_SIGNING_PRIVATE_KEY is required for signed release builds/);
   assert.match(updaterPrepare, /normalizeUpdaterPublicKey/);
   assert.match(updaterPrepare, /GITHUB_ENV/);
-  assert.match(updaterPrepare, /TAURI_UPDATER_PUBKEY=\$\{pubkey\}/);
-  assert.match(updaterPrepare, /createUpdaterArtifacts=true|createUpdaterArtifacts:true/);
+  assert.match(updaterPrepare, /TAURI_CONFIG/);
+  assert.match(updaterPrepare, /createUpdaterArtifacts:true/);
+  assert.match(updaterPrepare, /updater:\s*\{[\s\S]*pubkey/);
+  assert.doesNotMatch(updaterPrepare, /TAURI_UPDATER_PUBKEY=\$\{pubkey\}/);
   const rawMappings=workflow.match(/CODEX_UPDATER_PUBKEY: \$\{\{ secrets\.TAURI_UPDATER_PUBKEY \}\}/g)??[];
   assert.equal(rawMappings.length,3,'raw updater public key should only be read by preflight/validation/materialization steps');
   assert.doesNotMatch(workflow, /Build desktop bundle[\s\S]{0,500}CODEX_UPDATER_PUBKEY: \$\{\{ secrets\.TAURI_UPDATER_PUBKEY \}\}/);
   assert.match(workflow, /TAURI_SIGNING_PRIVATE_KEY: \$\{\{ secrets\.TAURI_SIGNING_PRIVATE_KEY \}\}/);
   assert.doesNotMatch(workflow, /^\s*TAURI_UPDATER_PUBKEY:/m);
+});
+
+test('updater preparation preserves an existing Windows TAURI_CONFIG overlay', () => {
+  const dir=mkdtempSync(join(tmpdir(),'ccs-updater-overlay-'));
+  const githubEnv=join(dir,'github-env.txt');
+  const keyFile='untrusted comment: minisign public key: E044F290F8608BD0\n'
+    +'RWTQi2D4kPJE4D8JgpqNOiyzGfQYCoRxHiY0VYmWCLhLzU9+YXiOFjxA\n';
+  const canonical=Buffer.from(keyFile,'utf8').toString('base64');
+  const windowsConfig={
+    bundle:{
+      windows:{
+        certificateThumbprint:'ABC123',
+        digestAlgorithm:'sha256',
+        timestampUrl:'https://timestamp.example.test',
+        tsp:true,
+      },
+    },
+  };
+
+  try{
+    const run=spawnSync(process.execPath,[resolve(root,'scripts/prepare-updater-build.mjs')],{
+      encoding:'utf8',
+      env:{
+        ...process.env,
+        CODEX_UPDATER_PUBKEY:canonical,
+        TAURI_SIGNING_PRIVATE_KEY:'test-private-key',
+        TAURI_CONFIG:JSON.stringify(windowsConfig),
+        GITHUB_ENV:githubEnv,
+      },
+    });
+    assert.equal(run.status,0,run.stderr);
+
+    const envLines=readFileSync(githubEnv,'utf8').trim().split('\n');
+    const normalized=envLines.find(line=>line.startsWith('CODEX_UPDATER_PUBKEY='))?.slice('CODEX_UPDATER_PUBKEY='.length);
+    const overlayText=envLines.find(line=>line.startsWith('TAURI_CONFIG='))?.slice('TAURI_CONFIG='.length);
+    assert.equal(normalized,canonical);
+    assert.ok(overlayText,'TAURI_CONFIG overlay was not written');
+
+    const overlay=JSON.parse(overlayText);
+    assert.deepEqual(overlay.bundle.windows,windowsConfig.bundle.windows);
+    assert.equal(overlay.bundle.createUpdaterArtifacts,true);
+    assert.equal(overlay.plugins.updater.pubkey,canonical);
+  }finally{
+    rmSync(dir,{recursive:true,force:true});
+  }
 });
 
 
