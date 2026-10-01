@@ -3,10 +3,10 @@ import { resolve } from 'node:path';
 
 const configPath=resolve('src-tauri/tauri.conf.json');
 const config=JSON.parse(readFileSync(configPath,'utf8'));
-const pubkey=process.env.TAURI_UPDATER_PUBKEY?.trim();
+const pubkey=process.env.CODEX_UPDATER_PUBKEY?.trim();
 const privateKey=process.env.TAURI_SIGNING_PRIVATE_KEY?.trim();
 
-if(!pubkey)throw new Error('TAURI_UPDATER_PUBKEY is required for signed release builds');
+if(!pubkey)throw new Error('CODEX_UPDATER_PUBKEY is required for signed release builds');
 if(!privateKey)throw new Error('TAURI_SIGNING_PRIVATE_KEY is required for signed release builds');
 
 config.bundle={...(config.bundle??{}),createUpdaterArtifacts:true};

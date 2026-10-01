@@ -36,7 +36,7 @@ test('release opener is a fixed native command without URL input',()=>{
 test('signed updater stays behind compile-time public key and fixed latest manifest',()=>{
   const rust=readFileSync(resolve(root,'src-tauri/src/updater.rs'),'utf8');
   const config=JSON.parse(readFileSync(resolve(root,'src-tauri/tauri.conf.json'),'utf8'));
-  assert.match(rust,/option_env!\("TAURI_UPDATER_PUBKEY"\)/);
+  assert.match(rust,/option_env!\("CODEX_UPDATER_PUBKEY"\)/);
   assert.match(rust,/download_and_install/);
   assert.match(rust,/app\.restart\(\)/);
   assert.equal(config.plugins.updater.pubkey,'');
