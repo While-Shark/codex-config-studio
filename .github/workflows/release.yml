@@ -132,7 +132,7 @@ jobs:
         include:
           - name: windows-x64
             os: windows-latest
-            args: --bundles nsis
+            args: --config src-tauri/tauri.release.conf.json --bundles nsis
             artifact: codex-config-studio-windows-x64
             artifact_path: |
               src-tauri/target/release/bundle/nsis/*-setup.exe
@@ -140,7 +140,7 @@ jobs:
 
           - name: linux-x64
             os: ubuntu-22.04
-            args: --bundles appimage,deb
+            args: --config src-tauri/tauri.release.conf.json --bundles appimage,deb
             artifact: codex-config-studio-linux-x64
             artifact_path: |
               src-tauri/target/release/bundle/appimage/*.AppImage
@@ -150,7 +150,7 @@ jobs:
 
           - name: macos-universal
             os: macos-latest
-            args: --target universal-apple-darwin --bundles app,dmg
+            args: --config src-tauri/tauri.release.conf.json --target universal-apple-darwin --bundles app,dmg
             artifact: codex-config-studio-macos-universal
             artifact_path: |
               src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
