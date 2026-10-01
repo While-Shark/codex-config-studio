@@ -159,8 +159,13 @@ test('formal release embeds updater trust while local builds stay disabled by de
   assert.match(updaterRust, /Signed updater is not enabled in this build/);
   assert.match(updaterPrepare, /CODEX_UPDATER_PUBKEY is required for signed release builds/);
   assert.match(updaterPrepare, /TAURI_SIGNING_PRIVATE_KEY is required for signed release builds/);
+  assert.match(updaterPrepare, /normalizeUpdaterPublicKey/);
+  assert.match(updaterPrepare, /GITHUB_ENV/);
+  assert.match(updaterPrepare, /TAURI_UPDATER_PUBKEY=\$\{pubkey\}/);
   assert.match(updaterPrepare, /createUpdaterArtifacts=true|createUpdaterArtifacts:true/);
-  assert.match(workflow, /CODEX_UPDATER_PUBKEY: \$\{\{ secrets\.TAURI_UPDATER_PUBKEY \}\}/);
+  const rawMappings=workflow.match(/CODEX_UPDATER_PUBKEY: \$\{\{ secrets\.TAURI_UPDATER_PUBKEY \}\}/g)??[];
+  assert.equal(rawMappings.length,3,'raw updater public key should only be read by preflight/validation/materialization steps');
+  assert.doesNotMatch(workflow, /Build desktop bundle[\s\S]{0,500}CODEX_UPDATER_PUBKEY: \$\{\{ secrets\.TAURI_UPDATER_PUBKEY \}\}/);
   assert.match(workflow, /TAURI_SIGNING_PRIVATE_KEY: \$\{\{ secrets\.TAURI_SIGNING_PRIVATE_KEY \}\}/);
   assert.doesNotMatch(workflow, /^\s*TAURI_UPDATER_PUBKEY:/m);
 });
