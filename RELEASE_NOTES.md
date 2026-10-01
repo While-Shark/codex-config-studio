@@ -2,6 +2,7 @@
 
 ## 简体中文
 
+- 🔔 **主动自动检查稳定版更新**：启动后会在签名 Updater 就绪后自动检查最新稳定版，发现新版本会主动提示；应用持续运行时每 6 小时后台复查，休眠/切回应用且检查已过期时也会补查。同一版本的主动提醒 24 小时内最多一次，手动“检查更新”仍会立即反馈；自动检查失败不会弹错打扰使用。
 - 🧠 **GPT-6.1 Sol 与方案版本化**：均衡方案和“复杂问题”默认升级到 GPT-6.1 Sol；GPT-6（v0.5.0）与 v0.4.0 方案继续作为不可变历史快照保留。浏览历史方案不会改写当前配置，已有项目也不会被自动迁移。
 - 🎚️ **按模型能力约束 Reasoning**：已知官方模型只展示 Codex 官方 `models.json` 声明支持的思考等级。读取旧配置或自定义模型时继续保留原值；只有用户主动切换到已知官方模型且旧等级不兼容时，才使用该模型官方默认 Reasoning，避免生成新的无效组合。
 - 🧩 **Codex 客户端兼容性提示**：Config Health 会读取官方模型目录中的 `minimal_client_version`，把当前主模型/子 Agent 与本机 Codex CLI 版本比较。客户端过旧时只显示只读警告，不隐藏模型、不阻止保存、不自动升级 Codex，也不改写配置。
@@ -37,6 +38,7 @@
 
 ## 繁體中文
 
+- 🔔 **主動自動檢查穩定版更新**：啟動後會在簽名 Updater 就緒後自動檢查最新穩定版，發現新版本時主動提示；應用持續執行時每 6 小時背景複查，休眠/切回應用且檢查已過期時也會補查。同一版本的主動提醒 24 小時內最多一次，手動「檢查更新」仍會立即回饋；自動檢查失敗不會跳出錯誤打擾使用。
 - 🧠 **GPT-6.1 Sol 與方案版本化**：均衡方案與「複雜問題」預設升級為 GPT-6.1 Sol；GPT-6（v0.5.0）與 v0.4.0 方案繼續以不可變歷史快照保留。瀏覽歷史方案不會改寫目前設定，既有專案也不會被自動遷移。
 - 🎚️ **依模型能力限制 Reasoning**：已知官方模型只顯示 Codex 官方 `models.json` 宣告支援的思考等級。讀取舊設定或自訂模型時仍保留原值；只有使用者主動切換到已知官方模型且舊等級不相容時，才使用該模型的官方預設 Reasoning，避免產生新的無效組合。
 - 🧩 **Codex 用戶端相容性提示**：Config Health 會讀取官方模型目錄中的 `minimal_client_version`，把目前主模型/子 Agent 與本機 Codex CLI 版本比較。用戶端過舊時只顯示唯讀警告，不會隱藏模型、阻止儲存、自動升級 Codex 或改寫設定。
@@ -69,6 +71,7 @@
 
 ## English
 
+- 🔔 **Proactive automatic stable-update checks**: After startup, the app waits for signed-updater readiness and then checks the latest stable release automatically. A newer release is surfaced proactively; long-running sessions recheck every 6 hours, and returning to the app after a stale interval triggers another check. The same version prompts at most once per 24 hours, manual checks remain immediate, and automatic failures stay non-intrusive.
 - 🧠 **GPT-6.1 Sol and versioned profiles**: Balanced and Complex Problem defaults now use GPT-6.1 Sol. The GPT-6 (v0.5.0) and v0.4.0 profile sets remain immutable archive snapshots. Browsing archived profiles never rewrites current configuration, and existing projects are not migrated automatically.
 - 🎚️ **Model-aware Reasoning choices**: Known official models now expose only the reasoning levels declared by Codex `models.json`. Existing/custom values remain intact when loading configuration; only an explicit switch to a known official model reconciles an incompatible value to that model's official default, avoiding newly created invalid combinations.
 - 🧩 **Codex client compatibility warnings**: Config Health reads `minimal_client_version` from the official model catalog and compares effective main/sub-agent models with the detected local Codex CLI version. An older client gets a read-only warning only—models are not hidden, Apply is not blocked, Codex is not upgraded automatically, and configuration is not rewritten.
@@ -104,6 +107,7 @@
 
 ## 日本語
 
+- 🔔 **安定版の自動・能動チェック**：起動後、署名付き Updater の準備完了を待って最新安定版を自動確認し、新版があれば能動的に通知します。長時間起動中は 6 時間ごとに再確認し、スリープ復帰やアプリへ戻った際に前回確認が古ければ再チェックします。同じ版の自動通知は 24 時間に 1 回までで、手動確認は常に即時実行され、自動確認の失敗は作業を妨げません。
 - 🧠 **GPT-6.1 Sol とプロファイルの版管理**：Balanced と「複雑な問題」の既定値を GPT-6.1 Sol に更新しました。GPT-6（v0.5.0）と v0.4.0 は不変の履歴スナップショットとして保持します。履歴プロファイルを閲覧しても現在の設定は書き換えず、既存プロジェクトも自動移行しません。
 - 🎚️ **モデル能力に応じた Reasoning**：既知の公式モデルでは Codex 公式 `models.json` が宣言する思考レベルだけを表示します。既存設定やカスタムモデルの値は読み込み時に保持し、既知の公式モデルへ明示的に切り替えたときだけ、非対応の値をそのモデルの公式既定 Reasoning に調整します。
 - 🧩 **Codex クライアント互換性警告**：Config Health は公式モデルカタログの `minimal_client_version` を読み、現在のメイン/サブ Agent とローカル Codex CLI の版を比較します。古いクライアントには読み取り専用の警告だけを表示し、モデル非表示、保存停止、自動アップグレード、設定書き換えは行いません。
@@ -136,6 +140,7 @@
 
 ## 한국어
 
+- 🔔 **안정 버전 자동·능동 업데이트 확인**: 시작 후 서명 Updater 준비 상태를 확인한 다음 최신 안정 버전을 자동으로 검사하고, 새 버전이 있으면 능동적으로 알립니다. 앱을 오래 실행하면 6시간마다 다시 확인하며, 절전 복귀나 앱으로 돌아왔을 때 이전 확인이 오래되었으면 재검사합니다. 같은 버전의 자동 알림은 24시간에 한 번으로 제한하고, 수동 확인은 항상 즉시 실행되며 자동 확인 실패는 사용을 방해하지 않습니다.
 - 🧠 **GPT-6.1 Sol 및 버전형 프로필**: Balanced와 복잡한 문제 기본값을 GPT-6.1 Sol로 업그레이드했습니다. GPT-6(v0.5.0)와 v0.4.0 프로필은 변경되지 않는 기록 스냅샷으로 계속 보존합니다. 기록 프로필을 탐색해도 현재 설정을 다시 쓰지 않으며 기존 프로젝트를 자동 마이그레이션하지 않습니다.
 - 🎚️ **모델 능력 기반 Reasoning 선택**: 알려진 공식 모델에는 Codex 공식 `models.json`이 지원한다고 선언한 사고 수준만 표시합니다. 기존 설정과 사용자 지정 모델 값은 읽을 때 그대로 유지하며, 사용자가 알려진 공식 모델로 명시적으로 전환했고 기존 수준이 호환되지 않을 때만 해당 모델의 공식 기본 Reasoning으로 조정합니다.
 - 🧩 **Codex 클라이언트 호환성 경고**: Config Health가 공식 모델 카탈로그의 `minimal_client_version`을 읽고 현재 메인/서브 Agent 모델과 로컬 Codex CLI 버전을 비교합니다. 클라이언트가 오래된 경우 읽기 전용 경고만 표시하며, 모델을 숨기거나 Apply를 막거나 Codex를 자동 업그레이드하거나 설정을 다시 쓰지 않습니다.
