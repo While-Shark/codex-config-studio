@@ -1,14 +1,24 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { normalizeUpdaterPublicKey } from './updater-public-key.mjs';
 
 const configPath=resolve('src-tauri/tauri.conf.json');
 const config=JSON.parse(readFileSync(configPath,'utf8'));
-const pubkey=process.env.CODEX_UPDATER_PUBKEY?.trim();
+const pubkeyInput=process.env.CODEX_UPDATER_PUBKEY?.trim();
 const privateKey=process.env.TAURI_SIGNING_PRIVATE_KEY?.trim();
 
-if(!pubkey)throw new Error('CODEX_UPDATER_PUBKEY is required for signed release builds');
+if(!pubkeyInput)throw new Error('CODEX_UPDATER_PUBKEY is required for signed release builds');
 if(!privateKey)throw new Error('TAURI_SIGNING_PRIVATE_KEY is required for signed release builds');
 
+const pubkey=normalizeUpdaterPublicKey(pubkeyInput);
 config.bundle={...(config.bundle??{}),createUpdaterArtifacts:true};
 writeFileSync(configPath,JSON.stringify(config,null,2)+'\n');
-console.log('Signed updater artifacts enabled for this release build.');
+
+if(process.env.GITHUB_ENV){
+  appendFileSync(
+    process.env.GITHUB_ENV,
+    `CODEX_UPDATER_PUBKEY=${pubkey}\nTAURI_UPDATER_PUBKEY=${pubkey}\n`,
+  );
+}
+
+console.log('Signed updater artifacts enabled with normalized public-key material.');
