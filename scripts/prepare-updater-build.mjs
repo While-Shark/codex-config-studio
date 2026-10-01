@@ -46,7 +46,7 @@ writeFileSync(releaseConfigPath,JSON.stringify(tauriConfig,null,2)+'\n');
 
 appendFileSync(
   githubEnv,
-  `CODEX_UPDATER_PUBKEY=${pubkey}\nTAURI_CONFIG=\n`,
+  `CODEX_UPDATER_PUBKEY=${pubkey}\nTAURI_CONFIG={}\n`,
 );
 
 console.log(`Signed updater artifacts enabled through --config ${releaseConfigPath} with normalized public-key material.`);

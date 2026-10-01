@@ -214,7 +214,7 @@ test('updater preparation writes a CLI config file and preserves the Windows sig
     const normalized=envLines.find(line=>line.startsWith('CODEX_UPDATER_PUBKEY='))?.slice('CODEX_UPDATER_PUBKEY='.length);
     const tauriConfigEnv=envLines.find(line=>line.startsWith('TAURI_CONFIG='))?.slice('TAURI_CONFIG='.length);
     assert.equal(normalized,canonical);
-    assert.equal(tauriConfigEnv,'','TAURI_CONFIG should be cleared after it is materialized into the release config file');
+    assert.equal(tauriConfigEnv,'{}','TAURI_CONFIG should be neutralized with a valid empty JSON patch after release config materialization');
 
     const overlay=JSON.parse(readFileSync(releaseConfig,'utf8'));
     assert.deepEqual(overlay.bundle.windows,windowsConfig.bundle.windows);
