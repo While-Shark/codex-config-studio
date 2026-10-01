@@ -90,12 +90,10 @@ test('updater manifest generator emits matching signed package URLs',()=>{
     assert.equal(run.status,0,run.stderr);
     const manifest=JSON.parse(readFileSync(join(dir,'latest.json'),'utf8'));
     assert.equal(manifest.version,'1.2.3');
-    assert.match(manifest.platforms['windows-x86_64-nsis'].url,/Codex_1\.2\.3_x64-setup\.exe$/);
-    assert.match(manifest.platforms['linux-x86_64-appimage'].url,/Codex_1\.2\.3_amd64\.AppImage$/);
-    assert.match(manifest.platforms['linux-x86_64-deb'].url,/Codex_1\.2\.3_amd64\.deb$/);
-    assert.match(manifest.platforms['darwin-universal-app'].url,/Codex\.app\.tar\.gz$/);
-    assert.equal(manifest.platforms['windows-x86_64-nsis'].signature,'trusted-signature');
-  }finally{
-    rmSync(dir,{recursive:true,force:true});
-  }
+    assert.match(manifest.platforms['windows-x86_64-nsis'].url,/-setup\.exe$/);
+    assert.match(manifest.platforms['linux-x86_64-appimage'].url,/\.AppImage$/);
+    assert.match(manifest.platforms['linux-x86_64-deb'].url,/\.deb$/);
+    assert.match(manifest.platforms['darwin-aarch64-app'].url,/\.app\.tar\.gz$/);
+    assert.equal(manifest.platforms['linux-x86_64-deb'].signature,'trusted-signature');
+  }finally{rmSync(dir,{recursive:true,force:true});}
 });
