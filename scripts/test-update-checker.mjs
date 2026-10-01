@@ -10,6 +10,7 @@ import { normalizeUpdaterPublicKey } from './updater-public-key.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const updates=loadTypeScript(resolve(root,'src/update-version.ts'));
+const updatePolicy=loadTypeScript(resolve(root,'src/update-policy.ts'));
 
 
 test('updater public key normalizer accepts canonical and common stored formats',()=>{
@@ -30,6 +31,32 @@ test('semantic version comparison handles normal release versions',()=>{
   assert.equal(updates.compareVersions('0.5.0','0.5.1'),-1);
   assert.equal(updates.compareVersions('0.10.0','0.9.9'),1);
   assert.equal(updates.compareVersions('v1.2.0','1.2'),0);
+});
+
+
+test('automatic update checks are periodic while update prompts are rate-limited per version',()=>{
+  const now=1_800_000_000_000;
+  assert.equal(updatePolicy.shouldRunAutomaticUpdateCheck(0,now),true);
+  assert.equal(updatePolicy.shouldRunAutomaticUpdateCheck(now-60*60*1000,now),false);
+  assert.equal(updatePolicy.shouldRunAutomaticUpdateCheck(now-updatePolicy.AUTO_UPDATE_CHECK_INTERVAL_MS,now),true);
+
+  assert.equal(updatePolicy.shouldPromptAutomaticUpdate('0.6.1',null,now),true);
+  const record=updatePolicy.automaticUpdatePromptRecord('0.6.1',now);
+  assert.equal(updatePolicy.shouldPromptAutomaticUpdate('0.6.1',record,now+23*60*60*1000),false);
+  assert.equal(updatePolicy.shouldPromptAutomaticUpdate('0.6.1',record,now+updatePolicy.AUTO_UPDATE_PROMPT_COOLDOWN_MS),true);
+  assert.equal(updatePolicy.shouldPromptAutomaticUpdate('0.6.2',record,now+1000),true);
+  assert.equal(updatePolicy.shouldPromptAutomaticUpdate('0.6.1','not-json',now+1000),true);
+});
+
+test('startup waits for updater readiness before proactive automatic update checking',()=>{
+  const source=readFileSync(resolve(root,'src/main.ts'),'utf8');
+  const updaterReady=source.indexOf('signedUpdaterReady=await signedUpdaterEnabled()');
+  const startupCheck=source.indexOf("await runUpdateCheck('automatic')");
+  assert.ok(updaterReady>=0&&startupCheck>updaterReady,'signed updater readiness must resolve before the automatic startup check');
+  assert.match(source,/setInterval\(\(\)=>\{void runUpdateCheck\('automatic'\);\},AUTO_UPDATE_CHECK_INTERVAL_MS\)/);
+  assert.match(source,/visibilityState==='visible'&&shouldRunAutomaticUpdateCheck/);
+  assert.match(source,/runUpdateCheck\('manual'\)/);
+  assert.match(source,/shouldPromptAutomaticUpdate\(next\.latestVersion/);
 });
 
 test('update checker only targets the stable latest release endpoint',()=>{
