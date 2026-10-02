@@ -14,7 +14,7 @@
 ![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB)
 ![Languages](https://img.shields.io/badge/languages-5-purple)
 
-[简体中文](./README.md) · **繁體中文** · [English](./README.en.md) · [日本語](./README.ja.md) · [한국어](./README.ko.md)
+[简体中文](./README.zh-CN.md) · **繁體中文** · [English](./README.md) · [日本語](./README.ja.md) · [한국어](./README.ko.md)
 
 [簡介](#簡介) · [功能](#功能) · [方案](#內建方案) · [下載](#下載) · [開發](#本機開發) · [安全](#安全設計)
 
