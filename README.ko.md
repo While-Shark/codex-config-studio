@@ -14,7 +14,7 @@
 ![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB)
 ![Languages](https://img.shields.io/badge/languages-5-purple)
 
-[简体中文](./README.md) · [繁體中文](./README.zh-TW.md) · [English](./README.en.md) · [日本語](./README.ja.md) · **한국어**
+[简体中文](./README.zh-CN.md) · [繁體中文](./README.zh-TW.md) · [English](./README.md) · [日本語](./README.ja.md) · **한국어**
 
 [소개](#소개) · [기능](#기능) · [프로필](#기본-프로필) · [다운로드](#다운로드) · [개발](#로컬-개발) · [보안](#보안)
 
