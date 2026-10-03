@@ -165,7 +165,7 @@ export const zhTW: Dictionary = {
   'preset.daily.usage': '大多數日常專案開發。',
   'preset.balanced.name': '均衡',
   'preset.balanced.badge': '複雜開發',
-  'preset.balanced.description': 'GPT-6.1 Sol 主導 + GPT-6 Luna 執行。',
+  'preset.balanced.description': 'GPT-6.1 Sol 負責接近 Astra 品質、但更重視成本的複雜任務，GPT-6 Luna 負責執行。',
   'preset.balanced.usage': '跨檔案功能、一般重構、聯調。',
   'preset.astra.name': 'Astra 總指揮',
   'preset.astra.badge': '高品質',
