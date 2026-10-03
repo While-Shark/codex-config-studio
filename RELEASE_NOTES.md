@@ -2,6 +2,7 @@
 
 ## 简体中文
 
+- 🧠 **GPT-6.1 角色分层方案定版**：新增 `2026-10-03` 当前方案版本并完整归档 v0.6.1 方案。Token Saver / Economy 降低 Plan Mode 消耗；Balanced 继续由 GPT-6.1 Sol + Luna 执行；Astra 总指挥升级为 GPT-6 Astra high/xhigh 负责规划与 Review、GPT-6.1 Sol medium 负责复杂执行；极致方案升级为 GPT-6 Astra xhigh + GPT-6.1 Sol high。已有项目与历史方案不会自动迁移。
 - 🔔 **主动自动检查稳定版更新**：启动后会在签名 Updater 就绪后自动检查最新稳定版，发现新版本会主动提示；应用持续运行时每 6 小时后台复查，休眠/切回应用且检查已过期时也会补查。同一版本的主动提醒 24 小时内最多一次，手动“检查更新”仍会立即反馈；自动检查失败不会弹错打扰使用。
 - 🧠 **GPT-6.1 Sol 与方案版本化**：均衡方案和“复杂问题”默认升级到 GPT-6.1 Sol；GPT-6（v0.5.0）与 v0.4.0 方案继续作为不可变历史快照保留。浏览历史方案不会改写当前配置，已有项目也不会被自动迁移。
 - 🎚️ **按模型能力约束 Reasoning**：已知官方模型只展示 Codex 官方 `models.json` 声明支持的思考等级。读取旧配置或自定义模型时继续保留原值；只有用户主动切换到已知官方模型且旧等级不兼容时，才使用该模型官方默认 Reasoning，避免生成新的无效组合。
@@ -38,6 +39,7 @@
 
 ## 繁體中文
 
+- 🧠 **GPT-6.1 角色分層方案定版**：新增 `2026-10-03` 目前方案版本並完整封存 v0.6.1 方案。Token Saver / Economy 降低 Plan Mode 消耗；Balanced 維持 GPT-6.1 Sol + Luna 執行；Astra Director 升級為 GPT-6 Astra high/xhigh 負責規劃與 Review、GPT-6.1 Sol medium 負責複雜執行；Max Quality 升級為 GPT-6 Astra xhigh + GPT-6.1 Sol high。既有專案與歷史方案不會自動遷移。
 - 🔔 **主動自動檢查穩定版更新**：啟動後會在簽名 Updater 就緒後自動檢查最新穩定版，發現新版本時主動提示；應用持續執行時每 6 小時背景複查，休眠/切回應用且檢查已過期時也會補查。同一版本的主動提醒 24 小時內最多一次，手動「檢查更新」仍會立即回饋；自動檢查失敗不會跳出錯誤打擾使用。
 - 🧠 **GPT-6.1 Sol 與方案版本化**：均衡方案與「複雜問題」預設升級為 GPT-6.1 Sol；GPT-6（v0.5.0）與 v0.4.0 方案繼續以不可變歷史快照保留。瀏覽歷史方案不會改寫目前設定，既有專案也不會被自動遷移。
 - 🎚️ **依模型能力限制 Reasoning**：已知官方模型只顯示 Codex 官方 `models.json` 宣告支援的思考等級。讀取舊設定或自訂模型時仍保留原值；只有使用者主動切換到已知官方模型且舊等級不相容時，才使用該模型的官方預設 Reasoning，避免產生新的無效組合。
@@ -71,6 +73,7 @@
 
 ## English
 
+- 🧠 **Finalized GPT-6.1 role-based profiles**: Added a new `2026-10-03` current profile revision while preserving the exact v0.6.1 profiles as an immutable archive. Token Saver and Economy reduce Plan Mode spend; Balanced remains GPT-6.1 Sol + Luna; Astra Director now uses GPT-6 Astra high/xhigh for planning/review with GPT-6.1 Sol medium workers; Max Quality now pairs GPT-6 Astra xhigh with GPT-6.1 Sol high. Existing projects and archived profiles are never migrated automatically.
 - 🔔 **Proactive automatic stable-update checks**: After startup, the app waits for signed-updater readiness and then checks the latest stable release automatically. A newer release is surfaced proactively; long-running sessions recheck every 6 hours, and returning to the app after a stale interval triggers another check. The same version prompts at most once per 24 hours, manual checks remain immediate, and automatic failures stay non-intrusive.
 - 🧠 **GPT-6.1 Sol and versioned profiles**: Balanced and Complex Problem defaults now use GPT-6.1 Sol. The GPT-6 (v0.5.0) and v0.4.0 profile sets remain immutable archive snapshots. Browsing archived profiles never rewrites current configuration, and existing projects are not migrated automatically.
 - 🎚️ **Model-aware Reasoning choices**: Known official models now expose only the reasoning levels declared by Codex `models.json`. Existing/custom values remain intact when loading configuration; only an explicit switch to a known official model reconciles an incompatible value to that model's official default, avoiding newly created invalid combinations.
@@ -107,6 +110,7 @@
 
 ## 日本語
 
+- 🧠 **GPT-6.1 の役割分担プロファイルを正式化**：`2026-10-03` の現行版を追加し、v0.6.1 のプロファイルを不変の履歴として保存しました。Token Saver / Economy は Plan Mode コストを抑え、Balanced は GPT-6.1 Sol + Luna を維持。Astra Director は GPT-6 Astra high/xhigh が計画と Review、GPT-6.1 Sol medium が複雑な実装を担当し、Max Quality は GPT-6 Astra xhigh + GPT-6.1 Sol high に更新します。既存プロジェクトや履歴設定は自動移行しません。
 - 🔔 **安定版の自動・能動チェック**：起動後、署名付き Updater の準備完了を待って最新安定版を自動確認し、新版があれば能動的に通知します。長時間起動中は 6 時間ごとに再確認し、スリープ復帰やアプリへ戻った際に前回確認が古ければ再チェックします。同じ版の自動通知は 24 時間に 1 回までで、手動確認は常に即時実行され、自動確認の失敗は作業を妨げません。
 - 🧠 **GPT-6.1 Sol とプロファイルの版管理**：Balanced と「複雑な問題」の既定値を GPT-6.1 Sol に更新しました。GPT-6（v0.5.0）と v0.4.0 は不変の履歴スナップショットとして保持します。履歴プロファイルを閲覧しても現在の設定は書き換えず、既存プロジェクトも自動移行しません。
 - 🎚️ **モデル能力に応じた Reasoning**：既知の公式モデルでは Codex 公式 `models.json` が宣言する思考レベルだけを表示します。既存設定やカスタムモデルの値は読み込み時に保持し、既知の公式モデルへ明示的に切り替えたときだけ、非対応の値をそのモデルの公式既定 Reasoning に調整します。
@@ -140,6 +144,7 @@
 
 ## 한국어
 
+- 🧠 **GPT-6.1 역할 기반 프로필 확정**: `2026-10-03` 현재 프로필 버전을 추가하고 v0.6.1 프로필은 변경 불가능한 기록으로 보존합니다. Token Saver / Economy는 Plan Mode 비용을 낮추고, Balanced는 GPT-6.1 Sol + Luna를 유지합니다. Astra Director는 GPT-6 Astra high/xhigh가 계획과 Review를 담당하고 GPT-6.1 Sol medium이 복잡한 실행을 맡으며, Max Quality는 GPT-6 Astra xhigh + GPT-6.1 Sol high로 업그레이드됩니다. 기존 프로젝트와 기록 프로필은 자동 마이그레이션하지 않습니다.
 - 🔔 **안정 버전 자동·능동 업데이트 확인**: 시작 후 서명 Updater 준비 상태를 확인한 다음 최신 안정 버전을 자동으로 검사하고, 새 버전이 있으면 능동적으로 알립니다. 앱을 오래 실행하면 6시간마다 다시 확인하며, 절전 복귀나 앱으로 돌아왔을 때 이전 확인이 오래되었으면 재검사합니다. 같은 버전의 자동 알림은 24시간에 한 번으로 제한하고, 수동 확인은 항상 즉시 실행되며 자동 확인 실패는 사용을 방해하지 않습니다.
 - 🧠 **GPT-6.1 Sol 및 버전형 프로필**: Balanced와 복잡한 문제 기본값을 GPT-6.1 Sol로 업그레이드했습니다. GPT-6(v0.5.0)와 v0.4.0 프로필은 변경되지 않는 기록 스냅샷으로 계속 보존합니다. 기록 프로필을 탐색해도 현재 설정을 다시 쓰지 않으며 기존 프로젝트를 자동 마이그레이션하지 않습니다.
 - 🎚️ **모델 능력 기반 Reasoning 선택**: 알려진 공식 모델에는 Codex 공식 `models.json`이 지원한다고 선언한 사고 수준만 표시합니다. 기존 설정과 사용자 지정 모델 값은 읽을 때 그대로 유지하며, 사용자가 알려진 공식 모델로 명시적으로 전환했고 기존 수준이 호환되지 않을 때만 해당 모델의 공식 기본 Reasoning으로 조정합니다.

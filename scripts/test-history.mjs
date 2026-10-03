@@ -148,7 +148,7 @@ if(process.env.STUDIO_HISTORY_MODULE_ONLY!=='1'){
     finish(entries);await read;assert.equal(ctx.historyEntries.length,1);
   });
   test('all READMEs keep download links but no maintainer release instructions',()=>{
-    for(const name of ['README.md','README.en.md','README.zh-TW.md','README.ja.md','README.ko.md']){
+    for(const name of ['README.md','README.zh-CN.md','README.zh-TW.md','README.ja.md','README.ko.md']){
       const text=readFileSync(join(root,name),'utf8');
       assert.ok(text.includes('/codex-config-studio/releases'),name);
       assert.ok(!text.includes('release-desktop'),name);
