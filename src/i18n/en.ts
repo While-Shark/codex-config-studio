@@ -167,7 +167,7 @@ export const en: Dictionary = {
   'preset.daily.usage': 'Most day-to-day project development.',
   'preset.balanced.name': 'Balanced',
   'preset.balanced.badge': 'Complex work',
-  'preset.balanced.description': 'GPT-6.1 Sol leads while GPT-6 Luna executes.',
+  'preset.balanced.description': 'GPT-6.1 Sol handles complex work near Astra quality at lower cost, with GPT-6 Luna for execution.',
   'preset.balanced.usage': 'Cross-file features, regular refactors, integration.',
   'preset.astra.name': 'Astra Director',
   'preset.astra.badge': 'High quality',
