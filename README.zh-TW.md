@@ -42,16 +42,18 @@ Codex 很強，但真實專案中的設定很快就會超過幾行：不同專�
 
 ## 內建方案
 
-| 方案 | 主模型 | 適合情境 |
+| 方案 | 模型組合 | 適合情境 |
 | --- | --- | --- |
-| **Token Saver** | GPT-6 Luna / low | 小修改、批次替換、明確任務 |
-| **Economy** | GPT-6 Luna / medium | CRUD、前端修改、一般 API |
-| **Daily** | GPT-6 Luna | 日常開發 |
-| **Balanced** | GPT-6.1 Sol + GPT-6 Luna | 跨檔案功能、重構、整合 |
-| **Astra Director** | GPT-6 Astra + GPT-6 Luna | Astra 規劃/Review，Luna 執行 |
-| **Max Quality** | GPT-6 Astra xhigh + GPT-6 Luna high | 疑難 Bug、大型重構、發佈前 Review |
+| **Token Saver** | GPT-6 Luna low · Plan low | 小修改、批次替換、明確任務 |
+| **Economy** | GPT-6 Luna medium · Plan medium | CRUD、前端修改、一般 API |
+| **Daily** | GPT-6 Luna medium + Luna medium 子 Agent | 日常開發 |
+| **Balanced** | GPT-6.1 Sol medium + Luna medium 子 Agent | 跨檔案功能、重構、整合 |
+| **Astra Director** | GPT-6 Astra high/xhigh + GPT-6.1 Sol medium 子 Agent | 架構、任務拆解、複雜執行、Review |
+| **Max Quality** | GPT-6 Astra xhigh + GPT-6.1 Sol high 子 Agent | 疑難 Bug、大型重構、發佈前 Review |
 
 這些方案只是起點，不會鎖死。你可以在 UI 中繼續修改模型、Reasoning、子 Agent 與並行數。
+
+目前方案版本：**GPT-6.1 · 2026-10-03**。v0.6.1 的 GPT-6.1 方案、GPT-6 v0.5.0 方案與舊版 v0.4.0 方案會繼續作為唯讀歷史快照保留。
 
 ## Config Health & Model Integrity
 
