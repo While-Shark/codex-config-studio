@@ -42,6 +42,7 @@ const fixture = runInNewContext(compile(`${declarationSource('fields')}\n${decla
 const { fields, presets } = JSON.parse(fixture);
 const daily = presets.find(preset => preset.id === 'daily').values;
 const astra = presets.find(preset => preset.id === 'astra').values;
+const modelOnly = { ...daily, model: astra.model };
 const format = (_field, value) => value === null ? 'inherit' : String(value);
 const label = field => field;
 const rows = (current, pending = daily) => createPreviewRows(fields, current, pending, label, format);
@@ -79,14 +80,14 @@ test('same preset keeps every managed field and marks each unchanged', () => {
 });
 
 test('one changed model does not hide the six unchanged settings', () => {
-  const result = rows(daily, astra);
+  const result = rows(daily, modelOnly);
   assert.equal(result.length, fields.length);
   assert.deepEqual(result.filter(row => row.status === 'changed').map(row => row.field), ['model']);
   const html = renderPreviewRows(result, previewText('en'));
   assert.equal(countRows(html), fields.length);
   assert.equal((html.match(/<del/g) ?? []).length, 1);
   assert.ok(html.includes(daily.model));
-  assert.ok(html.includes(astra.model));
+  assert.ok(html.includes(modelOnly.model));
 });
 
 test('a new empty configuration shows all fields as changes', () => {
@@ -151,7 +152,7 @@ test('actual app renderer keeps all settings after choosing the same preset', ()
 });
 
 test('actual app renderer shows seven settings but counts one real change', () => {
-  const { nodes } = runApplicationPreview(daily, astra);
+  const { nodes } = runApplicationPreview(daily, modelOnly);
   assert.equal(countRows(nodes['#changeList'].innerHTML), fields.length);
   assert.equal(nodes['#changeCount'].textContent, '1');
   assert.equal(nodes['#applyBtn'].disabled, false);
