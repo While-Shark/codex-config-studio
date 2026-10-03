@@ -42,16 +42,18 @@ Codex は強力ですが、実際のプロジェクトでは設定がすぐに�
 
 ## 内蔵プロファイル
 
-| プロファイル | メインモデル | 主な用途 |
+| プロファイル | モデル構成 | 主な用途 |
 | --- | --- | --- |
-| **Token Saver** | GPT-6 Luna / low | 小さな修正、一括置換、明確なタスク |
-| **Economy** | GPT-6 Luna / medium | CRUD、フロントエンド、通常の API 作業 |
-| **Daily** | GPT-6 Luna | 日常開発 |
-| **Balanced** | GPT-6.1 Sol + GPT-6 Luna | 複数ファイルの機能、リファクタ、連携 |
-| **Astra Director** | GPT-6 Astra + GPT-6 Luna | Astra が計画/Review、Luna が実行 |
-| **Max Quality** | GPT-6 Astra xhigh + GPT-6 Luna high | 難しい Bug、大規模リファクタ、リリース前 Review |
+| **Token Saver** | GPT-6 Luna low · Plan low | 小さな修正、一括置換、明確なタスク |
+| **Economy** | GPT-6 Luna medium · Plan medium | CRUD、フロントエンド、通常の API 作業 |
+| **Daily** | GPT-6 Luna medium + Luna medium サブ Agent | 日常開発 |
+| **Balanced** | GPT-6.1 Sol medium + Luna medium サブ Agent | 複数ファイルの機能、リファクタ、連携 |
+| **Astra Director** | GPT-6 Astra high/xhigh + GPT-6.1 Sol medium サブ Agent | アーキテクチャ、タスク分解、複雑な実装、Review |
+| **Max Quality** | GPT-6 Astra xhigh + GPT-6.1 Sol high サブ Agent | 難しい Bug、大規模リファクタ、リリース前 Review |
 
 プロファイルは出発点であり固定ではありません。UI からモデル、Reasoning、サブ Agent、並列数を自由に変更できます。
+
+現在のプロファイル版：**GPT-6.1 · 2026-10-03**。v0.6.1 の GPT-6.1、GPT-6 v0.5.0、旧 v0.4.0 の各プロファイルは読み取り専用の履歴スナップショットとして残ります。
 
 ## Config Health & Model Integrity
 
