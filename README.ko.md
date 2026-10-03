@@ -42,16 +42,18 @@ Codex는 강력하지만 실제 프로젝트의 설정은 금방 복잡해집니
 
 ## 기본 프로필
 
-| 프로필 | 메인 모델 | 권장 용도 |
+| 프로필 | 모델 구성 | 권장 용도 |
 | --- | --- | --- |
-| **Token Saver** | GPT-6 Luna / low | 작은 수정, 일괄 치환, 명확한 작업 |
-| **Economy** | GPT-6 Luna / medium | CRUD, 프론트엔드 수정, 일반 API |
-| **Daily** | GPT-6 Luna | 일상 개발 |
-| **Balanced** | GPT-6.1 Sol + GPT-6 Luna | 다중 파일 기능, 리팩터링, 연동 |
-| **Astra Director** | GPT-6 Astra + GPT-6 Luna | Astra 계획/Review, Luna 실행 |
-| **Max Quality** | GPT-6 Astra xhigh + GPT-6 Luna high | 어려운 Bug, 대규모 리팩터링, 출시 전 Review |
+| **Token Saver** | GPT-6 Luna low · Plan low | 작은 수정, 일괄 치환, 명확한 작업 |
+| **Economy** | GPT-6 Luna medium · Plan medium | CRUD, 프론트엔드 수정, 일반 API |
+| **Daily** | GPT-6 Luna medium + Luna medium 서브 Agent | 일상 개발 |
+| **Balanced** | GPT-6.1 Sol medium + Luna medium 서브 Agent | 다중 파일 기능, 리팩터링, 연동 |
+| **Astra Director** | GPT-6 Astra high/xhigh + GPT-6.1 Sol medium 서브 Agent | 아키텍처, 작업 분해, 복잡한 구현, Review |
+| **Max Quality** | GPT-6 Astra xhigh + GPT-6.1 Sol high 서브 Agent | 어려운 Bug, 대규모 리팩터링, 출시 전 Review |
 
 프로필은 시작점일 뿐 고정 모드가 아닙니다. UI에서 모델, Reasoning, 서브 Agent, 동시 실행 수를 자유롭게 바꿀 수 있습니다.
+
+현재 프로필 버전: **GPT-6.1 · 2026-10-03**. v0.6.1의 GPT-6.1 프로필, GPT-6 v0.5.0 프로필, 이전 v0.4.0 프로필은 읽기 전용 기록 스냅샷으로 계속 보존됩니다.
 
 ## Config Health & Model Integrity
 
