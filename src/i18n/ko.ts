@@ -168,7 +168,7 @@ export const ko: Dictionary = {
   'preset.daily.usage': '대부분의 일상 프로젝트 개발.',
   'preset.balanced.name': '균형',
   'preset.balanced.badge': '복잡한 개발',
-  'preset.balanced.description': 'GPT-6.1 Sol이 주도하고 GPT-6 Luna가 실행.',
+  'preset.balanced.description': 'GPT-6.1 Sol이 Astra에 가까운 품질을 더 낮은 비용으로 담당하고 GPT-6 Luna가 실행을 지원합니다.',
   'preset.balanced.usage': '다중 파일 기능, 일반 리팩터링, 연동 작업.',
   'preset.astra.name': 'Astra 총괄',
   'preset.astra.badge': '고품질',
