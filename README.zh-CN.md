@@ -4,153 +4,136 @@
 
 # Codex Config Studio
 
-**跨平台 Codex 配置管理器：一键切换 Astra / Sol / Terra / Luna 方案。**
+**更安全、更直观的 Codex 桌面配置控制台。**
 
-全局/项目配置 · 配置健康 · Model Integrity · 用量分析 · Reasoning · 子 Agent · 安全更新
+无需手改 `.codex/config.toml`，即可切换模型与 Reasoning 方案、管理全局/项目配置、核验 Model Integrity、查看本地用量，并通过签名更新安全升级。
 
+[![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio)](https://github.com/While-Shark/codex-config-studio/releases/latest)
 [![Build Desktop](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml/badge.svg)](https://github.com/While-Shark/codex-config-studio/actions/workflows/build-windows.yml)
-[![Release](https://img.shields.io/github/v/release/While-Shark/codex-config-studio?include_prereleases)](https://github.com/While-Shark/codex-config-studio/releases)
 ![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB)
-![Languages](https://img.shields.io/badge/languages-5-purple)
 
 **简体中文** · [繁體中文](./README.zh-TW.md) · [English](./README.md) · [日本語](./README.ja.md) · [한국어](./README.ko.md)
 
-[简介](#简介) · [功能](#功能) · [方案](#内置方案) · [下载](#下载) · [开发](#本地开发) · [安全](#安全设计)
+[下载](#下载) · [功能重点](#功能重点) · [内置方案](#内置方案) · [安全设计](#安全设计) · [开发](#开发)
 
 </div>
 
-> **工作台 UI/UX 重构**：简洁双栏布局、固定应用区、分组高级设置、项目/方案历史子页与只读预览；加入草稿放弃确认、弹窗焦点管理和键盘导航。五语言、深浅主题、完整预览、继承配置和历史方案提示均保留。写入较慢时不再提前解锁，避免重复提交。
-
 ---
 
-## 简介
+## 为什么需要 Codex Config Studio？
 
-Codex Config Studio 是一个基于 **Tauri v2** 的桌面配置管理器，用来安全管理 Codex Desktop / CLI 的全局与项目级 `.codex/config.toml`。
+Codex 很强，但真实项目里的配置很快就会超过几行：不同项目需要不同模型、Reasoning、子 Agent、安全检查和更新策略。
 
-它适合经常在 Astra、Sol、Terra、Luna 之间切换，或者希望把“规划模型 / 执行模型 / Reasoning / 子 Agent 并发”等配置做成可视化方案的人。
+**Codex Config Studio 把这些配置变成可视化、可回退、面向项目的工作流。**
 
-## 功能
+## 功能重点
 
-| 能力 | 说明 |
-| --- | --- |
-| 🌍 全局配置 | 管理 `~/.codex/config.toml` |
-| 📁 项目配置 | 管理 `<project>/.codex/config.toml` |
-| 🎯 当前任务快速切换 | 小修复 / 日常开发 / 复杂问题 / 架构设计；每类可独立选择模型与 Reasoning 并记住偏好 |
-| ⚡ 一键切换方案 | 极省 Token、经济、日常、均衡、Astra 总指挥、极致 |
-| 🧠 Reasoning | 独立调整主模型、Plan Mode、子 Agent 思考等级 |
-| 🤖 子 Agent | 开关、默认模型、Reasoning、最大并发 |
-| 🧬 字段继承 | 项目级字段可逐项取消覆盖，继续继承下层配置 |
-| 🛡️ 安全备份 | 首次修改保存原始副本，每次写入前保留历史备份 |
-| ↩️ 原始恢复 | 可恢复到本应用第一次接管之前的配置 |
-| 🎨 主题与配色 | 深色 / 浅色 / 跟随系统，5 套主题色并本机记忆 |
-| 🕘 项目历史 | 独立历史标签页，支持搜索、恢复和删除；删除需二次确认，不影响项目配置或备份 |
-| 🩺 配置健康 | 使用近期权威 Codex schema 检查配置；未知/未来字段默认保留，清理前必须确认并备份 |
-| 🔒 Model Integrity | 可锁定当前模型/Reasoning，检测配置漂移，并核对本机 Codex rollout 中可观测的运行时证据 |
-| 📊 用量与参考成本 | 7 天 / 30 天 / 全部时间的项目用量、模型趋势、Agent 分析、reroute 时间线与版本化参考成本 |
-| 🗂️ 近期项目概览 | 基于 Config Studio 历史汇总最近 7 天项目活动、Token、会话、主模型与 reroute |
-| 🔄 安全更新 | 稳定版检查；正式签名构建支持应用内校验并安装更新，未签名构建安全回退到 Release 页面 |
-| 🌐 多语言 | 简中、繁中、英语、日语、韩语；自动识别并记忆选择 |
-| 📦 多端构建 | Windows / Linux / macOS 自动构建 |
-
-## 配置健康、Model Integrity 与用量分析
-
-### 配置健康
-
-配置健康中心会优先使用 **OpenAI Codex 仓库中生成的权威配置 schema**，并在本机缓存最近一次可信版本。离线、回退源或缓存过旧时仍可展示信息，但**不会据此生成“未知字段可删除”建议**。
-
-- 普通写入只修改本工具管理的键，未知字段和未来新增字段会原样保留。
-- 删除未知字段必须由用户明确确认，并在删除前创建备份与历史记录。
-- 可显示本机 Codex CLI 版本，并比较前后两份权威 schema 的新增、移除和结构变化字段。
-- 官方模型目录若声明 `minimal_client_version`，会把当前主模型/子 Agent 与本机 Codex 版本做只读兼容性检查；版本过旧时只提示升级，不会隐藏模型、阻止保存或自动修改配置。
-- 仅文档描述变化不会被误报为配置结构变化。
-
-### Model Integrity
-
-Model Integrity 可以给当前作用域锁定有效的 `model` 与 `model_reasoning_effort`，并检测 Studio 可见配置是否偏离目标。它还会读取本机 Codex rollout 中已经记录的运行时证据，展示最近主会话的实际模型/Reasoning、可观测 reroute 次数、最近 5 条证据，并支持只读手动刷新。
-
-> 这个机制能验证 **Studio 可见配置 + 本机已记录 rollout 证据**。仅 CLI 临时覆盖、未被本机记录的行为，以及不可观测的服务端内部路由仍不属于本地保证范围。
-
-### 项目用量与参考成本
-
-项目用量看板从本机 Codex rollout JSONL 只读汇总数据，支持 7 天 / 30 天 / 全部时间范围，并展示模型/Reasoning、主会话/子 Agent、每日趋势、模型趋势、Agent 使用、可观测 reroute 时间线、近期项目总览，以及基于精确历史中位数的可解释 Token 用量突增提示。
-
-参考成本使用**带日期和版本的价格快照**。当本机 rollout 已持久化 service tier 时，会按“模型 × tier”归因精确响应；当前 Codex 的 `priority` 会识别为 Fast，并仅对官方明确提供倍率的模型计入 Fast 附加成本。缺少 tier 证据、出现 Flex/未知 tier、或没有明确 Fast 倍率时会显示为近似值；长上下文和区域处理倍率不会猜测。未知模型同样不会猜价格。所有用量与成本都属于 **best-effort 本地遥测，不是官方账单数据**。
+| | 功能 | 能带来什么 |
+| --- | --- | --- |
+| ⚡ | **方案 & 当前任务** | 一键切换极省 Token、日常、均衡、Astra 总指挥、极致，或按任务临时切换模型与 Reasoning。 |
+| 🌍 | **全局 + 项目作用域** | 同时管理 `~/.codex/config.toml` 和项目级 `.codex/config.toml`，支持字段级继承。 |
+| 🩺 | **Config Health** | 使用近期权威 Codex schema 检查配置，默认保留未知和未来字段。 |
+| 🔒 | **Model Integrity** | 锁定目标模型/Reasoning，检测配置漂移，并与本机可观测的 Codex rollout 证据核对。 |
+| 📊 | **用量分析** | 查看 7 天 / 30 天 / 全部时间 Token、模型趋势、子 Agent 活动、reroute、项目活跃度和参考成本。 |
+| 🛡️ | **安全编辑与恢复** | 写入前备份、保留历史、预览差异，并可恢复到 Studio 第一次接管前的原始配置。 |
+| 🔄 | **签名更新** | 自动检查稳定版，用户确认后在应用内验证签名并安装更新。 |
+| 🌐 | **跨平台 + 多语言** | Windows、Linux、macOS；支持英语、简中、繁中、日语、韩语。 |
 
 ## 内置方案
 
-| 方案 | 主模型 | 默认定位 |
+| 方案 | 主模型 | 适合场景 |
 | --- | --- | --- |
-| 极省 Token | GPT-6 Luna / low | 小修改、批量替换、明确任务 |
-| 经济 | GPT-6 Luna / medium | CRUD、前端修改、常规接口 |
-| 日常 | GPT-6 Luna + GPT-6 Luna | 大多数日常开发 |
-| 均衡 | GPT-6.1 Sol + GPT-6 Luna | 跨文件功能、重构、联调 |
-| Astra 总指挥 | GPT-6 Astra + GPT-6 Luna | Astra 规划/Review，Luna 执行 |
-| 极致 | GPT-6 Astra xhigh + GPT-6 Luna high | 疑难 Bug、大重构、上线前 Review |
+| **极省 Token** | GPT-6 Luna / low | 小修改、批量替换、明确任务 |
+| **经济** | GPT-6 Luna / medium | CRUD、前端修改、常规 API |
+| **日常** | GPT-6 Luna | 日常开发 |
+| **均衡** | GPT-6.1 Sol + GPT-6 Luna | 跨文件功能、重构、联调 |
+| **Astra 总指挥** | GPT-6 Astra + GPT-6 Luna | Astra 规划/Review，Luna 执行 |
+| **极致** | GPT-6 Astra xhigh + GPT-6 Luna high | 疑难 Bug、大重构、发布前 Review |
 
-所有方案都可以在界面里继续单独修改，不会被预设锁死。
+这些方案只是起点，不会锁死。你可以在 UI 中继续修改模型、Reasoning、子 Agent 和并发数。
 
-## 当前任务快速切换
+## Config Health & Model Integrity
 
-默认方案负责当前全局/项目的长期配置；“当前任务”用于临时覆盖主模型和 `model_reasoning_effort`。
+### Config Health
 
-内置 4 类任务推荐：
+- 使用近期权威 Codex 配置 schema。
+- 普通写入默认保留未知字段和未来新增字段。
+- 清理未知字段前必须明确确认。
+- 当模型元数据提供最低客户端版本时，可检查本机 Codex CLI 兼容性。
+- 缓存可信 schema / 模型元数据，离线时仍可使用最近可信数据。
 
-| 当前任务 | 初始推荐 |
-| --- | --- |
-| 小修复 | GPT-6 Luna / low |
-| 日常开发 | GPT-6 Luna / medium |
-| 复杂问题 | GPT-6.1 Sol / high |
-| 架构设计 | GPT-6 Astra / high |
+### Model Integrity
 
-这些只是开源默认值，**不会锁死**。每一类都可以从下拉框选择模型，也支持任意自定义模型 ID；已知官方模型会按 Codex `models.json` 只展示其支持的 Reasoning，读取旧配置/自定义模型时仍保留原值，用户主动切换到官方模型时才会把不兼容等级调整为该模型的官方默认值。
+- 为作用域锁定有效的 `model` 和 `model_reasoning_effort`。
+- 检测 Studio 可见的配置漂移。
+- 读取本机 Codex rollout 证据，展示近期实际模型/Reasoning 与可观测 reroute。
+- 不会把未记录或不可观测的服务端内部路由描述成本机可验证事实。
 
-模型候选会从 OpenAI Codex 官方 `models.json` 自动刷新并在本机缓存 24 小时；离线或官方源暂不可用时继续使用最近缓存与内置兼容列表。刷新只更新候选项，不自动迁移已有配置、任务偏好、历史记录、Preset 或自定义模型 ID。
+## 用量分析
 
-例如可以把“日常开发”长期改成 `Luna + xhigh`，应用会在本机记住这个偏好，但不会改变其他用户的默认设置。
+用量看板以**只读**方式读取本机 Codex rollout JSONL，可展示：
 
-第一次应用当前任务覆盖时会保存该作用域的模型基线，之后可以一键“恢复进入任务模式前”。任务覆盖只修改：
+- 7 天 / 30 天 / 全部时间 Token 用量；
+- 模型和 Reasoning 趋势；
+- 主会话与子 Agent 用量；
+- 可观测 reroute 历史；
+- 近期项目活跃度；
+- 可解释的 Token 突增提示；
+- 版本化参考成本。
 
-```text
-model
-model_reasoning_effort
-```
-
-Plan Mode、子 Agent、MCP、hooks 及其他配置保持不变。
-
-> 当前功能是 **config.toml 级快速切换**，不会强行修改已经运行中的 Codex 会话。已经打开的交互会话如需立即换模型，应使用该会话自身提供的模型切换功能。
-
-## 新版工作区
-
-主界面改为左右两栏：左侧负责方案 / 当前任务 / 高级配置 / 历史记录，右侧固定显示作用域、待应用差异、二次确认入口。选择配置不会立即写文件，更适合第一次使用 Codex 配置的小白用户。
-
-所有写入现在都有前端防重复提交、超时解锁、后端串行写锁和临时文件安全写入；历史记录保存在 `~/.codex/.config-studio/history.json`。
-
-## 多语言
-
-应用内置：
-
-- 简体中文
-- 繁體中文
-- English
-- 日本語
-- 한국어
-
-首次启动会根据系统/浏览器语言自动选择，顶部也可以手动切换；手动选择会保存在本机。
+参考成本基于带日期的价格快照和本机可观测元数据，**不是官方账单数据**。
 
 ## 下载
 
-前往 **[GitHub Releases](https://github.com/While-Shark/codex-config-studio/releases)** 下载。
+下载最新正式版：
 
-| 平台 | 构建产物 |
+**[GitHub Releases →](https://github.com/While-Shark/codex-config-studio/releases/latest)**
+
+| 平台 | 安装包 |
 | --- | --- |
 | Windows x64 | NSIS `.exe` |
 | Linux x64 | `.AppImage` + `.deb` |
-| macOS Universal | `.dmg`，同时支持 Apple Silicon 与 Intel |
+| macOS Universal | `.dmg`，支持 Apple Silicon + Intel |
 
-> 正式 Release 工作流已支持可选的 Windows Authenticode 与 macOS Developer ID + notarization；是否启用取决于仓库签名配置。所有正式 Release 文件都会生成 GitHub build provenance，可用 `gh attestation verify <文件> --repo While-Shark/codex-config-studio` 验证其确实来自本仓库发布流程。
+正式 Release 包含 updater 签名、SHA-256 校验和与 GitHub build provenance。
 
-## 本地开发
+## 签名自动更新
+
+正式构建会：
+
+1. 自动检查最新**稳定版**；
+2. 主动提示新版本；
+3. 验证签名 updater 包；
+4. 仅在用户确认后安装；
+5. 安装完成后重启进入新版本。
+
+应用长时间运行时会周期复查；自动检查失败不会打扰使用，未签名/dev 构建会安全回退到 GitHub Release 页面。
+
+## 安全设计
+
+Codex Config Studio 对配置写入保持保守策略。
+
+- 只修改 Studio 管理的模型 / Agent 配置键。
+- 未知和未来字段默认保留。
+- 不修改 project trust、plugins、MCP、hooks、marketplaces。
+- 写入使用备份、历史记录、串行原生写锁和安全临时文件替换。
+- 项目备份保存在 `~/.codex/.config-studio-backups/`。
+- 前端不开放通用文件系统或 Shell 权限。
+
+## 配置优先级
+
+从高到低：
+
+1. CLI flags / `--config`
+2. 项目 `.codex/config.toml`
+3. `--profile`
+4. 全局 `~/.codex/config.toml`
+5. 系统 / 内置默认
+
+> Codex 只会加载受信任项目中的项目级配置。Codex Config Studio 不会自动修改 project trust。
+
+## 开发
 
 ### Windows
 
@@ -164,63 +147,26 @@ Plan Mode、子 Agent、MCP、hooks 及其他配置保持不变。
 bash ./run-dev.sh
 ```
 
-也可以使用标准 Tauri 命令：
+或使用标准 Tauri 流程：
 
 ```bash
 npm ci
 npm run tauri:dev
 ```
 
-## 本地构建
+本地打包：
 
-Windows：
-
-```powershell
-./build-windows.ps1
+```text
+Windows:       ./build-windows.ps1
+Linux/macOS:   bash ./build-unix.sh
 ```
-
-Linux / macOS：
-
-```bash
-bash ./build-unix.sh
-```
-
-## Codex 配置优先级
-
-从高到低：
-
-1. CLI flags / `--config`
-2. 项目 `.codex/config.toml`
-3. `--profile` 配置
-4. 全局 `~/.codex/config.toml`
-5. 系统 / 内置默认
-
-> Codex 只会加载受信任项目中的项目级 `.codex/config.toml`。本应用不会自动修改项目 trust。
-
-## 安全设计
-
-Codex Config Studio 不向前端开放通用文件系统或 Shell 权限。
-
-- 项目目录通过 Tauri Dialog 选择
-- 配置读写由有限的 Rust commands 完成
-- 只修改本工具管理的模型 / Agent 配置键
-- 不修改 plugins、MCP、hooks、marketplaces、项目 trust 等其他配置
-- 项目备份统一存放在用户级 `~/.codex/.config-studio-backups/`，避免污染项目仓库
-
-## 方案版本
-
-**GPT-6.1 / GPT-6 (v0.5.0) / v0.4.0**
-
-当前推荐在均衡/复杂任务中使用 GPT-6.1 Sol；GPT-6（v0.5.0）与更早的 v0.4.0 方案都作为不可变历史快照保留，浏览版本不会修改配置。
-
-历史快照保留原有模型、思考等级和子 Agent 参数，不随新版推荐变动。
-
-> 这是历史方案，包含旧模型和固定思考等级。旧模型的可用性与费用以你的账号或服务商为准；固定等级可能影响 Codex 内的手动调整。 确认后只载入预览，不会立即写入配置。
 
 ---
 
 <div align="center">
 
-[Releases](https://github.com/While-Shark/codex-config-studio/releases) · [Release Notes](./RELEASE_NOTES.md)
+**让 Codex 配置更强大，但不脆弱。**
+
+[最新版本](https://github.com/While-Shark/codex-config-studio/releases/latest) · [Release Notes](./RELEASE_NOTES.md)
 
 </div>
