@@ -120,3 +120,16 @@ Only after the `v0.6.0 -> later signed release` path succeeds should the signed 
   - `REQUIRE_WINDOWS_SIGNING=true`
   - `REQUIRE_MACOS_SIGNING=true`
   so later releases cannot silently fall back to unsigned platform artifacts.
+
+
+### Distributed Nightly updater client
+
+Nightly packages built from `master` include the same public verification key as
+formal releases and can install newer stable releases in the app. The Nightly
+workflow only receives `TAURI_UPDATER_PUBKEY`; it does not need the private signing
+key or produce its own signed update feed. PR/local builds remain unconfigured.
+Older packages without an updater verification key require one manual upgrade.
+
+Verify that the update prompt offers **Install and restart**, shows download
+progress, blocks installation while configuration changes are pending, and keeps
+retry available after a download or signature failure.

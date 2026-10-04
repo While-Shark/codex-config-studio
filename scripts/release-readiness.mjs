@@ -38,7 +38,7 @@ export function releaseReadiness(root=process.cwd()){
       'Formal release materializes a transient updater config and passes it to every Tauri CLI build before publishing latest.json'),
     check('local updater disabled by default',
       tauri.plugins?.updater?.pubkey==='' && updater.includes('option_env!("CODEX_UPDATER_PUBKEY")'),
-      'Nightly/local builds keep updater trust disabled unless the release environment injects the public key'),
+      'Local/PR builds keep updater trust disabled; distributed builds inject the trusted public key'),
     check('v0.6.0 notes cover current features',
       ['GPT-6.1 Sol','Environment status center','Rule-level schema diff explanations','Agent efficiency metrics','Project-level agent summary'].every(token=>notes.includes(token))
         || ['GPT-6.1 Sol','环境状态中心','Schema 规则级差异解释','Agent 效率指标','项目级 Agent 摘要'].every(token=>notes.includes(token)),

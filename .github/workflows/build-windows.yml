@@ -141,6 +141,12 @@ jobs:
       - name: Validate generated icons
         run: npm run verify:icons
 
+      - name: Enable stable updates in distributed Nightly packages
+        if: github.event_name != 'pull_request'
+        env:
+          CODEX_UPDATER_PUBKEY: ${{ secrets.TAURI_UPDATER_PUBKEY }}
+        run: node scripts/prepare-updater-client.mjs
+
       - name: Run configuration regression tests before uploading
         shell: bash
         run: |
@@ -163,7 +169,7 @@ jobs:
       - name: Build desktop bundle
         uses: tauri-apps/tauri-action@v1
         with:
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} ${{ github.event_name != 'pull_request' && '--config src-tauri/tauri.updater-client.conf.json' || '' }}
 
       - name: Upload desktop artifact
         uses: actions/upload-artifact@v4

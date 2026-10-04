@@ -49,7 +49,7 @@ import { periodSinceDay, periodSinceMs, type UsagePeriod, type UsageReport, type
 import { renderUsageView } from './usage-view';
 import { recentProjectsFromHistory, type ProjectsUsageOverviewReport, type RecentProject } from './project-overview';
 import { renderProjectOverviewView } from './project-overview-view';
-import { checkStableUpdate, installSignedUpdate, openStableReleasePage, signedUpdaterEnabled, updateText, type UpdateState } from './update-checker';
+import { checkStableUpdate, installSignedUpdate, openStableReleasePage, signedUpdaterEnabled, updateProgressLabel, updateText, type UpdateState } from './update-checker';
 import { AUTO_UPDATE_CHECK_INTERVAL_MS, automaticUpdatePromptRecord, shouldPromptAutomaticUpdate, shouldRunAutomaticUpdateCheck } from './update-policy';
 import { environmentStatusRows, environmentText } from './environment-status';
 
@@ -146,6 +146,7 @@ let updateState: UpdateState = {status:'idle'};
 let updateRequestId = 0;
 let lastUpdateCheckAt = 0;
 let signedUpdaterReady: boolean | null = null;
+let updateInstallLabel: string | null = null;
 const autoUpdatePromptKey='codex-config-studio.update.prompt';
 const cachedOfficialModelCatalog = readCachedOfficialModelCatalog();
 let officialModelEntries: OfficialModelCatalogEntry[] = cachedOfficialModelCatalog?.entries ?? [];
@@ -247,7 +248,8 @@ function renderUpdateStatus():void {
   const copy=updateText(getLocale());
   const label=button.querySelector('span');
   button.classList.remove('available','ok','error');
-  button.disabled=updateState.status==='checking';
+  button.disabled=updateState.status==='checking'||updateInstallLabel!==null;
+  if(updateInstallLabel!==null){if(label)label.textContent=updateInstallLabel;return;}
   if(updateState.status==='checking'){if(label)label.textContent=copy.checking;return;}
   if(updateState.status==='available'){
     button.classList.add('available');
@@ -262,30 +264,34 @@ function renderUpdateStatus():void {
 type UpdateCheckMode='manual'|'automatic';
 
 async function presentAvailableUpdate(next:Extract<UpdateState,{status:'available'}>):Promise<void> {
-  if(busy||confirmResolver)return;
+  if(busy||confirmResolver||updateInstallLabel!==null)return;
   const copy=updateText(getLocale());
+  signedUpdaterReady=await signedUpdaterEnabled();
+  if(busy||confirmResolver)return;
+  if(signedUpdaterReady===true&&getChanges().length){toast(copy.pendingDraft,true);return;}
   const proceed=await askConfirm({
     title:copy.available,
-    message:`${copy.currentVersion}: ${next.currentVersion}\n${copy.latestVersion}: ${next.latestVersion}`,
+    message:`${copy.currentVersion}: ${next.currentVersion}\n${copy.latestVersion}: ${next.latestVersion}`+(signedUpdaterReady===true?'':'\n\n'+copy.manualBootstrap),
     detail:next.notes||undefined,
     confirmText:signedUpdaterReady===true?copy.install:copy.openRelease,
     readOnly:true,
   });
   if(!proceed)return;
   if(signedUpdaterReady===true){
-    toast(copy.installing);
-    try{await installSignedUpdate();}
-    catch(error){
-      toast(String(error),true);
-      try{await openStableReleasePage();}catch(openError){console.warn('open stable release fallback',openError);}
-    }
+    // Lock writes and scope switching until the updater completes or fails.
+    updateInstallLabel=copy.checking;setBusy(true);renderUpdateStatus();
+    try{await installSignedUpdate(progress=>{
+      updateInstallLabel=updateProgressLabel(progress,copy);renderUpdateStatus();
+    });}
+    catch(error){toast(`${copy.installFailed} ${String(error)}`,true);}
+    finally{updateInstallLabel=null;setBusy(false);renderUpdateStatus();}
   }else{
     try{await openStableReleasePage();}catch(error){toast(String(error),true);}
   }
 }
 
 async function runUpdateCheck(mode:UpdateCheckMode):Promise<void> {
-  if(updateState.status==='checking')return;
+  if(updateState.status==='checking'||updateInstallLabel!==null||busy)return;
   const request=++updateRequestId;
   updateState={status:'checking'};renderUpdateStatus();
   const next=await checkStableUpdate();
