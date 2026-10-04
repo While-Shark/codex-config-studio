@@ -154,7 +154,7 @@ test('distributed Nightly embeds only a verification key while PR builds stay un
     assert.equal(overlay.plugins.updater.pubkey,normalizeUpdaterPublicKey(keyFile));
     assert.match(readFileSync(env,'utf8'),/CODEX_UPDATER_PUBKEY=/);
     assert.doesNotMatch(readFileSync(env,'utf8'),/TAURI_SIGNING_PRIVATE_KEY/);
-    const workflow=readFileSync(resolve(root,'.github/workflows/build-windows.yml'),'utf8');
+    const workflow=readFileSync(resolve(root,'.github/workflows/build-windows.yml'),'utf8').replace(/\r\n/g,'\n');
     assert.match(workflow,/if: github.event_name != 'pull_request'\n\s+env:\n\s+CODEX_UPDATER_PUBKEY/);
     assert.match(workflow,/github.event_name != 'pull_request' && '--config src-tauri\/tauri.updater-client.conf.json'/);
   }finally{rmSync(dir,{recursive:true,force:true});}
