@@ -4,6 +4,8 @@ import { historyText } from '../history-tab';
 import { previewText } from '../i18n/preview';
 import { usageText } from '../usage-dashboard';
 import { overviewText } from '../project-overview';
+import { healthText } from '../config-schema';
+import { integrityText } from '../model-integrity';
 import { updateText } from '../update-checker';
 import { escapeHtml as esc, icon } from './icons';
 
@@ -46,14 +48,19 @@ export function renderShell({ projectPath, accent }: ShellOptions): string {
           <details class="scope-details"><summary><span id="scopeLabel"></span>${icon('chevron')}</summary><div class="path-block"><code id="configPath"></code></div><p id="scopeNotice" class="rail-help"></p></details>
           <p id="createNotice" class="create-notice hidden">${copy.autoCreate}</p>
         </section>
-        <section id="healthCard" class="health-card" aria-live="polite"></section>
-        <section id="integrityCard" class="integrity-card" aria-live="polite"></section>
-        <section class="review-card">
+        <div class="rail-tabs" role="tablist" aria-label="${esc(t('rail.review.title'))}">
+          ${[['preview', previewText(getLocale()).title], ['health', healthText(getLocale()).title], ['integrity', integrityText(getLocale()).title]].map(([id, label]) => `<button id="rail-tab-${id}" type="button" role="tab" data-rail-tab="${id}" aria-controls="rail-panel-${id}" aria-selected="false" tabindex="-1">${esc(label)}</button>`).join('')}
+        </div>
+        <div class="rail-panels">
+        <section id="rail-panel-health" class="rail-panel" role="tabpanel" aria-labelledby="rail-tab-health" tabindex="0" hidden><div id="healthCard" class="health-card" aria-live="polite"></div></section>
+        <section id="rail-panel-integrity" class="rail-panel" role="tabpanel" aria-labelledby="rail-tab-integrity" tabindex="0" hidden><div id="integrityCard" class="integrity-card" aria-live="polite"></div></section>
+        <section id="rail-panel-preview" class="rail-panel review-card" role="tabpanel" aria-labelledby="rail-tab-preview" tabindex="0" hidden>
           <div class="rail-title"><h3>${previewText(getLocale()).title}</h3><span id="changeCount" class="count-badge">0</span></div>
           <p id="previewSummary" class="rail-help" aria-live="polite"></p>
           <p id="presetOrigin" class="preset-origin hidden" role="status"></p>
           <div id="changeList" class="change-list"></div>
         </section>
+        </div>
         <footer class="apply-dock">
           <div id="applyResult" class="apply-result hidden" role="status"></div>
           <details class="safety-details"><summary>${icon('shield')}<span>${t('rail.safety.title')}</span>${icon('chevron')}</summary><p>${t('rail.safety.body')}</p><p>${copy.inheritHelp}</p></details>

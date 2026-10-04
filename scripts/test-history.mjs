@@ -16,7 +16,7 @@ after(()=>rmSync(output,{recursive:true,force:true}));
 execFileSync(process.execPath,[require.resolve('typescript/lib/tsc.js'),join(root,'src/history-tab.ts'),
   '--strict','--target','ES2022','--module','ES2022','--skipLibCheck','--outDir',output],{stdio:'pipe'});
 writeFileSync(join(output,'package.json'),'{"type":"module"}');
-const {historyText,filterHistoryEntries,renderHistoryEntries}=await import(pathToFileURL(join(output,'history-tab.js')));
+const {historyText,filterHistoryEntries,renderHistoryEntries,displayHistoryPath}=await import(pathToFileURL(join(output,'history-tab.js')));
 const entries=[
   {id:'1-a-0',timestampMs:100,scopeKind:'project',projectPath:'/projects/alpha',configPath:'/projects/alpha/.codex/config.toml',action:'apply',source:'manual',values:{model:'custom-model',modelReasoningEffort:'xhigh'}},
   {id:'2-b-1',timestampMs:200,scopeKind:'project',projectPath:'/projects/beta',configPath:'/projects/beta/.codex/config.toml',action:'apply',source:'manual',values:{model:'second-model',modelReasoningEffort:'high'}},
@@ -157,3 +157,19 @@ if(process.env.STUDIO_HISTORY_MODULE_ONLY!=='1'){
     }
   });
 }
+
+test('Windows history paths display drive and UNC roots without mutating stored paths',()=>{
+  for (const [stored, displayed] of [
+    [String.raw`\\?\E:\JAVA\codex\todo-today\.codex\config.toml`, String.raw`E:\JAVA\codex\todo-today\.codex\config.toml`],
+    [String.raw`\\?\UNC\server\share\project\.codex\config.toml`, String.raw`\\server\share\project\.codex\config.toml`],
+    [String.raw`\\server\share\config.toml`, String.raw`\\server\share\config.toml`],
+    [String.raw`\\?\Volume{abc}\config.toml`, String.raw`\\?\Volume{abc}\config.toml`],
+    ['/projects/alpha/config.toml', '/projects/alpha/config.toml'],
+  ]) {
+    assert.equal(displayHistoryPath(stored), displayed);
+    const entry={...entries[0], configPath:stored};
+    assert.ok(render([entry]).includes(displayed));
+    assert.equal(entry.configPath,stored);
+    assert.deepEqual(filterHistoryEntries([entry],displayed),[entry]);
+  }
+});

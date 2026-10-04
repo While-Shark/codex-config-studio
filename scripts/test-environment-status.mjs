@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { loadTypeScript } from './helpers/load-typescript.mjs';
@@ -44,4 +45,20 @@ test('missing runtime and unavailable remote metadata remain advisory',()=>{
   assert.equal(rows[1].status,'unknown');
   assert.equal(rows[2].status,'unknown');
   assert.equal(rows[3].status,'unknown');
+});
+
+test('Windows runtime probes and release-page launcher suppress console allocation',()=>{
+  const source=readFileSync(resolve(root,'src-tauri/src/lib.rs'),'utf8');
+  const helper=source.slice(source.indexOf('fn background_command('),source.indexOf('fn detect_codex_runtime('));
+  assert.match(helper, /#\[cfg\(windows\)\]/);
+  assert.match(helper, /use std::os::windows::process::CommandExt/);
+  assert.match(helper, /CREATE_NO_WINDOW: u32 = 0x0800_0000/);
+  assert.match(helper, /command\.creation_flags\(CREATE_NO_WINDOW\)/);
+  const detection=source.slice(source.indexOf('fn detect_codex_runtime('),source.indexOf('fn recoverable_file_lock('));
+  assert.match(detection, /background_command\("codex"\)\.arg\("--version"\)\.output\(\)/);
+  assert.match(detection, /background_command\("cmd"\)/);
+  assert.match(detection, /\.args\(\["\/D", "\/C", "codex", "--version"\]\)/);
+  const release=source.slice(source.indexOf('fn open_fixed_release_page('),source.indexOf('async fn open_stable_release_page('));
+  assert.match(release, /background_command\("cmd"\)/);
+  assert.doesNotMatch(source, /Command::new\("(?:codex|cmd)"\)/);
 });
