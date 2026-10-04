@@ -1,2 +1,4 @@
-bump=patch
-request=10
+release: patch
+Requested for v0.6.3 after successful Nightly 37196812009.
+Source master: 7682e39a64bc31a2460e7874e8e30f5762f92211
+Requested at 2026-10-04T11:07:31Z.
