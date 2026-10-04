@@ -137,10 +137,25 @@ fn runtime_info_from_output(output: std::process::Output, launcher: &str) -> Opt
     })
 }
 
+/// Background helpers must not allocate a console when launched by the Windows GUI.
+/// Keep the command and its captured output unchanged on other platforms.
+fn background_command(program: &str) -> Command {
+    let command = Command::new(program);
+    #[cfg(windows)]
+    let mut command = command;
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    command
+}
+
 fn detect_codex_runtime() -> CodexRuntimeInfo {
     let mut errors = Vec::new();
 
-    match Command::new("codex").arg("--version").output() {
+    match background_command("codex").arg("--version").output() {
         Ok(output) => {
             if let Some(info) = runtime_info_from_output(output, "codex") {
                 return info;
@@ -154,7 +169,7 @@ fn detect_codex_runtime() -> CodexRuntimeInfo {
     {
         // npm-style Windows shims may be .cmd files. This is a fixed command with
         // no user-controlled arguments; it does not expose a general shell IPC.
-        match Command::new("cmd")
+        match background_command("cmd")
             .args(["/D", "/C", "codex", "--version"])
             .output()
         {
@@ -867,7 +882,7 @@ fn open_fixed_release_page() -> Result<(), String> {
     const URL: &str = "https://github.com/While-Shark/codex-config-studio/releases/latest";
     #[cfg(target_os = "windows")]
     let mut command = {
-        let mut cmd = Command::new("cmd");
+        let mut cmd = background_command("cmd");
         cmd.args(["/D", "/C", "start", "", URL]);
         cmd
     };

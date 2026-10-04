@@ -41,9 +41,17 @@ export type HistoryListEntry = {
   configPath: string; action: string; source: string | null;
   values: { model: string | null; modelReasoningEffort: string | null };
 };
+/** Display Windows canonical paths without changing the native filesystem target.
+ * Keep UNC network roots and non-drive device paths intact.
+ */
+export function displayHistoryPath(path: string): string {
+  if (path.startsWith('\\\\?\\UNC\\')) return '\\\\' + path.slice(8);
+  if (path.startsWith('\\\\?\\') && /^[a-z]:\\/i.test(path.slice(4))) return path.slice(4);
+  return path;
+}
 export function filterHistoryEntries<T extends HistoryListEntry>(entries: readonly T[], query: string): T[] {
   const needle = query.trim().toLocaleLowerCase();
-  return entries.filter(entry => !needle || [entry.projectPath, entry.configPath, entry.values.model,
+  return entries.filter(entry => !needle || [entry.projectPath, entry.configPath, entry.projectPath && displayHistoryPath(entry.projectPath), displayHistoryPath(entry.configPath), entry.values.model,
     entry.values.modelReasoningEffort].some(value => value?.toLocaleLowerCase().includes(needle)));
 }
 export function escapeHistoryText(value: string): string {
@@ -60,11 +68,11 @@ export function renderHistoryEntries(
   const locale=Object.keys(copies).find(key=>copies[key]===copy) ?? 'en';
   const ui=workspaceText(locale);
   return entries.map(entry => `<article class="history-item" data-history-entry="${esc(entry.id)}">
-    <div class="history-main"><div><strong>${esc(format.projectName(entry.projectPath))}</strong>
+    <div class="history-main"><div><strong>${esc(format.projectName(entry.projectPath && displayHistoryPath(entry.projectPath)))}</strong>
     <span>${esc(format.time(entry.timestampMs))} &middot; ${esc(format.source(entry.source ?? entry.action))}</span></div>
     <span class="history-scope">${esc(entry.scopeKind === 'global' ? labels.global : labels.project)}</span></div>
     <p class="history-model">${esc(entry.values.model ?? '\u2014')} &middot; ${esc(entry.values.modelReasoningEffort ?? '\u2014')}</p>
-    <div class="history-path" title="${esc(entry.configPath)}">${esc(entry.configPath)}</div>
+    <div class="history-path" title="${esc(displayHistoryPath(entry.configPath))}">${esc(displayHistoryPath(entry.configPath))}</div>
     <div class="history-actions"><button class="button secondary" data-preview-history-id="${esc(entry.id)}" ${disabled ? 'disabled' : ''}>${esc(ui.historyPreview)}</button><button class="button secondary" data-write-action data-history-id="${esc(entry.id)}" ${disabled ? 'disabled' : ''}>${esc(labels.restore)}</button>
     <button class="button danger-ghost" data-write-action data-delete-history-id="${esc(entry.id)}" ${disabled ? 'disabled' : ''}>${esc(copy.remove)}</button></div>
   </article>`).join('');

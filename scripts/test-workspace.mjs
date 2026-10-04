@@ -29,9 +29,11 @@ function scopeFixture(extra={}) {
     loadConfig:async()=>calls.push(['load']),loadConfigHealth:async()=>{},loadRuntimeIntegrityEvidence:async()=>{},loadProjectUsage:async()=>calls.push(['usage']),document:{querySelector:()=>input},...extra};
   return {ctx,calls,input};
 }
-test('shell has exactly six accessible tabs, one apply action and an isolated dock',()=>{
+test('shell has six workspace tabs, three rail tabs, one apply action and an isolated dock',()=>{
   const html=shell.renderShell({projectPath:'/test',accent:'violet'});
-  assert.equal((html.match(/role="tab"/g)||[]).length,6);
+  assert.equal((html.match(/data-tab="/g)||[]).length,6);
+  assert.equal((html.match(/data-rail-tab="/g)||[]).length,3);
+  assert.equal((html.match(/role="tab"/g)||[]).length,9);
   assert.equal((html.match(/id="applyBtn"/g)||[]).length,1);
   assert.ok(html.includes('role="tabpanel"'));assert.ok(html.includes('class="apply-dock"'));
   assert.ok(!html.slice(html.indexOf('<aside'),html.indexOf('</aside>')).includes('historyList'));
@@ -175,4 +177,33 @@ test('runtime integrity refresh only reads usage evidence and does not reload co
   assert.equal(calls[0][0],'get_project_usage');
   assert.equal(calls[0][1].projectPath,'/work/demo');
   assert.ok(!calls.some(([command])=>command==='read_config'));
+});
+
+test('rail tabs isolate panels, support keyboard navigation and retain selection after a shell rebuild',()=>{
+  const interactions=loadTypeScript(resolve(root,'src/ui/interactions.ts'));
+  const fixture=()=>{
+    const panels=new Map(['preview','health','integrity'].map(id=>[`#rail-panel-${id}`,{hidden:true}]));
+    const buttons=['preview','health','integrity'].map(id=>({
+      dataset:{railTab:id},tabIndex:-1,attrs:{'aria-controls':`rail-panel-${id}`},events:{},focused:false,
+      addEventListener(type,handler){this.events[type]=handler;},
+      setAttribute(key,value){this.attrs[key]=value;},getAttribute(key){return this.attrs[key];},
+      focus(){this.focused=true;},
+    }));
+    const root={querySelectorAll:()=>buttons,querySelector:selector=>panels.get(selector)};
+    interactions.bindRailTabs(root);
+    const selected=()=>buttons.filter(b=>b.attrs['aria-selected']==='true').map(b=>b.dataset.railTab);
+    const visible=()=>[...panels].filter(([,p])=>!p.hidden).map(([id])=>id);
+    return {buttons,selected,visible};
+  };
+  const first=fixture();assert.deepEqual([...first.selected()],['preview']);
+  first.buttons[1].events.click();assert.deepEqual([...first.selected()],['health']);
+  assert.deepEqual(first.visible(),['#rail-panel-health']);
+  let prevented=false;
+  first.buttons[1].events.keydown({key:'ArrowRight',preventDefault(){prevented=true;}});
+  assert.equal(prevented,true);assert.equal(first.buttons[2].focused,true);
+  assert.deepEqual([...first.selected()],['integrity']);
+  const rebuilt=fixture();assert.deepEqual([...rebuilt.selected()],['integrity']);
+  rebuilt.buttons[2].events.keydown({key:'Home',preventDefault(){}});
+  assert.deepEqual([...rebuilt.selected()],['preview']);
+  assert.equal(rebuilt.buttons.filter(b=>b.tabIndex===0).length,1);
 });

@@ -30,7 +30,7 @@ import { renderShell } from './ui/shell';
 import { workspaceText } from './i18n/workspace';
 import { advancedLayout } from './ui/advanced-layout';
 import { icon } from './ui/icons';
-import { bindTabs, bindModalKeyboard, setModalActive, closePopovers } from './ui/interactions';
+import { bindRailTabs, bindTabs, bindModalKeyboard, setModalActive, closePopovers } from './ui/interactions';
 import { inspectHealth, type ConfigHealthState, type HealthIssue } from './config-health';
 import { healthText } from './config-schema';
 import {
@@ -320,6 +320,7 @@ function renderStatus():void {
 function renderApp():void {
   app.innerHTML=renderShell({projectPath,accent});
   bindStaticEvents();
+  bindRailTabs(document);
   renderWorkspace();
   renderRightRail();
   renderStatus();

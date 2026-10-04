@@ -487,3 +487,17 @@ input::placeholder { color: var(--muted2); }
 .environment-row.ok strong { color: var(--ok); }
 .environment-row.warn strong { color: var(--warning); }
 .environment-row.unknown strong { color: var(--muted); }
+
+/* The rail reserves space for one scrollable panel and the apply controls. */
+.right-pane { overflow-y: auto; }
+.scope-card, .rail-tabs { flex-shrink: 0; }
+.rail-tabs { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; padding: 8px; border-bottom: 1px solid var(--border); }
+.rail-tabs button { min-width: 0; padding: 8px 3px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.rail-tabs button[aria-selected="true"] { background: var(--accentSoft); color: var(--accent); }
+.rail-panels { flex: 1; min-height: 180px; display: flex; flex-direction: column; }
+.rail-panel { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
+.rail-panel .health-card, .rail-panel .integrity-card { border-bottom: 0; }
+@media (max-width: 780px) {
+  .rail-panels { flex: none; min-height: 0; }
+  .rail-panel { flex: none; max-height: 420px; }
+}

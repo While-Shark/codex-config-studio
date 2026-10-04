@@ -48,3 +48,32 @@ export function closePopovers(target: EventTarget | null): void {
     if (!(target instanceof Node) || !details.contains(target)) details.open = false;
   });
 }
+
+// Keep the selected rail panel when locale or theme rebuilds the shell.
+let activeRailTab = 'preview';
+export function bindRailTabs(root: ParentNode): void {
+  const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-rail-tab]')];
+  const activate = (id: string): void => {
+    activeRailTab = id;
+    buttons.forEach(button => {
+      const selected = button.dataset.railTab === id;
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+      const panel = root.querySelector<HTMLElement>(`#${button.getAttribute('aria-controls')}`);
+      if (panel) panel.hidden = !selected;
+    });
+  };
+  buttons.forEach((button, index) => {
+    button.addEventListener('click', () => activate(button.dataset.railTab!));
+    button.addEventListener('keydown', event => {
+      const next = event.key === 'ArrowRight' ? (index + 1) % buttons.length
+        : event.key === 'ArrowLeft' ? (index - 1 + buttons.length) % buttons.length
+        : event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : -1;
+      if (next < 0) return;
+      event.preventDefault();
+      activate(buttons[next].dataset.railTab!);
+      buttons[next].focus();
+    });
+  });
+  activate(activeRailTab);
+}
