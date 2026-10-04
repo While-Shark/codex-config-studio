@@ -6,6 +6,8 @@ import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { loadTypeScript } from './helpers/load-typescript.mjs';
+import { createRequire } from 'node:module';
+import { runInNewContext } from 'node:vm';
 import { normalizeUpdaterPublicKey } from './updater-public-key.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
@@ -138,4 +140,94 @@ test('updater manifest generator emits matching signed package URLs',()=>{
     assert.match(manifest.platforms['darwin-aarch64-app'].url,/\.app\.tar\.gz$/);
     assert.equal(manifest.platforms['linux-x86_64-deb'].signature,'trusted-signature');
   }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+test('distributed Nightly embeds only a verification key while PR builds stay unsigned',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'ccs-update-client-'));
+  try{
+    const keyFile='untrusted comment: minisign public key\nRWTQi2D4kPJE4D8JgpqNOiyzGfQYCoRxHiY0VYmWCLhLzU9+YXiOFjxA\n';
+    const env=join(dir,'github-env'),config=join(dir,'client.json');
+    const run=spawnSync(process.execPath,[resolve(root,'scripts/prepare-updater-client.mjs')],{encoding:'utf8',env:{...process.env,CODEX_UPDATER_PUBKEY:keyFile,GITHUB_ENV:env,CODEX_TAURI_CLIENT_CONFIG_PATH:config,TAURI_SIGNING_PRIVATE_KEY:''}});
+    assert.equal(run.status,0,run.stderr);
+    const overlay=JSON.parse(readFileSync(config,'utf8'));
+    assert.equal(overlay.bundle.createUpdaterArtifacts,false);
+    assert.equal(overlay.plugins.updater.pubkey,normalizeUpdaterPublicKey(keyFile));
+    assert.match(readFileSync(env,'utf8'),/CODEX_UPDATER_PUBKEY=/);
+    assert.doesNotMatch(readFileSync(env,'utf8'),/TAURI_SIGNING_PRIVATE_KEY/);
+    const workflow=readFileSync(resolve(root,'.github/workflows/build-windows.yml'),'utf8');
+    assert.match(workflow,/if: github.event_name != 'pull_request'\n\s+env:\n\s+CODEX_UPDATER_PUBKEY/);
+    assert.match(workflow,/github.event_name != 'pull_request' && '--config src-tauri\/tauri.updater-client.conf.json'/);
+  }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+const require=createRequire(import.meta.url),ts=require('typescript');
+function clientFixture(overrides={}){
+  const module={exports:{}};
+  const ctx={module,exports:module.exports,setTimeout,clearTimeout,AbortController,console,
+    require:name=>name.includes('/app')?{getVersion:async()=> '0.6.3'}:name.includes('/core')?{
+      Channel:class {onmessage=()=>{};},
+      invoke:overrides.invoke??(async()=>({enabled:true})),
+    }:updates,
+  };
+  const compiled=ts.transpileModule(readFileSync(resolve(root,'src/update-checker.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+  runInNewContext(compiled,ctx);return module.exports;
+}
+test('install client streams progress from a command channel and all five locales describe stages',async()=>{
+  const progress=[];
+  const client=clientFixture({invoke:async(command,{onEvent})=>{
+    assert.equal(command,'install_signed_update');
+    onEvent.onmessage({stage:'downloading',downloaded:50,total:100});
+    onEvent.onmessage({stage:'installing',downloaded:0,total:null});
+  }});
+  await client.installSignedUpdate(item=>progress.push(item));assert.equal(progress.length,2);
+  for(const locale of ['en','zh-CN','zh-TW','ja','ko']){
+    const copy=client.updateText(locale);assert.ok(Object.values(copy).every(value=>typeof value==='string'&&value.length));
+    assert.match(client.updateProgressLabel(progress[0],copy),/50%/);
+    assert.equal(client.updateProgressLabel(progress[1],copy),copy.installing);
+    assert.equal(client.updateProgressLabel({stage:'downloading',downloaded:50,total:null},copy),copy.downloading);
+    assert.match(client.updateProgressLabel({stage:'downloading',downloaded:150,total:100},copy),/100%/);
+  }
+});
+const mainSource=readFileSync(resolve(root,'src/main.ts'),'utf8');
+const mainAst=ts.createSourceFile('main.ts',mainSource,ts.ScriptTarget.Latest,true);
+const presentSource=mainAst.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='presentAvailableUpdate').getText(mainAst);
+const presentJs=ts.transpileModule(presentSource,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+function installFixture(overrides={}){
+  const calls=[],client=clientFixture();
+  const ctx={busy:false,confirmResolver:null,updateInstallLabel:null,signedUpdaterReady:null,
+    getLocale:()=> 'en',updateText:client.updateText,updateProgressLabel:client.updateProgressLabel,
+    signedUpdaterEnabled:async()=>true,getChanges:()=>[],askConfirm:async spec=>{calls.push(['confirm',spec]);return true;},
+    installSignedUpdate:async cb=>{calls.push(['install']);cb({stage:'downloading',downloaded:5,total:10});},
+    openStableReleasePage:async()=>{calls.push(['browser']);},toast:(...args)=>calls.push(['toast',...args]),
+    renderUpdateStatus:()=>{},...overrides};
+  ctx.setBusy=value=>{ctx.busy=value;calls.push(['busy',value]);};
+  const run=()=>runInNewContext(presentJs+'\npresentAvailableUpdate({status:"available",currentVersion:"0.6.3",latestVersion:"0.6.4",notes:"notes"});',ctx);
+  return {ctx,calls,run};
+}
+test('ready builds install in-app and lock writes without opening the browser',async()=>{
+  const f=installFixture();await f.run();
+  assert.equal(f.calls.find(c=>c[0]==='confirm')[1].confirmText,'Install and restart');
+  assert.deepEqual(f.calls.filter(c=>['install','busy','browser'].includes(c[0])),[['busy',true],['install'],['busy',false]]);
+  assert.equal(f.ctx.updateInstallLabel,null);
+});
+test('failed installation stays in-app, unlocks controls and explains retry',async()=>{
+  const f=installFixture({installSignedUpdate:async()=>{throw Error('signature mismatch');}});await f.run();
+  assert.equal(f.ctx.busy,false);assert.equal(f.ctx.updateInstallLabel,null);
+  assert.ok(f.calls.some(c=>c[0]==='toast'&&c[1].includes('retry')&&c[2]===true));
+  assert.ok(!f.calls.some(c=>c[0]==='browser'));
+});
+test('pending configuration and cancelled confirmation do not install or restart',async()=>{
+  for(const state of [{getChanges:()=>[{field:'model'}]},{askConfirm:async()=>false}]){
+    const f=installFixture(state);await f.run();assert.ok(!f.calls.some(c=>c[0]==='install'));assert.equal(f.ctx.busy,false);
+  }
+});
+test('legacy builds explain one-time manual bootstrap and only open the release page',async()=>{
+  const f=installFixture({signedUpdaterEnabled:async()=>false});await f.run();
+  const spec=f.calls.find(c=>c[0]==='confirm')[1];assert.match(spec.message,/one-time manual/);
+  assert.equal(spec.confirmText,'Open release');assert.ok(f.calls.some(c=>c[0]==='browser'));assert.ok(!f.calls.some(c=>c[0]==='install'));
+});
+test('another update prompt cannot start while installation or a write is active',async()=>{
+  for(const state of [{busy:true},{updateInstallLabel:'Downloading update…'}]){
+    const f=installFixture(state);await f.run();assert.equal(f.calls.length,0);
+  }
 });
