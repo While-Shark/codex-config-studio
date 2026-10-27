@@ -29,14 +29,14 @@ Codex는 강력하지만 실제 프로젝트의 설정은 금방 복잡해집니
 
 ## 핵심 기능
 
-| | 기능 | 제공하는 가치 |
-| --- | --- | --- |
-| ⚡ | **프로필 & Current Task** | Token Saver, Daily, Balanced, Astra Director, Max Quality 또는 작업별 모델/Reasoning 조합을 한 번에 전환합니다. |
-| 🌍 | **전역 + 프로젝트 범위** | `~/.codex/config.toml`과 프로젝트별 `.codex/config.toml`을 필드 단위 상속과 함께 관리합니다. |
-| 🩺 | **Config Health** | 최근의 신뢰 가능한 Codex schema로 설정을 검사하고, 알 수 없거나 미래의 필드는 기본 보존합니다. |
-| 🔒 | **Model Integrity** | 의도한 모델/Reasoning을 잠그고 설정 드리프트를 감지하며 로컬에서 관찰 가능한 Codex rollout 증거와 비교합니다. |
-| 📊 | **사용량 분석** | 7일 / 30일 / 전체 기간 Token, 모델 추세, 서브 Agent 활동, reroute, 프로젝트 활동, 참고 비용을 확인합니다. |
-| 🛡️ | **안전한 편집과 복원** | 쓰기 전 백업, 기록, 차이 미리보기, Studio가 처음 수정하기 전 원본 설정 복원을 지원합니다. |
+| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent model | Agent reasoning | Concurrency | Purpose |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ⚡ | `gpt-6-luna` | `low` | `low` | — | — | — | Small edits |
+| 🌍 | `gpt-6-luna` | `medium` | `medium` | — | — | — | Routine CRUD |
+| 🩺 | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Daily development |
+| 🔒 | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Cross-file work |
+| 📊 | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | Architecture/review |
+| 🛡️ | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | Hardest problems |
 | 🔄 | **서명 업데이트** | 안정 버전을 자동 확인하고, 사용자 확인 후 서명을 검증해 앱 안에서 업데이트합니다. |
 | 🌐 | **크로스플랫폼 + 다국어** | Windows, Linux, macOS; 영어, 중국어 간체/번체, 일본어, 한국어 지원. |
 
@@ -53,7 +53,7 @@ Codex는 강력하지만 실제 프로젝트의 설정은 금방 복잡해집니
 
 프로필은 시작점일 뿐 고정 모드가 아닙니다. UI에서 모델, Reasoning, 서브 Agent, 동시 실행 수를 자유롭게 바꿀 수 있습니다.
 
-현재 프로필 버전: **GPT-6.1 · 2026-10-03**. v0.6.1의 GPT-6.1 프로필, GPT-6 v0.5.0 프로필, 이전 v0.4.0 프로필은 읽기 전용 기록 스냅샷으로 계속 보존됩니다.
+현재 프로필 버전: **GPT-6.1 Terra · 2026-10-27**. v0.6.4, v0.6.1의 GPT-6.1 프로필, GPT-6 v0.5.0 프로필, 이전 v0.4.0 프로필은 읽기 전용 기록 스냅샷으로 계속 보존됩니다.
 
 ## Config Health & Model Integrity
 
