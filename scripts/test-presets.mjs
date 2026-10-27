@@ -191,7 +191,7 @@ test('README current profile tables use new models and include archive guidance'
   for(const path of ['README.md','README.zh-CN.md','README.zh-TW.md','README.ja.md','README.ko.md']){
     const text=read(path);
     const cells=text.split('\n').filter(line=>line.startsWith('|')).map(line=>line.split('|')[2]??'');
-    const models=cells.filter(cell=>/^\s*(GPT-[\d.]+ )?(Luna|Sol|Astra|Terra)\b/.test(cell));
+    const models=cells.filter(cell=>/`gpt-6(?:\.1)?-(?:luna|sol|astra|terra)`/.test(cell));
     assert.ok(models.length>=6,path);
     assert.ok(text.includes('gpt-6.1-terra'),path);
     assert.ok(text.includes('v0.6.4'),path);
