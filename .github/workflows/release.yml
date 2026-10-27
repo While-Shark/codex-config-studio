@@ -614,9 +614,9 @@ jobs:
               --verify-tag \
               --title "$tag" \
               --notes-file release-body.md
+          fi
 
       - name: Verify published updater URLs (all platforms)
         shell: bash
         run: |
           node scripts/verify-published-updater.mjs release-files "${{ needs.prepare.outputs.tag }}" "$GITHUB_REPOSITORY"
-          fi
