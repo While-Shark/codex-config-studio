@@ -29,27 +29,27 @@ Codex is powerful, but real-world setups quickly grow beyond a few config lines:
 
 ## Highlights
 
-| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent model | Agent reasoning | Concurrency | Purpose |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| ⚡ | `gpt-6-luna` | `low` | `low` | — | — | — | Small edits |
-| 🌍 | `gpt-6-luna` | `medium` | `medium` | — | — | — | Routine CRUD |
-| 🩺 | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Daily development |
-| 🔒 | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Cross-file work |
-| 📊 | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | Architecture/review |
-| 🛡️ | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | Hardest problems |
+| | Feature | What it gives you |
+| --- | --- | --- |
+| ⚡ | **Profiles & Current Task** | Switch between Token Saver, Daily, Balanced, Astra Director, Max Quality, or task-specific model/reasoning combinations in one click. |
+| 🌍 | **Global + project scopes** | Manage both `~/.codex/config.toml` and per-project `.codex/config.toml` with field-level inheritance. |
+| 🩺 | **Config Health** | Check config against a recent authoritative Codex schema while preserving unknown and future fields by default. |
+| 🔒 | **Model Integrity** | Lock the intended model/reasoning pair, detect config drift, and compare it with observable local Codex rollout evidence. |
+| 📊 | **Usage insights** | Explore 7-day / 30-day / all-time token usage, model trends, sub-agent activity, reroutes, project activity, and reference cost estimates. |
+| 🛡️ | **Safe editing & restore** | Back up before writes, keep history, preview changes, and restore the original config from before Studio first touched it. |
 | 🔄 | **Signed updates** | Automatically check stable releases and install signed updates in-app after user confirmation. |
 | 🌐 | **Cross-platform & multilingual** | Windows, Linux, macOS; English, Simplified Chinese, Traditional Chinese, Japanese, and Korean. |
 
 ## Built-in profiles
 
-| Profile | Model stack | Best for |
-| --- | --- | --- |
-| **Token Saver** | GPT-6 Luna low · Plan low | Small edits, bulk replacements, explicit tasks |
-| **Economy** | GPT-6 Luna medium · Plan medium | CRUD, frontend changes, routine API work |
-| **Daily** | GPT-6 Luna medium + Luna medium agents | Day-to-day development |
-| **Balanced** | GPT-6.1 Sol medium + Luna medium agents | Cross-file work, refactors, integration |
-| **Astra Director** | GPT-6 Astra high/xhigh + GPT-6.1 Sol medium agents | Architecture, delegation, complex implementation, review |
-| **Max Quality** | GPT-6 Astra xhigh + GPT-6.1 Sol high agents | Hard bugs, major refactors, pre-release review |
+| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent | Agent reasoning | Concurrency | Best for |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **Token Saver** | `gpt-6-luna` | `low` | `low` | — | — | — | `Small edits` |
+| **Economy** | `gpt-6-luna` | `medium` | `medium` | — | — | — | `Routine CRUD` |
+| **Daily** | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Daily work` |
+| **Balanced** | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
+| **Astra Director** | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | `Architecture/review` |
+| **Max Quality** | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | `Hardest tasks` |
 
 Profiles are starting points, not hard-coded modes. You can change models, reasoning effort, sub-agent settings, and concurrency in the UI.
 
