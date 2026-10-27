@@ -29,27 +29,27 @@ Codex는 강력하지만 실제 프로젝트의 설정은 금방 복잡해집니
 
 ## 핵심 기능
 
-| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent model | Agent reasoning | Concurrency | Purpose |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| ⚡ | `gpt-6-luna` | `low` | `low` | — | — | — | Small edits |
-| 🌍 | `gpt-6-luna` | `medium` | `medium` | — | — | — | Routine CRUD |
-| 🩺 | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Daily development |
-| 🔒 | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Cross-file work |
-| 📊 | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | Architecture/review |
-| 🛡️ | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | Hardest problems |
+| | 기능 | 제공하는 가치 |
+| --- | --- | --- |
+| ⚡ | **프로필 & Current Task** | Token Saver, Daily, Balanced, Astra Director, Max Quality 또는 작업별 모델/Reasoning 조합을 한 번에 전환합니다. |
+| 🌍 | **전역 + 프로젝트 범위** | `~/.codex/config.toml`과 프로젝트별 `.codex/config.toml`을 필드 단위 상속과 함께 관리합니다. |
+| 🩺 | **Config Health** | 최근의 신뢰 가능한 Codex schema로 설정을 검사하고, 알 수 없거나 미래의 필드는 기본 보존합니다. |
+| 🔒 | **Model Integrity** | 의도한 모델/Reasoning을 잠그고 설정 드리프트를 감지하며 로컬에서 관찰 가능한 Codex rollout 증거와 비교합니다. |
+| 📊 | **사용량 분석** | 7일 / 30일 / 전체 기간 Token, 모델 추세, 서브 Agent 활동, reroute, 프로젝트 활동, 참고 비용을 확인합니다. |
+| 🛡️ | **안전한 편집과 복원** | 쓰기 전 백업, 기록, 차이 미리보기, Studio가 처음 수정하기 전 원본 설정 복원을 지원합니다. |
 | 🔄 | **서명 업데이트** | 안정 버전을 자동 확인하고, 사용자 확인 후 서명을 검증해 앱 안에서 업데이트합니다. |
 | 🌐 | **크로스플랫폼 + 다국어** | Windows, Linux, macOS; 영어, 중국어 간체/번체, 일본어, 한국어 지원. |
 
 ## 기본 프로필
 
-| 프로필 | 모델 구성 | 권장 용도 |
-| --- | --- | --- |
-| **Token Saver** | GPT-6 Luna low · Plan low | 작은 수정, 일괄 치환, 명확한 작업 |
-| **Economy** | GPT-6 Luna medium · Plan medium | CRUD, 프론트엔드 수정, 일반 API |
-| **Daily** | GPT-6 Luna medium + Luna medium 서브 Agent | 일상 개발 |
-| **Balanced** | GPT-6.1 Sol medium + Luna medium 서브 Agent | 다중 파일 기능, 리팩터링, 연동 |
-| **Astra Director** | GPT-6 Astra high/xhigh + GPT-6.1 Sol medium 서브 Agent | 아키텍처, 작업 분해, 복잡한 구현, Review |
-| **Max Quality** | GPT-6 Astra xhigh + GPT-6.1 Sol high 서브 Agent | 어려운 Bug, 대규모 리팩터링, 출시 전 Review |
+| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent | Agent reasoning | Concurrency | Best for |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **Token Saver** | `gpt-6-luna` | `low` | `low` | — | — | — | `Small edits` |
+| **Economy** | `gpt-6-luna` | `medium` | `medium` | — | — | — | `Routine CRUD` |
+| **Daily** | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Daily work` |
+| **Balanced** | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
+| **Astra Director** | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | `Architecture/review` |
+| **Max Quality** | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | `Hardest tasks` |
 
 프로필은 시작점일 뿐 고정 모드가 아닙니다. UI에서 모델, Reasoning, 서브 Agent, 동시 실행 수를 자유롭게 바꿀 수 있습니다.
 
