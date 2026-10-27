@@ -1,5 +1,6 @@
 release: patch
-Requested for GPT-6.1 Terra model-tier changes after PR #67 merged and full PR CI passed.
-Source master: badf141b119039835e4689ee8644fee5633ef85f
-Expected next version: v0.6.5 (patch from latest v0.6.4).
-Requested on 2026-10-27.
+Requested after PR #68 merged with successful Windows, Linux, macOS and frontend CI.
+Repair: canonicalize GitHub Release asset filenames and validate live signed updater URLs.
+Source master: ce134892ba6dd25525a0beadbd9e84ceeed8cd35
+Expected release: v0.6.6 (patch from stable v0.6.5).
+Requested 2026-10-27.
