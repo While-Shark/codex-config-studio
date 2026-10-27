@@ -88,6 +88,8 @@ Before the GitHub Release is created or updated, the workflow must produce and v
 - `SHA256SUMS.txt`
 - the complete updater payload/signature set
 - GitHub artifact attestations for the final release files
+- canonical asset names (ASCII letters/digits, dots, underscores, hyphens; **no spaces**): GitHub may rewrite names containing spaces, invalidating `latest.json` download URLs
+- a passing post-upload HTTP check of the published tag's `latest.json`, the `/releases/latest/download/latest.json` feed, and every unique Windows/Linux/macOS updater payload URL (HTTP 200); fail Release if any 404 occurs
 
 After publication, verify a downloaded file can be traced to this repository:
 

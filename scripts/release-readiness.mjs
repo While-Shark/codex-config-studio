@@ -36,6 +36,12 @@ export function releaseReadiness(root=process.cwd()){
         && !updaterPrepare.includes('TAURI_UPDATER_PUBKEY=')
         && (workflow.match(/--config src-tauri\/tauri\.release\.conf\.json/g)??[]).length===3,
       'Formal release materializes a transient updater config and passes it to every Tauri CLI build before publishing latest.json'),
+    check('published updater URL safety',
+      workflow.includes('node scripts/normalize-release-artifacts.mjs release-files')
+        && workflow.includes('node scripts/verify-published-updater.mjs release-files')
+        && workflow.indexOf('node scripts/normalize-release-artifacts.mjs release-files') < workflow.indexOf('node scripts/build-updater-manifest.mjs release-files')
+        && workflow.indexOf('node scripts/verify-published-updater.mjs release-files') > workflow.indexOf('Create or update GitHub Release'),
+      'Release asset filenames are canonicalized before manifest/signatures are indexed, then every published URL is checked via HTTP'),
     check('local updater disabled by default',
       tauri.plugins?.updater?.pubkey==='' && updater.includes('option_env!("CODEX_UPDATER_PUBKEY")'),
       'Local/PR builds keep updater trust disabled; distributed builds inject the trusted public key'),

@@ -2,6 +2,8 @@
 
 ## 简体中文
 
+- 🛠️ **修复一键更新 404**：正式发布先把 Windows/Linux/macOS 产物及签名文件名统一规范化，再生成 `latest.json`、SHA256 和 GitHub 构建来源证明；增加空格文件名与重名冲突回归测试。发布后实际访问稳定版更新清单和各平台下载链接，发现 404 则让 Release CI 失败，不再只凭文件上传成功就认定更新可用。
+
 - **GPT-6.1 Terra / 2026-10-27**: Added Codex-ready `gpt-6.1-terra` for daily development and scoped workers. Daily: Terra medium + Terra medium (2). Balanced: Sol medium + Terra medium (2). Luna remains for cheap execution; Astra/Sol remain for complex work. Archived the v0.6.4 preset revision without modifying older snapshots or existing projects. API prices are not assumed to be Codex/Work billing rates.
 
 - 🧠 **GPT-6.1 角色分层方案定版**：新增 `2026-10-03` 当前方案版本并完整归档 v0.6.1 方案。Token Saver / Economy 降低 Plan Mode 消耗；Balanced 继续由 GPT-6.1 Sol + Luna 执行；Astra 总指挥升级为 GPT-6 Astra high/xhigh 负责规划与 Review、GPT-6.1 Sol medium 负责复杂执行；极致方案升级为 GPT-6 Astra xhigh + GPT-6.1 Sol high。已有项目与历史方案不会自动迁移。
@@ -41,6 +43,8 @@
 
 ## 繁體中文
 
+- 🛠️ **修復自動更新 404**：發佈前將安裝包和簽名檔名標準化，再產生 `latest.json`、SHA256 與建置證明。新增空格與檔名衝突測試；發佈後驗證正式更新清單及各平台實際下載連結，遇到 404 即使 Release CI 失敗。
+
 - **GPT-6.1 Terra / 2026-10-27**: Added Codex-ready `gpt-6.1-terra` for daily development and scoped workers. Daily: Terra medium + Terra medium (2). Balanced: Sol medium + Terra medium (2). Luna remains for cheap execution; Astra/Sol remain for complex work. Archived the v0.6.4 preset revision without modifying older snapshots or existing projects. API prices are not assumed to be Codex/Work billing rates.
 
 - 🧠 **GPT-6.1 角色分層方案定版**：新增 `2026-10-03` 目前方案版本並完整封存 v0.6.1 方案。Token Saver / Economy 降低 Plan Mode 消耗；Balanced 維持 GPT-6.1 Sol + Luna 執行；Astra Director 升級為 GPT-6 Astra high/xhigh 負責規劃與 Review、GPT-6.1 Sol medium 負責複雜執行；Max Quality 升級為 GPT-6 Astra xhigh + GPT-6.1 Sol high。既有專案與歷史方案不會自動遷移。
@@ -76,6 +80,8 @@
 - 🛡️ **設定安全**：持續支援全域/專案級 Codex 設定、逐項繼承、安全備份、歷史備份與原始設定還原。
 
 ## English
+
+- 🛠️ **Fix in-app updater HTTP 404**: Canonicalize Windows/Linux/macOS asset and signature filenames before generating `latest.json`, SHA-256 sums and provenance. Add regression tests for spaces/collisions and probe the published stable feed plus each platform's real download URLs. A broken URL now fails the Release workflow.
 
 - **GPT-6.1 Terra / 2026-10-27**: Added Codex-ready `gpt-6.1-terra` for daily development and scoped workers. Daily: Terra medium + Terra medium (2). Balanced: Sol medium + Terra medium (2). Luna remains for cheap execution; Astra/Sol remain for complex work. Archived the v0.6.4 preset revision without modifying older snapshots or existing projects. API prices are not assumed to be Codex/Work billing rates.
 
@@ -116,6 +122,8 @@
 
 ## 日本語
 
+- 🛠️ **アプリ内更新の 404 を修正**：配布ファイルと署名の名前を正規化してから `latest.json`、SHA-256、出所証明を作成。空白・名前衝突の回帰テストを追加し、公開後に安定版フィードと全プラットフォームの実際の URL を検証します。
+
 - **GPT-6.1 Terra / 2026-10-27**: Added Codex-ready `gpt-6.1-terra` for daily development and scoped workers. Daily: Terra medium + Terra medium (2). Balanced: Sol medium + Terra medium (2). Luna remains for cheap execution; Astra/Sol remain for complex work. Archived the v0.6.4 preset revision without modifying older snapshots or existing projects. API prices are not assumed to be Codex/Work billing rates.
 
 - 🧠 **GPT-6.1 の役割分担プロファイルを正式化**：`2026-10-03` の現行版を追加し、v0.6.1 のプロファイルを不変の履歴として保存しました。Token Saver / Economy は Plan Mode コストを抑え、Balanced は GPT-6.1 Sol + Luna を維持。Astra Director は GPT-6 Astra high/xhigh が計画と Review、GPT-6.1 Sol medium が複雑な実装を担当し、Max Quality は GPT-6 Astra xhigh + GPT-6.1 Sol high に更新します。既存プロジェクトや履歴設定は自動移行しません。
@@ -151,6 +159,8 @@
 - 🛡️ **安全な設定管理**：グローバル/プロジェクト設定、項目単位の継承、元設定バックアップ、履歴バックアップ、復元機能を引き続き提供します。
 
 ## 한국어
+
+- 🛠️ **앱 내 업데이트 404 수정**: Windows/Linux/macOS 배포 파일과 서명 파일 이름을 표준화한 후 `latest.json`, SHA-256 및 출처 증명을 생성합니다. 공백/충돌 회귀 테스트와 게시 후 모든 업데이트 다운로드 URL 및 안정 채널 확인을 추가했습니다.
 
 - **GPT-6.1 Terra / 2026-10-27**: Added Codex-ready `gpt-6.1-terra` for daily development and scoped workers. Daily: Terra medium + Terra medium (2). Balanced: Sol medium + Terra medium (2). Luna remains for cheap execution; Astra/Sol remain for complex work. Archived the v0.6.4 preset revision without modifying older snapshots or existing projects. API prices are not assumed to be Codex/Work billing rates.
 

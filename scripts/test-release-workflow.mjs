@@ -252,3 +252,15 @@ test('formal release can retry the already prepared current version without anot
   assert.match(workflow, /if \[ "\$\{\{ inputs\.bump \}\}" = "current" \]; then/);
   assert.match(workflow, /if: github\.event_name == 'workflow_dispatch' && inputs\.bump != 'current'/);
 });
+
+test('release canonicalizes asset names and probes actual published updater URLs', () => {
+  const normalize = workflow.indexOf('node scripts/normalize-release-artifacts.mjs release-files');
+  const verify = workflow.indexOf('node scripts/verify-release-files.mjs release-files');
+  const manifest = workflow.indexOf('node scripts/build-updater-manifest.mjs release-files');
+  const hashes = workflow.indexOf('sha256sum * > SHA256SUMS.txt');
+  const attest = workflow.indexOf('Attest release build provenance');
+  const publish = workflow.indexOf('Create or update GitHub Release');
+  const reachable = workflow.indexOf('node scripts/verify-published-updater.mjs release-files');
+  assert.ok(normalize >= 0 && verify > normalize && manifest > verify);
+  assert.ok(hashes > manifest && attest > hashes && publish > attest && reachable > publish);
+});

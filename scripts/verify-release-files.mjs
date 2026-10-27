@@ -1,6 +1,7 @@
 import { readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { canonicalReleaseAssetName } from './normalize-release-artifacts.mjs';
 
 export const RELEASE_ARTIFACT_RULES = [
   { label: 'Windows NSIS installer', suffix: '-setup.exe' },
@@ -21,6 +22,12 @@ export function verifyReleaseFiles(dirArg) {
     .filter(entry => entry.isFile())
     .map(entry => entry.name)
     .sort();
+
+  for (const name of files) {
+    if (canonicalReleaseAssetName(name) !== name) {
+      throw new Error('Non-canonical Release asset filename; normalize before manifest generation: ' + name);
+    }
+  }
 
   const selected = new Map();
   for (const rule of RELEASE_ARTIFACT_RULES) {
