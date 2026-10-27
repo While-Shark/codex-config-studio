@@ -1,4 +1,5 @@
 release: patch
-Requested for v0.6.4 with approved PR #66 merged.
-Source master: a57cb9d6be71325098797a414718cf249311ef17
-Requested at 2026-10-04T11:48:37Z.
+Requested for GPT-6.1 Terra model-tier changes after PR #67 merged and full PR CI passed.
+Source master: badf141b119039835e4689ee8644fee5633ef85f
+Expected next version: v0.6.5 (patch from latest v0.6.4).
+Requested on 2026-10-27.
