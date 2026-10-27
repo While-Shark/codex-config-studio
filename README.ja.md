@@ -42,18 +42,18 @@ Codex は強力ですが、実際のプロジェクトでは設定がすぐに�
 
 ## 内蔵プロファイル
 
-| プロファイル | モデル構成 | 主な用途 |
-| --- | --- | --- |
-| **Token Saver** | GPT-6 Luna low · Plan low | 小さな修正、一括置換、明確なタスク |
-| **Economy** | GPT-6 Luna medium · Plan medium | CRUD、フロントエンド、通常の API 作業 |
-| **Daily** | GPT-6 Luna medium + Luna medium サブ Agent | 日常開発 |
-| **Balanced** | GPT-6.1 Sol medium + Luna medium サブ Agent | 複数ファイルの機能、リファクタ、連携 |
-| **Astra Director** | GPT-6 Astra high/xhigh + GPT-6.1 Sol medium サブ Agent | アーキテクチャ、タスク分解、複雑な実装、Review |
-| **Max Quality** | GPT-6 Astra xhigh + GPT-6.1 Sol high サブ Agent | 難しい Bug、大規模リファクタ、リリース前 Review |
+| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent | Agent reasoning | Concurrency | Best for |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **Token Saver** | `gpt-6-luna` | `low` | `low` | — | — | — | `Small edits` |
+| **Economy** | `gpt-6-luna` | `medium` | `medium` | — | — | — | `Routine CRUD` |
+| **Daily** | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Daily work` |
+| **Balanced** | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
+| **Astra Director** | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | `Architecture/review` |
+| **Max Quality** | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | `Hardest tasks` |
 
 プロファイルは出発点であり固定ではありません。UI からモデル、Reasoning、サブ Agent、並列数を自由に変更できます。
 
-現在のプロファイル版：**GPT-6.1 · 2026-10-03**。v0.6.1 の GPT-6.1、GPT-6 v0.5.0、旧 v0.4.0 の各プロファイルは読み取り専用の履歴スナップショットとして残ります。
+現在のプロファイル版：**GPT-6.1 Terra · 2026-10-27**。v0.6.4, v0.6.1 の GPT-6.1、GPT-6 v0.5.0、旧 v0.4.0 の各プロファイルは読み取り専用の履歴スナップショットとして残ります。
 
 ## Config Health & Model Integrity
 

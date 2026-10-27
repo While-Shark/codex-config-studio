@@ -20,10 +20,11 @@ writeFileSync(join(output,'package.json'),'{"type":"module"}');
 const versionApi=await import(pathToFileURL(join(output,'preset-versions.js')));
 const viewApi=await import(pathToFileURL(join(output,'preset-version-view.js')));
 const {presetVersionText}=await import(pathToFileURL(join(output,'i18n/preset-versions.js')));
+const {priorCurrentPresetSnapshot}=await import(pathToFileURL(join(output,'presets/gpt6.1-v0.6.4.js')));
 const {gpt61PresetSnapshot}=await import(pathToFileURL(join(output,'presets/gpt6.1-v0.6.1.js')));
 const {gpt6PresetSnapshot}=await import(pathToFileURL(join(output,'presets/gpt6-v0.5.0.js')));
 const {legacyPresetSnapshot}=await import(pathToFileURL(join(output,'presets/legacy-v0.4.0.js')));
-const {CURRENT_PRESET_VERSION:current,GPT61_PRESET_VERSION:gpt61,GPT6_PRESET_VERSION:gpt6,LEGACY_PRESET_VERSION:legacy,versionPresets,presetVersion,matchPresetVersion,presetByReference,presetSource,parsePresetSource}=versionApi;
+const {CURRENT_PRESET_VERSION:current,PRIOR_CURRENT_PRESET_VERSION:prior,GPT61_PRESET_VERSION:gpt61,GPT6_PRESET_VERSION:gpt6,LEGACY_PRESET_VERSION:legacy,versionPresets,presetVersion,matchPresetVersion,presetByReference,presetSource,parsePresetSource}=versionApi;
 const source=read('src/main.ts');
 const ast=ts.createSourceFile('main.ts',source,ts.ScriptTarget.Latest,true);
 const js=text=>ts.transpileModule(text,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
@@ -35,8 +36,8 @@ const fields=['model','modelReasoningEffort','planModeReasoningEffort','agentsEn
 const currentExpected=[
   ['token-save','gpt-6-luna','low','low',false,null,null,null],
   ['economy','gpt-6-luna','medium','medium',false,null,null,null],
-  ['daily','gpt-6-luna','medium','high',true,'gpt-6-luna','medium',2],
-  ['balanced','gpt-6.1-sol','medium','high',true,'gpt-6-luna','medium',2],
+  ['daily','gpt-6.1-terra','medium','high',true,'gpt-6.1-terra','medium',2],
+  ['balanced','gpt-6.1-sol','medium','high',true,'gpt-6.1-terra','medium',2],
   ['astra','gpt-6-astra','high','xhigh',true,'gpt-6.1-sol','medium',2],
   ['max','gpt-6-astra','xhigh','xhigh',true,'gpt-6.1-sol','high',3],
 ];
@@ -92,6 +93,11 @@ function context(extra={}){
 }
 
 test('current quick profiles use role-based GPT-6.1 Sol workers for advanced tiers',()=>assert.deepEqual(rows(presets),currentExpected));
+test('v0.6.4 archive preserves original values',()=>{
+  assert.equal(priorCurrentPresetSnapshot.sourceTag,'v0.6.4');
+  assert.equal(priorCurrentPresetSnapshot.presets[2].values.model,'gpt-6-luna');
+  assert.equal(priorCurrentPresetSnapshot.presets[3].values.defaultSubagentModel,'gpt-6-luna');
+});
 test('GPT-6.1 v0.6.1 archive keeps the exact previous profiles and release provenance',()=>{
   assert.deepEqual(rows(gpt61PresetSnapshot.presets),gpt61Expected);
   assert.equal(gpt61PresetSnapshot.sourceTag,'v0.6.1');
@@ -123,8 +129,9 @@ test('archived data and descriptions are deeply frozen and independent of drafts
   assert.equal(JSON.stringify(legacyPresetSnapshot),beforeLegacy);
 });
 test('versions are unambiguous; unknown revisions cannot silently load a default',()=>{
-  assert.equal(new Set(versionApi.presetVersions.map(v=>v.id)).size,4);
+  assert.equal(new Set(versionApi.presetVersions.map(v=>v.id)).size,5);
   assert.equal(versionPresets(presets,current),presets);
+  assert.equal(versionPresets(presets,prior),priorCurrentPresetSnapshot.presets);
   assert.equal(versionPresets(presets,gpt61),gpt61PresetSnapshot.presets);
   assert.equal(versionPresets(presets,gpt6),gpt6PresetSnapshot.presets);
   assert.equal(versionPresets(presets,legacy),legacyPresetSnapshot.presets);
@@ -137,15 +144,19 @@ test('value matching prefers the newest equivalent revision while preserving dis
     assert.deepEqual(matchPresetVersion(presets,p.values),{versionId:current,presetId:p.id});
     assert.equal(JSON.stringify(p.values),before);
   }
+  for(const p of versionPresets(presets,prior)){
+    const expectedVersion=['daily','balanced'].includes(p.id)?prior:current;
+    assert.deepEqual(matchPresetVersion(presets,p.values),{versionId:expectedVersion,presetId:p.id});
+  }
   for(const p of versionPresets(presets,gpt61)){
     const before=JSON.stringify(p.values);
-    const expectedVersion=['daily','balanced'].includes(p.id)?current:gpt61;
+    const expectedVersion=['daily','balanced'].includes(p.id)?prior:gpt61;
     assert.deepEqual(matchPresetVersion(presets,p.values),{versionId:expectedVersion,presetId:p.id});
     assert.equal(JSON.stringify(p.values),before);
   }
   for(const p of versionPresets(presets,gpt6)){
     const before=JSON.stringify(p.values);
-    const expectedVersion=p.id==='daily'?current:p.id==='balanced'?gpt6:gpt61;
+    const expectedVersion=p.id==='daily'?prior:p.id==='balanced'?gpt6:gpt61;
     assert.deepEqual(matchPresetVersion(presets,p.values),{versionId:expectedVersion,presetId:p.id});
     assert.equal(JSON.stringify(p.values),before);
   }
@@ -166,7 +177,8 @@ test('current translations reflect GPT-6.1 while archived descriptions stay hist
       const match=read(`src/i18n/${locale}.ts`).match(new RegExp(`'preset\\.${p.id}\\.description': '([^']+)'`));
       assert.ok(match);
       assert.ok(match[1].includes('GPT-6'));
-      assert.ok(!match[1].includes('Terra'));
+      if(['daily','balanced'].includes(p.id))assert.ok(match[1].includes('GPT-6.1 Terra'));
+      else assert.ok(!match[1].includes('Terra'));
       if(['balanced','astra','max'].includes(p.id))assert.ok(match[1].includes('GPT-6.1 Sol'));
     }
     const labels=presetVersionText(locale);
@@ -179,10 +191,11 @@ test('README current profile tables use new models and include archive guidance'
   for(const path of ['README.md','README.zh-CN.md','README.zh-TW.md','README.ja.md','README.ko.md']){
     const text=read(path);
     const cells=text.split('\n').filter(line=>line.startsWith('|')).map(line=>line.split('|')[2]??'');
-    const models=cells.filter(cell=>/^\s*(GPT-[\d.]+ )?(Luna|Sol|Astra|Terra)\b/.test(cell));
+    const models=cells.filter(cell=>/`gpt-6(?:\.1)?-(?:luna|sol|astra|terra)`/.test(cell));
     assert.ok(models.length>=6,path);
-    assert.ok(models.every(cell=>cell.includes('GPT-6')&&!cell.includes('Terra')),path);
-    assert.ok(text.includes('GPT-6.1 Sol'),path);
+    assert.ok(text.includes('gpt-6.1-terra'),path);
+    assert.ok(text.includes('v0.6.4'),path);
+    assert.ok(text.includes('`gpt-6.1-sol`'),path);
     assert.ok(text.includes('v0.6.1'),path);
     assert.ok(text.includes('v0.5.0'),path);
     assert.ok(text.includes('v0.4.0'),path);
@@ -308,7 +321,7 @@ test('task reset upgrades only the requested recommendation without rewriting sa
   const store=new Map([['codex-config-studio.task-preferences.v1',JSON.stringify(saved)]]),writes=[];
   const ctx={exports:{},localStorage:{getItem:key=>store.get(key)??null,setItem(key,value){writes.push(key);store.set(key,value);}}};
   runInNewContext(js(read('src/task-modes.ts')),ctx);assert.deepEqual(plain(ctx.exports.loadTaskPreferences()),saved);assert.equal(writes.length,0);
-  ctx.exports.resetTaskPreference('daily');assert.deepEqual(plain(ctx.exports.loadTaskPreferences()),{...saved,daily:{model:'gpt-6-luna',reasoning:'medium'}});assert.equal(writes.length,1);
+  ctx.exports.resetTaskPreference('daily');assert.deepEqual(plain(ctx.exports.loadTaskPreferences()),{...saved,daily:{model:'gpt-6.1-terra',reasoning:'medium'}});assert.equal(writes.length,1);
 });
 test('future release titles stay short and assets plus multilingual notes stay configured',()=>{
   const release=read('.github/workflows/release.yml'),nightly=read('.github/workflows/build-windows.yml');

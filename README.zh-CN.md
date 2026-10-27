@@ -42,18 +42,18 @@ Codex 很强，但真实项目里的配置很快就会超过几行：不同项�
 
 ## 内置方案
 
-| 方案 | 模型组合 | 适合场景 |
-| --- | --- | --- |
-| **极省 Token** | GPT-6 Luna low · Plan low | 小修改、批量替换、明确任务 |
-| **经济** | GPT-6 Luna medium · Plan medium | CRUD、前端修改、常规 API |
-| **日常** | GPT-6 Luna medium + Luna medium 子 Agent | 日常开发 |
-| **均衡** | GPT-6.1 Sol medium + Luna medium 子 Agent | 跨文件功能、重构、联调 |
-| **Astra 总指挥** | GPT-6 Astra high/xhigh + GPT-6.1 Sol medium 子 Agent | 架构、任务拆解、复杂执行、Review |
-| **极致** | GPT-6 Astra xhigh + GPT-6.1 Sol high 子 Agent | 疑难 Bug、大重构、发布前 Review |
+| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent | Agent reasoning | Concurrency | Best for |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **极省 Token** | `gpt-6-luna` | `low` | `low` | — | — | — | `Small edits` |
+| **经济** | `gpt-6-luna` | `medium` | `medium` | — | — | — | `Routine CRUD` |
+| **日常** | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Daily work` |
+| **均衡** | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
+| **Astra 总指挥** | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | `Architecture/review` |
+| **极致** | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | `Hardest tasks` |
 
 这些方案只是起点，不会锁死。你可以在 UI 中继续修改模型、Reasoning、子 Agent 和并发数。
 
-当前方案版本：**GPT-6.1 · 2026-10-03**。v0.6.1 的 GPT-6.1 方案、GPT-6 v0.5.0 方案和旧版 v0.4.0 方案都会作为只读历史快照继续保留。
+当前方案版本：**GPT-6.1 Terra · 2026-10-27**。v0.6.4, v0.6.1 的 GPT-6.1 方案、GPT-6 v0.5.0 方案和旧版 v0.4.0 方案都会作为只读历史快照继续保留。
 
 ## Config Health & Model Integrity
 

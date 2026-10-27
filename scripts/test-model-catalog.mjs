@@ -20,7 +20,7 @@ const { commonTaskModels, defaultTaskPreferences, taskModeIds, loadTaskPreferenc
   saveTaskPreference, loadActiveTaskMode } = await import(pathToFileURL(join(output, 'task-modes.js')));
 const { renderModelPicker } = await import(pathToFileURL(join(output, 'model-picker.js')));
 
-const expected = ['gpt-6.1-sol', 'gpt-6-sol', 'gpt-6-astra', 'gpt-6-luna',
+const expected = ['gpt-6.1-sol', 'gpt-6.1-terra', 'gpt-6-sol', 'gpt-6-astra', 'gpt-6-luna',
   'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-5.5'];
 const copy = { inherit: 'Unset / inherit', custom: 'Custom model...',
   placeholder: 'Model ID', required: 'Choose or enter a model' };
@@ -46,7 +46,7 @@ function storage(saved, active = 'daily') {
 test('shared catalog lists the new family first and retains all screenshot legacy models', () => {
   assert.deepEqual([...commonTaskModels], expected);
   assert.equal(new Set(commonTaskModels).size, commonTaskModels.length);
-  assert.ok(!commonTaskModels.includes('gpt-6-terra'));
+  assert.ok(commonTaskModels.includes('gpt-6.1-terra'));
 });
 
 test('both advanced selectors show the complete fallback catalog for every selected model', () => {
@@ -106,7 +106,7 @@ test('each task can save and reload either new model without changing other task
 test('fresh task recommendations use GPT-6 while keeping reasoning levels unchanged', () => {
   assert.deepEqual(defaultTaskPreferences, {
     'quick-fix': { model: 'gpt-6-luna', reasoning: 'low' },
-    daily: { model: 'gpt-6-luna', reasoning: 'medium' },
+    daily: { model: 'gpt-6.1-terra', reasoning: 'medium' },
     complex: { model: 'gpt-6.1-sol', reasoning: 'high' },
     architecture: { model: 'gpt-6-astra', reasoning: 'high' },
   });

@@ -42,18 +42,18 @@ Codex is powerful, but real-world setups quickly grow beyond a few config lines:
 
 ## Built-in profiles
 
-| Profile | Model stack | Best for |
-| --- | --- | --- |
-| **Token Saver** | GPT-6 Luna low · Plan low | Small edits, bulk replacements, explicit tasks |
-| **Economy** | GPT-6 Luna medium · Plan medium | CRUD, frontend changes, routine API work |
-| **Daily** | GPT-6 Luna medium + Luna medium agents | Day-to-day development |
-| **Balanced** | GPT-6.1 Sol medium + Luna medium agents | Cross-file work, refactors, integration |
-| **Astra Director** | GPT-6 Astra high/xhigh + GPT-6.1 Sol medium agents | Architecture, delegation, complex implementation, review |
-| **Max Quality** | GPT-6 Astra xhigh + GPT-6.1 Sol high agents | Hard bugs, major refactors, pre-release review |
+| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent | Agent reasoning | Concurrency | Best for |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **Token Saver** | `gpt-6-luna` | `low` | `low` | — | — | — | `Small edits` |
+| **Economy** | `gpt-6-luna` | `medium` | `medium` | — | — | — | `Routine CRUD` |
+| **Daily** | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Daily work` |
+| **Balanced** | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
+| **Astra Director** | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | `Architecture/review` |
+| **Max Quality** | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | `Hardest tasks` |
 
 Profiles are starting points, not hard-coded modes. You can change models, reasoning effort, sub-agent settings, and concurrency in the UI.
 
-Current revision: **GPT-6.1 · 2026-10-03**. The v0.6.1 GPT-6.1 presets, GPT-6 v0.5.0 presets, and legacy v0.4.0 presets remain available as read-only archive snapshots in the app.
+Current revision: **GPT-6.1 Terra · 2026-10-27**. The v0.6.4, v0.6.1 GPT-6.1 presets, GPT-6 v0.5.0 presets, and legacy v0.4.0 presets remain available as read-only archive snapshots in the app.
 
 ## Config Health & Model Integrity
 
