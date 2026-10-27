@@ -29,14 +29,14 @@ Codex 很強，但真實專案中的設定很快就會超過幾行：不同專�
 
 ## 功能重點
 
-| | 功能 | 能帶來什麼 |
-| --- | --- | --- |
-| ⚡ | **方案 & 目前任務** | 一鍵切換 Token Saver、Daily、Balanced、Astra Director、Max Quality，或依任務暫時切換模型與 Reasoning。 |
-| 🌍 | **全域 + 專案範圍** | 同時管理 `~/.codex/config.toml` 與專案級 `.codex/config.toml`，支援欄位級繼承。 |
-| 🩺 | **Config Health** | 使用近期權威 Codex schema 檢查設定，預設保留未知與未來欄位。 |
-| 🔒 | **Model Integrity** | 鎖定目標模型/Reasoning、偵測設定漂移，並與本機可觀測的 Codex rollout 證據比對。 |
-| 📊 | **用量分析** | 查看 7 天 / 30 天 / 全期間 Token、模型趨勢、子 Agent 活動、reroute、專案活動與參考成本。 |
-| 🛡️ | **安全編輯與還原** | 寫入前備份、保留歷史、預覽差異，並可還原到 Studio 第一次接管前的原始設定。 |
+| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent model | Agent reasoning | Concurrency | Purpose |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ⚡ | `gpt-6-luna` | `low` | `low` | — | — | — | Small edits |
+| 🌍 | `gpt-6-luna` | `medium` | `medium` | — | — | — | Routine CRUD |
+| 🩺 | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Daily development |
+| 🔒 | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Cross-file work |
+| 📊 | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | Architecture/review |
+| 🛡️ | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | Hardest problems |
 | 🔄 | **簽名更新** | 自動檢查穩定版，使用者確認後在應用內驗證簽名並安裝更新。 |
 | 🌐 | **跨平台 + 多語言** | Windows、Linux、macOS；支援英文、簡中、繁中、日文、韓文。 |
 
@@ -53,7 +53,7 @@ Codex 很強，但真實專案中的設定很快就會超過幾行：不同專�
 
 這些方案只是起點，不會鎖死。你可以在 UI 中繼續修改模型、Reasoning、子 Agent 與並行數。
 
-目前方案版本：**GPT-6.1 · 2026-10-03**。v0.6.1 的 GPT-6.1 方案、GPT-6 v0.5.0 方案與舊版 v0.4.0 方案會繼續作為唯讀歷史快照保留。
+目前方案版本：**GPT-6.1 Terra · 2026-10-27**。v0.6.4, v0.6.1 的 GPT-6.1 方案、GPT-6 v0.5.0 方案與舊版 v0.4.0 方案會繼續作為唯讀歷史快照保留。
 
 ## Config Health & Model Integrity
 
