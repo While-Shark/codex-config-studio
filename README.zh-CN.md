@@ -29,14 +29,14 @@ Codex 很强，但真实项目里的配置很快就会超过几行：不同项�
 
 ## 功能重点
 
-| | 功能 | 能带来什么 |
-| --- | --- | --- |
-| ⚡ | **方案 & 当前任务** | 一键切换极省 Token、日常、均衡、Astra 总指挥、极致，或按任务临时切换模型与 Reasoning。 |
-| 🌍 | **全局 + 项目作用域** | 同时管理 `~/.codex/config.toml` 和项目级 `.codex/config.toml`，支持字段级继承。 |
-| 🩺 | **Config Health** | 使用近期权威 Codex schema 检查配置，默认保留未知和未来字段。 |
-| 🔒 | **Model Integrity** | 锁定目标模型/Reasoning，检测配置漂移，并与本机可观测的 Codex rollout 证据核对。 |
-| 📊 | **用量分析** | 查看 7 天 / 30 天 / 全部时间 Token、模型趋势、子 Agent 活动、reroute、项目活跃度和参考成本。 |
-| 🛡️ | **安全编辑与恢复** | 写入前备份、保留历史、预览差异，并可恢复到 Studio 第一次接管前的原始配置。 |
+| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent model | Agent reasoning | Concurrency | Purpose |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ⚡ | `gpt-6-luna` | `low` | `low` | — | — | — | Small edits |
+| 🌍 | `gpt-6-luna` | `medium` | `medium` | — | — | — | Routine CRUD |
+| 🩺 | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Daily development |
+| 🔒 | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Cross-file work |
+| 📊 | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | Architecture/review |
+| 🛡️ | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | Hardest problems |
 | 🔄 | **签名更新** | 自动检查稳定版，用户确认后在应用内验证签名并安装更新。 |
 | 🌐 | **跨平台 + 多语言** | Windows、Linux、macOS；支持英语、简中、繁中、日语、韩语。 |
 
@@ -53,7 +53,7 @@ Codex 很强，但真实项目里的配置很快就会超过几行：不同项�
 
 这些方案只是起点，不会锁死。你可以在 UI 中继续修改模型、Reasoning、子 Agent 和并发数。
 
-当前方案版本：**GPT-6.1 · 2026-10-03**。v0.6.1 的 GPT-6.1 方案、GPT-6 v0.5.0 方案和旧版 v0.4.0 方案都会作为只读历史快照继续保留。
+当前方案版本：**GPT-6.1 Terra · 2026-10-27**。v0.6.4, v0.6.1 的 GPT-6.1 方案、GPT-6 v0.5.0 方案和旧版 v0.4.0 方案都会作为只读历史快照继续保留。
 
 ## Config Health & Model Integrity
 
