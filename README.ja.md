@@ -29,27 +29,27 @@ Codex は強力ですが、実際のプロジェクトでは設定がすぐに�
 
 ## 主な機能
 
-| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent model | Agent reasoning | Concurrency | Purpose |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| ⚡ | `gpt-6-luna` | `low` | `low` | — | — | — | Small edits |
-| 🌍 | `gpt-6-luna` | `medium` | `medium` | — | — | — | Routine CRUD |
-| 🩺 | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Daily development |
-| 🔒 | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | Cross-file work |
-| 📊 | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | Architecture/review |
-| 🛡️ | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | Hardest problems |
+| | 機能 | できること |
+| --- | --- | --- |
+| ⚡ | **プロファイル & Current Task** | Token Saver、Daily、Balanced、Astra Director、Max Quality、またはタスク別のモデル/Reasoning をワンクリックで切り替え。 |
+| 🌍 | **グローバル + プロジェクト範囲** | `~/.codex/config.toml` とプロジェクトごとの `.codex/config.toml` をフィールド単位の継承付きで管理。 |
+| 🩺 | **Config Health** | 最近の信頼できる Codex schema で設定を確認し、未知/将来フィールドは既定で保持。 |
+| 🔒 | **Model Integrity** | 意図したモデル/Reasoning をロックし、設定ドリフトとローカルで観測可能な Codex rollout 証拠を照合。 |
+| 📊 | **使用量分析** | 7 日 / 30 日 / 全期間の Token、モデル傾向、サブ Agent、reroute、プロジェクト活動、参考コストを確認。 |
+| 🛡️ | **安全な編集と復元** | 書き込み前のバックアップ、履歴、差分プレビュー、Studio 導入前の元設定への復元。 |
 | 🔄 | **署名付き更新** | 安定版を自動確認し、ユーザー確認後に署名を検証してアプリ内更新。 |
 | 🌐 | **クロスプラットフォーム + 多言語** | Windows、Linux、macOS。英語、簡体字中国語、繁体字中国語、日本語、韓国語。 |
 
 ## 内蔵プロファイル
 
-| プロファイル | モデル構成 | 主な用途 |
-| --- | --- | --- |
-| **Token Saver** | GPT-6 Luna low · Plan low | 小さな修正、一括置換、明確なタスク |
-| **Economy** | GPT-6 Luna medium · Plan medium | CRUD、フロントエンド、通常の API 作業 |
-| **Daily** | GPT-6 Luna medium + Luna medium サブ Agent | 日常開発 |
-| **Balanced** | GPT-6.1 Sol medium + Luna medium サブ Agent | 複数ファイルの機能、リファクタ、連携 |
-| **Astra Director** | GPT-6 Astra high/xhigh + GPT-6.1 Sol medium サブ Agent | アーキテクチャ、タスク分解、複雑な実装、Review |
-| **Max Quality** | GPT-6 Astra xhigh + GPT-6.1 Sol high サブ Agent | 難しい Bug、大規模リファクタ、リリース前 Review |
+| Profile | Main model | Main reasoning | Plan reasoning | Sub-agent | Agent reasoning | Concurrency | Best for |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| **Token Saver** | `gpt-6-luna` | `low` | `low` | — | — | — | `Small edits` |
+| **Economy** | `gpt-6-luna` | `medium` | `medium` | — | — | — | `Routine CRUD` |
+| **Daily** | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Daily work` |
+| **Balanced** | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
+| **Astra Director** | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | `Architecture/review` |
+| **Max Quality** | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | `Hardest tasks` |
 
 プロファイルは出発点であり固定ではありません。UI からモデル、Reasoning、サブ Agent、並列数を自由に変更できます。
 
