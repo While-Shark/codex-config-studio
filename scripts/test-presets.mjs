@@ -195,7 +195,7 @@ test('README current profile tables use new models and include archive guidance'
     assert.ok(models.length>=6,path);
     assert.ok(text.includes('gpt-6.1-terra'),path);
     assert.ok(text.includes('v0.6.4'),path);
-    assert.ok(text.includes('GPT-6.1 Sol'),path);
+    assert.ok(text.includes('`gpt-6.1-sol`'),path);
     assert.ok(text.includes('v0.6.1'),path);
     assert.ok(text.includes('v0.5.0'),path);
     assert.ok(text.includes('v0.4.0'),path);
