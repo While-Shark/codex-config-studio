@@ -6,6 +6,7 @@ export type TaskPreference = { model: string; reasoning: string };
 // Live source: https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json
 export const commonTaskModels = [
   'gpt-6.1-sol',
+  'gpt-6.1-terra',
   'gpt-6-sol',
   'gpt-6-astra',
   'gpt-6-luna',
@@ -19,7 +20,7 @@ export const taskModeIds: TaskModeId[] = ['quick-fix', 'daily', 'complex', 'arch
 
 export const defaultTaskPreferences: Record<TaskModeId, TaskPreference> = {
   'quick-fix': { model: 'gpt-6-luna', reasoning: 'low' },
-  daily: { model: 'gpt-6-luna', reasoning: 'medium' },
+  daily: { model: 'gpt-6.1-terra', reasoning: 'medium' },
   complex: { model: 'gpt-6.1-sol', reasoning: 'high' },
   architecture: { model: 'gpt-6-astra', reasoning: 'high' },
 };

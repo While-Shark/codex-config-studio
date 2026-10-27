@@ -97,8 +97,8 @@ const efforts = ['low','medium','high','xhigh','ultra','persistent','max'];
 const presets: Preset[] = [
   { id:'token-save', values:{model:'gpt-6-luna',modelReasoningEffort:'low',planModeReasoningEffort:'low',agentsEnabled:false,defaultSubagentModel:null,defaultSubagentReasoningEffort:null,maxConcurrentThreadsPerSession:null}},
   { id:'economy', values:{model:'gpt-6-luna',modelReasoningEffort:'medium',planModeReasoningEffort:'medium',agentsEnabled:false,defaultSubagentModel:null,defaultSubagentReasoningEffort:null,maxConcurrentThreadsPerSession:null}},
-  { id:'daily', values:{model:'gpt-6-luna',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
-  { id:'balanced', values:{model:'gpt-6.1-sol',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6-luna',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
+  { id:'daily', values:{model:'gpt-6.1-terra',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6.1-terra',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
+  { id:'balanced', values:{model:'gpt-6.1-sol',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6.1-terra',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
   { id:'astra', values:{model:'gpt-6-astra',modelReasoningEffort:'high',planModeReasoningEffort:'xhigh',agentsEnabled:true,defaultSubagentModel:'gpt-6.1-sol',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
   { id:'max', values:{model:'gpt-6-astra',modelReasoningEffort:'xhigh',planModeReasoningEffort:'xhigh',agentsEnabled:true,defaultSubagentModel:'gpt-6.1-sol',defaultSubagentReasoningEffort:'high',maxConcurrentThreadsPerSession:3}},
 ];
