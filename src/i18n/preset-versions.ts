@@ -1,5 +1,5 @@
 export type PresetVersionCopy = {
-  version: string; current: string; archived: string; currentHelp: string;
+  version: string; current: string; archived: string; currentHelp: string; clientTooOld: string;
   archiveHelp: string; warning: string; previewOnly: string; confirmTitle: string; loadPreview: string;
   loaded: string; source: string; archivedSource: string; changedScope: string;
 };
@@ -7,6 +7,7 @@ const copy: Record<string, PresetVersionCopy> = {
   'zh-CN': {
     version: '方案版本', current: '当前推荐', archived: '历史备份',
     currentHelp: '推荐模型分层：Luna 低成本执行、Terra 日常开发、Sol 复杂实现、Astra 架构与审查。历史版本可预览与恢复。',
+    clientTooOld: '此 GPT-6.2 方案要求 Codex CLI 0.166.0 或更高版本。请升级 Codex，或在版本历史中选择 GPT-6.1 Terra（v0.6.6）方案。未写入配置。',
     archiveHelp: '历史快照保留原有模型、思考等级和子 Agent 参数，不随新版推荐变动。',
     warning: '这是历史方案，包含旧模型和固定思考等级。旧模型的可用性与费用以你的账号或服务商为准；固定等级可能影响 Codex 内的手动调整。',
     previewOnly: '确认后只载入预览，不会立即写入配置。',
@@ -18,6 +19,7 @@ const copy: Record<string, PresetVersionCopy> = {
   'zh-TW': {
     version: '方案版本', current: '目前推薦', archived: '歷史備份',
     currentHelp: '推薦模型分層：Luna 低成本執行、Terra 日常開發、Sol 複雜實作、Astra 架構與審查。歷史版本可預覽與還原。',
+    clientTooOld: '此 GPT-6.2 方案需要 Codex CLI 0.166.0 或更新版本。請升級 Codex，或在版本歷史中選擇 GPT-6.1 Terra（v0.6.6）方案。未寫入設定。',
     archiveHelp: '歷史快照保留原有模型、思考等級與子 Agent 參數，不隨新版推薦變動。',
     warning: '這是歷史方案，包含舊模型與固定思考等級。舊模型的可用性與費用以帳號或服務商為準；固定等級可能影響 Codex 內的手動調整。',
     previewOnly: '確認後只載入預覽，不會立即寫入設定。',
@@ -29,6 +31,7 @@ const copy: Record<string, PresetVersionCopy> = {
   en: {
     version: 'Profile version', current: 'Current', archived: 'Archived',
     currentHelp: 'Recommended roles: Luna for low-cost tasks, Terra for everyday coding, Sol for complex implementation, Astra for architecture and review. Archived profiles remain restorable.',
+    clientTooOld: 'This GPT-6.2 profile requires Codex CLI 0.166.0 or newer. Upgrade Codex or select the GPT-6.1 Terra (v0.6.6) profile in version history. Nothing was written.',
     archiveHelp: 'Archived snapshots retain their original models, reasoning levels and sub-agent settings; new recommendations never rewrite them.',
     warning: 'This archived profile uses older models and fixed reasoning levels. Availability and pricing depend on your account or provider. Fixed levels may affect manual adjustments in Codex.',
     previewOnly: 'Confirming only loads a preview; it does not write configuration.',
@@ -40,6 +43,7 @@ const copy: Record<string, PresetVersionCopy> = {
   ja: {
     version: 'プロファイルの版', current: '現在の推奨', archived: '履歴バックアップ',
     currentHelp: '推奨：Luna は低コスト作業、Terra は日常開発、Sol は複雑な実装、Astra は設計と Review。旧版を復元できます。',
+    clientTooOld: 'この GPT-6.2 プロファイルには Codex CLI 0.166.0 以降が必要です。Codex を更新するか、履歴から GPT-6.1 Terra（v0.6.6）を選んでください。設定は書き込まれていません。',
     archiveHelp: '履歴には元のモデル、思考レベル、サブ Agent 設定を保存し、新しい推奨値で上書きしません。',
     warning: 'これは古いモデルと固定の思考レベルを含む履歴プロファイルです。利用可否と料金はアカウントや提供元により異なります。固定レベルは Codex 内の手動調整に影響する場合があります。',
     previewOnly: '確認後はプレビューのみで、設定は書き込みません。',
@@ -51,6 +55,7 @@ const copy: Record<string, PresetVersionCopy> = {
   ko: {
     version: '프로필 버전', current: '현재 추천', archived: '이전 버전 백업',
     currentHelp: '추천: Luna는 저비용 작업, Terra는 일상 개발, Sol은 복잡한 구현, Astra는 아키텍처와 검토에 사용합니다. 이전 버전도 복원할 수 있습니다.',
+    clientTooOld: '이 GPT-6.2 프로필에는 Codex CLI 0.166.0 이상이 필요합니다. Codex를 업데이트하거나 버전 기록에서 GPT-6.1 Terra(v0.6.6)를 선택하세요. 설정은 변경되지 않았습니다.',
     archiveHelp: '보관된 스냅샷은 원래 모델, 사고 수준 및 서브 Agent 설정을 유지하며 새 추천값으로 덮어쓰지 않습니다.',
     warning: '이전 모델과 고정 사고 수준이 포함된 보관 프로필입니다. 사용 가능 여부와 비용은 계정 또는 서비스 제공업체에 따라 다릅니다. 고정 수준은 Codex에서 수동 조정에 영향을 줄 수 있습니다.',
     previewOnly: '확인하면 미리보기만 불러오며 설정 파일에 쓰지 않습니다.',

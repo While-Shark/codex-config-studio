@@ -164,15 +164,15 @@ export const zhCN = {
   'preset.daily.usage': '大多数日常项目开发。',
   'preset.balanced.name': '均衡',
   'preset.balanced.badge': '复杂开发',
-  'preset.balanced.description': 'GPT-6.1 Sol medium 负责规划和 Review，GPT-6.1 Terra medium 子 Agent 负责执行。',
+  'preset.balanced.description': 'GPT-6.2 Sol medium 负责规划和 Review，GPT-6.1 Terra medium 子 Agent 负责执行。',
   'preset.balanced.usage': '跨文件功能、常规重构、联调。',
   'preset.astra.name': 'Astra 总指挥',
   'preset.astra.badge': '高质量',
-  'preset.astra.description': 'GPT-6 Astra high/xhigh 负责规划与 Review，GPT-6.1 Sol medium 负责复杂执行。',
+  'preset.astra.description': 'GPT-6.2 Astra high/xhigh 负责规划与 Review，GPT-6.2 Sol medium 负责复杂执行。',
   'preset.astra.usage': '大功能、架构调整、复杂项目。',
   'preset.max.name': '极致',
   'preset.max.badge': '疑难任务',
-  'preset.max.description': 'GPT-6 Astra xhigh + GPT-6.1 Sol high，优先追求最高质量。',
+  'preset.max.description': 'GPT-6.2 Astra xhigh + GPT-6.2 Sol high，优先追求最高质量。',
   'preset.max.usage': '疑难 Bug、大重构、上线前 Review。',
 } as const;
 

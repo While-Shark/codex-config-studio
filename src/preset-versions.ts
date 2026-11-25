@@ -1,3 +1,5 @@
+import { compareCodexVersions } from './model-catalog.js';
+import { terraPresetSnapshot } from './presets/gpt6.1-terra-v0.6.6.js';
 import { priorCurrentPresetSnapshot } from './presets/gpt6.1-v0.6.4.js';
 import { gpt61PresetSnapshot } from './presets/gpt6.1-v0.6.1.js';
 import { gpt6PresetSnapshot } from './presets/gpt6-v0.5.0.js';
@@ -17,7 +19,8 @@ export type PresetReference = { versionId: string; presetId: string };
 export type PresetVersion = {
   id: string; label: string; date: string; archived: boolean; family: string;
 };
-export const CURRENT_PRESET_VERSION = 'gpt6.1-terra-2026-10-27';
+export const CURRENT_PRESET_VERSION = 'gpt6.2-2026-11-25';
+export const TERRA_PRESET_VERSION = 'gpt6.1-terra-2026-10-27';
 export const PRIOR_CURRENT_PRESET_VERSION = 'gpt6.1-2026-10-03';
 export const GPT61_PRESET_VERSION = 'gpt6.1-2026-09-30';
 export const GPT6_PRESET_VERSION = 'gpt6-2026-09-23';
@@ -25,7 +28,8 @@ export const LEGACY_PRESET_VERSION = 'legacy-v0.4.0';
 
 /** Append new revisions; never edit the snapshots already shipped to users. */
 export const presetVersions: readonly Readonly<PresetVersion>[] = Object.freeze([
-  Object.freeze({ id: CURRENT_PRESET_VERSION, label: 'GPT-6.1 Terra', date: '2026-10-27', archived: false, family: 'Luna / Terra / Sol / Astra · role-matched workers' }),
+  Object.freeze({ id: CURRENT_PRESET_VERSION, label: 'GPT-6.2', date: '2026-11-25', archived: false, family: 'Luna / Terra / 6.2 Sol / 6.2 Astra · role-matched workers' }),
+  Object.freeze({ id: TERRA_PRESET_VERSION, label: 'GPT-6.1 Terra (v0.6.6)', date: '2026-10-27', archived: true, family: 'Luna / Terra / Sol / Astra · role-matched workers' }),
   Object.freeze({ id: PRIOR_CURRENT_PRESET_VERSION, label: 'GPT-6.1 (v0.6.4)', date: '2026-10-03', archived: true, family: 'GPT-6.1 Sol / GPT-6 Luna / GPT-6 Astra · Sol workers' }),
   Object.freeze({ id: GPT61_PRESET_VERSION, label: 'GPT-6.1 (v0.6.1)', date: '2026-09-30', archived: true, family: 'GPT-6.1 Sol / GPT-6 Luna / GPT-6 Astra · Luna workers' }),
   Object.freeze({ id: GPT6_PRESET_VERSION, label: 'GPT-6', date: '2026-09-23', archived: true, family: 'GPT-6 Luna / Sol / Astra' }),
@@ -37,6 +41,7 @@ export function presetVersion(id: string): Readonly<PresetVersion> | undefined {
 }
 export function versionPresets(current: readonly PresetDefinition[], versionId: string): readonly PresetDefinition[] {
   if (versionId === CURRENT_PRESET_VERSION) return current;
+  if (versionId === TERRA_PRESET_VERSION) return terraPresetSnapshot.presets;
   if (versionId === PRIOR_CURRENT_PRESET_VERSION) return priorCurrentPresetSnapshot.presets;
   if (versionId === GPT61_PRESET_VERSION) return gpt61PresetSnapshot.presets;
   if (versionId === GPT6_PRESET_VERSION) return gpt6PresetSnapshot.presets;
@@ -58,7 +63,9 @@ export function matchPresetVersion(current: readonly PresetDefinition[], values:
 
 /** Archived descriptions must not change when translations of the current presets change. */
 export function archivedPresetDescription(versionId: string, locale: string, presetId: string): string | undefined {
-  const snapshot = versionId === PRIOR_CURRENT_PRESET_VERSION
+  const snapshot = versionId === TERRA_PRESET_VERSION
+    ? terraPresetSnapshot
+    : versionId === PRIOR_CURRENT_PRESET_VERSION
     ? priorCurrentPresetSnapshot
     : versionId === GPT61_PRESET_VERSION
     ? gpt61PresetSnapshot
@@ -79,4 +86,15 @@ export function parsePresetSource(source: string, current: readonly PresetDefini
   if (!match) return null;
   const reference = { versionId: match[1], presetId: match[2] };
   return presetByReference(current, reference) ? reference : null;
+}
+
+// Verified minimum from the official Codex model catalog, available offline.
+// Only guard applying bundled current presets; never migrate saved/manual configs.
+export function currentPresetClientTooOld(
+  reference: PresetReference | null, values: PresetValues, installedVersion: string | null | undefined,
+): boolean {
+  if (reference?.versionId !== CURRENT_PRESET_VERSION || !installedVersion) return false;
+  const models = [values.model, values.agentsEnabled ? values.defaultSubagentModel : null];
+  if (!models.some(model => model === 'gpt-6.2-sol' || model === 'gpt-6.2-astra')) return false;
+  return (compareCodexVersions(installedVersion, '0.166.0') ?? 0) < 0;
 }

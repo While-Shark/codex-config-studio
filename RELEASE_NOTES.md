@@ -2,6 +2,8 @@
 
 ## 简体中文
 
+- **GPT-6.2 · 2026-11-25**: 均衡档改用 GPT-6.2 Sol 搭配 Terra；总指挥和极致档由 GPT-6.2 Astra 规划、GPT-6.2 Sol 执行。省 Token、经济和日常档不变。 升级后的三档要求 Codex CLI 0.166.0 或更高版本。旧客户端可选择历史版本 **GPT-6.1 Terra（v0.6.6）**。已有配置和任务偏好不会被迁移。
+
 - 🛠️ **修复一键更新 404**：正式发布先把 Windows/Linux/macOS 产物及签名文件名统一规范化，再生成 `latest.json`、SHA256 和 GitHub 构建来源证明；增加空格文件名与重名冲突回归测试。发布后实际访问稳定版更新清单和各平台下载链接，发现 404 则让 Release CI 失败，不再只凭文件上传成功就认定更新可用。
 
 - **GPT-6.1 Terra / 2026-10-27**: Added Codex-ready `gpt-6.1-terra` for daily development and scoped workers. Daily: Terra medium + Terra medium (2). Balanced: Sol medium + Terra medium (2). Luna remains for cheap execution; Astra/Sol remain for complex work. Archived the v0.6.4 preset revision without modifying older snapshots or existing projects. API prices are not assumed to be Codex/Work billing rates.
@@ -43,6 +45,8 @@
 
 ## 繁體中文
 
+- **GPT-6.2 · 2026-11-25**: 均衡方案改用 GPT-6.2 Sol 搭配 Terra；總指揮與極致方案由 GPT-6.2 Astra 規劃、GPT-6.2 Sol 執行。省 Token、經濟及日常方案維持原樣。 升級後的三種方案需要 Codex CLI 0.166.0 或更新版本。舊用戶端可選擇歷史版本 **GPT-6.1 Terra（v0.6.6）**。不會遷移既有設定或任務偏好。
+
 - 🛠️ **修復自動更新 404**：發佈前將安裝包和簽名檔名標準化，再產生 `latest.json`、SHA256 與建置證明。新增空格與檔名衝突測試；發佈後驗證正式更新清單及各平台實際下載連結，遇到 404 即使 Release CI 失敗。
 
 - **GPT-6.1 Terra / 2026-10-27**: Added Codex-ready `gpt-6.1-terra` for daily development and scoped workers. Daily: Terra medium + Terra medium (2). Balanced: Sol medium + Terra medium (2). Luna remains for cheap execution; Astra/Sol remain for complex work. Archived the v0.6.4 preset revision without modifying older snapshots or existing projects. API prices are not assumed to be Codex/Work billing rates.
@@ -80,6 +84,8 @@
 - 🛡️ **設定安全**：持續支援全域/專案級 Codex 設定、逐項繼承、安全備份、歷史備份與原始設定還原。
 
 ## English
+
+- **GPT-6.2 · 2026-11-25**: Balanced pairs GPT-6.2 Sol with Terra; Astra Director and Max Quality use GPT-6.2 Astra for planning and GPT-6.2 Sol for execution. Token Saver, Economy, and Daily remain unchanged. The updated profiles require Codex CLI 0.166.0 or newer. On an older client, use the archived **GPT-6.1 Terra (v0.6.6)** profiles. Existing configurations and task preferences are not migrated.
 
 - 🛠️ **Fix in-app updater HTTP 404**: Canonicalize Windows/Linux/macOS asset and signature filenames before generating `latest.json`, SHA-256 sums and provenance. Add regression tests for spaces/collisions and probe the published stable feed plus each platform's real download URLs. A broken URL now fails the Release workflow.
 
@@ -122,6 +128,8 @@
 
 ## 日本語
 
+- **GPT-6.2 · 2026-11-25**: Balanced は GPT-6.2 Sol と Terra、Astra Director と Max Quality は計画に GPT-6.2 Astra、実装に GPT-6.2 Sol を使用します。節約・日常向けの 3 プロファイルは変更しません。 更新された 3 プロファイルには Codex CLI 0.166.0 以降が必要です。旧クライアントでは履歴の **GPT-6.1 Terra（v0.6.6）** を選べます。既存の設定やタスクの選択は移行されません。
+
 - 🛠️ **アプリ内更新の 404 を修正**：配布ファイルと署名の名前を正規化してから `latest.json`、SHA-256、出所証明を作成。空白・名前衝突の回帰テストを追加し、公開後に安定版フィードと全プラットフォームの実際の URL を検証します。
 
 - **GPT-6.1 Terra / 2026-10-27**: Added Codex-ready `gpt-6.1-terra` for daily development and scoped workers. Daily: Terra medium + Terra medium (2). Balanced: Sol medium + Terra medium (2). Luna remains for cheap execution; Astra/Sol remain for complex work. Archived the v0.6.4 preset revision without modifying older snapshots or existing projects. API prices are not assumed to be Codex/Work billing rates.
@@ -159,6 +167,8 @@
 - 🛡️ **安全な設定管理**：グローバル/プロジェクト設定、項目単位の継承、元設定バックアップ、履歴バックアップ、復元機能を引き続き提供します。
 
 ## 한국어
+
+- **GPT-6.2 · 2026-11-25**: Balanced는 GPT-6.2 Sol과 Terra를 조합하며, Astra Director와 Max Quality는 GPT-6.2 Astra가 계획하고 GPT-6.2 Sol이 실행합니다. 절약·일상용 세 프로필은 그대로 유지합니다. 업데이트된 세 프로필에는 Codex CLI 0.166.0 이상이 필요합니다. 이전 클라이언트는 기록의 **GPT-6.1 Terra(v0.6.6)** 를 선택할 수 있습니다. 기존 설정과 작업 기본 설정은 변경하지 않습니다.
 
 - 🛠️ **앱 내 업데이트 404 수정**: Windows/Linux/macOS 배포 파일과 서명 파일 이름을 표준화한 후 `latest.json`, SHA-256 및 출처 증명을 생성합니다. 공백/충돌 회귀 테스트와 게시 후 모든 업데이트 다운로드 URL 및 안정 채널 확인을 추가했습니다.
 

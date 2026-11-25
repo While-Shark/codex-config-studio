@@ -20,11 +20,12 @@ writeFileSync(join(output,'package.json'),'{"type":"module"}');
 const versionApi=await import(pathToFileURL(join(output,'preset-versions.js')));
 const viewApi=await import(pathToFileURL(join(output,'preset-version-view.js')));
 const {presetVersionText}=await import(pathToFileURL(join(output,'i18n/preset-versions.js')));
+const {terraPresetSnapshot}=await import(pathToFileURL(join(output,'presets/gpt6.1-terra-v0.6.6.js')));
 const {priorCurrentPresetSnapshot}=await import(pathToFileURL(join(output,'presets/gpt6.1-v0.6.4.js')));
 const {gpt61PresetSnapshot}=await import(pathToFileURL(join(output,'presets/gpt6.1-v0.6.1.js')));
 const {gpt6PresetSnapshot}=await import(pathToFileURL(join(output,'presets/gpt6-v0.5.0.js')));
 const {legacyPresetSnapshot}=await import(pathToFileURL(join(output,'presets/legacy-v0.4.0.js')));
-const {CURRENT_PRESET_VERSION:current,PRIOR_CURRENT_PRESET_VERSION:prior,GPT61_PRESET_VERSION:gpt61,GPT6_PRESET_VERSION:gpt6,LEGACY_PRESET_VERSION:legacy,versionPresets,presetVersion,matchPresetVersion,presetByReference,presetSource,parsePresetSource}=versionApi;
+const {CURRENT_PRESET_VERSION:current,TERRA_PRESET_VERSION:terra,PRIOR_CURRENT_PRESET_VERSION:prior,GPT61_PRESET_VERSION:gpt61,GPT6_PRESET_VERSION:gpt6,LEGACY_PRESET_VERSION:legacy,versionPresets,presetVersion,matchPresetVersion,presetByReference,presetSource,parsePresetSource}=versionApi;
 const source=read('src/main.ts');
 const ast=ts.createSourceFile('main.ts',source,ts.ScriptTarget.Latest,true);
 const js=text=>ts.transpileModule(text,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
@@ -34,6 +35,14 @@ assert.ok(declaration);
 const presets=plain(runInNewContext(js(`const presets=${declaration.initializer.getText(ast)};presets;`)));
 const fields=['model','modelReasoningEffort','planModeReasoningEffort','agentsEnabled','defaultSubagentModel','defaultSubagentReasoningEffort','maxConcurrentThreadsPerSession'];
 const currentExpected=[
+  ['token-save','gpt-6-luna','low','low',false,null,null,null],
+  ['economy','gpt-6-luna','medium','medium',false,null,null,null],
+  ['daily','gpt-6.1-terra','medium','high',true,'gpt-6.1-terra','medium',2],
+  ['balanced','gpt-6.2-sol','medium','high',true,'gpt-6.1-terra','medium',2],
+  ['astra','gpt-6.2-astra','high','xhigh',true,'gpt-6.2-sol','medium',2],
+  ['max','gpt-6.2-astra','xhigh','xhigh',true,'gpt-6.2-sol','high',3],
+];
+const terraExpected=[
   ['token-save','gpt-6-luna','low','low',false,null,null,null],
   ['economy','gpt-6-luna','medium','medium',false,null,null,null],
   ['daily','gpt-6.1-terra','medium','high',true,'gpt-6.1-terra','medium',2],
@@ -73,7 +82,7 @@ function context(extra={}){
   const confirms=[],writes=[],messages=[];
   const draft=structuredClone(presets[2].values);
   const ctx={...versionApi,...viewApi,presetVersionText,presets:structuredClone(presets),fields,
-    busy:false,confirmResolver:null,scope:'project',globalSnapshot:null,values:draft,lastSnapshot:{exists:true,path:'/projects/a/.codex/config.toml',values:structuredClone(oldDaily)},
+    busy:false,confirmResolver:null,configHealthState:null,scope:'project',globalSnapshot:null,values:draft,lastSnapshot:{exists:true,path:'/projects/a/.codex/config.toml',values:structuredClone(oldDaily)},
     activeTab:'presets',activePreset:'',activePresetVersion:current,viewedPresetVersion:current,draftPresetSource:null,
     requestScope:()=>({kind:'project',projectPath:'/projects/a'}),getLocale:()=> 'en',t:key=>key,presetText:(id,part)=>`${id}.${part}`,
     fieldLabel:field=>field,displayValue:(_field,value)=>value===null?'inherit':String(value),clone:structuredClone,
@@ -92,7 +101,14 @@ function context(extra={}){
   return {ctx,confirms,writes,messages,run:(name,arg)=>{ctx.argument=arg;return runInNewContext(appFunction(name)+`\n${name}(argument);`,ctx);}};
 }
 
-test('current quick profiles use role-based GPT-6.1 Sol workers for advanced tiers',()=>assert.deepEqual(rows(presets),currentExpected));
+test('current profiles advance only the three approved tiers to GPT-6.2',()=>assert.deepEqual(rows(presets),currentExpected));
+test('v0.6.6 archive preserves exact profile values and previous source identity',()=>{
+  assert.deepEqual(rows(terraPresetSnapshot.presets),terraExpected);
+  assert.equal(terra,'gpt6.1-terra-2026-10-27');
+  assert.equal(terraPresetSnapshot.sourceTag,'v0.6.6');
+  assert.throws(()=>{terraPresetSnapshot.presets[3].values.model='other';},TypeError);
+  assert.throws(()=>{terraPresetSnapshot.descriptions.en.balanced='other';},TypeError);
+});
 test('v0.6.4 archive preserves original values',()=>{
   assert.equal(priorCurrentPresetSnapshot.sourceTag,'v0.6.4');
   assert.equal(priorCurrentPresetSnapshot.presets[2].values.model,'gpt-6-luna');
@@ -129,8 +145,9 @@ test('archived data and descriptions are deeply frozen and independent of drafts
   assert.equal(JSON.stringify(legacyPresetSnapshot),beforeLegacy);
 });
 test('versions are unambiguous; unknown revisions cannot silently load a default',()=>{
-  assert.equal(new Set(versionApi.presetVersions.map(v=>v.id)).size,5);
+  assert.equal(new Set(versionApi.presetVersions.map(v=>v.id)).size,6);
   assert.equal(versionPresets(presets,current),presets);
+  assert.equal(versionPresets(presets,terra),terraPresetSnapshot.presets);
   assert.equal(versionPresets(presets,prior),priorCurrentPresetSnapshot.presets);
   assert.equal(versionPresets(presets,gpt61),gpt61PresetSnapshot.presets);
   assert.equal(versionPresets(presets,gpt6),gpt6PresetSnapshot.presets);
@@ -144,8 +161,12 @@ test('value matching prefers the newest equivalent revision while preserving dis
     assert.deepEqual(matchPresetVersion(presets,p.values),{versionId:current,presetId:p.id});
     assert.equal(JSON.stringify(p.values),before);
   }
+  for(const p of versionPresets(presets,terra)){
+    const expectedVersion=['balanced','astra','max'].includes(p.id)?terra:current;
+    assert.deepEqual(matchPresetVersion(presets,p.values),{versionId:expectedVersion,presetId:p.id});
+  }
   for(const p of versionPresets(presets,prior)){
-    const expectedVersion=['daily','balanced'].includes(p.id)?prior:current;
+    const expectedVersion=['daily','balanced'].includes(p.id)?prior:['astra','max'].includes(p.id)?terra:current;
     assert.deepEqual(matchPresetVersion(presets,p.values),{versionId:expectedVersion,presetId:p.id});
   }
   for(const p of versionPresets(presets,gpt61)){
@@ -166,7 +187,7 @@ test('value matching prefers the newest equivalent revision while preserving dis
     assert.equal(JSON.stringify(p.values),before);
   }
 });
-test('current translations reflect GPT-6.1 while archived descriptions stay historically exact',()=>{
+test('current translations reflect GPT-6.2 while archived descriptions stay historically exact',()=>{
   for(const locale of ['zh-CN','zh-TW','en','ja','ko']){
     assert.ok(gpt61PresetSnapshot.descriptions[locale].balanced.includes('GPT-6.1 Sol'));
     assert.ok(gpt61PresetSnapshot.descriptions[locale].astra.includes('Luna'));
@@ -179,7 +200,9 @@ test('current translations reflect GPT-6.1 while archived descriptions stay hist
       assert.ok(match[1].includes('GPT-6'));
       if(['daily','balanced'].includes(p.id))assert.ok(match[1].includes('GPT-6.1 Terra'));
       else assert.ok(!match[1].includes('Terra'));
-      if(['balanced','astra','max'].includes(p.id))assert.ok(match[1].includes('GPT-6.1 Sol'));
+      if(['balanced','astra','max'].includes(p.id))assert.ok(match[1].includes('GPT-6.2 Sol'));
+      if(['astra','max'].includes(p.id))assert.ok(match[1].includes('GPT-6.2 Astra'));
+      assert.equal(versionApi.archivedPresetDescription(terra,locale,p.id),terraPresetSnapshot.descriptions[locale][p.id]);
     }
     const labels=presetVersionText(locale);
     assert.deepEqual(Object.keys(labels).sort(),Object.keys(presetVersionText('en')).sort());
@@ -190,12 +213,18 @@ test('current translations reflect GPT-6.1 while archived descriptions stay hist
 test('README current profile tables use new models and include archive guidance',()=>{
   for(const path of ['README.md','README.zh-CN.md','README.zh-TW.md','README.ja.md','README.ko.md']){
     const text=read(path);
-    const cells=text.split('\n').filter(line=>line.startsWith('|')).map(line=>line.split('|')[2]??'');
-    const models=cells.filter(cell=>/`gpt-6(?:\.1)?-(?:luna|sol|astra|terra)`/.test(cell));
-    assert.ok(models.length>=6,path);
+    const matrix=text.split('\n').filter(line=>line.startsWith('|')).map(line=>line.split('|').slice(2,8));
+    const models=matrix.filter(cells=>/`gpt-6(?:\.[12])?-(?:luna|sol|astra|terra)`/.test(cells[0]??''));
+    assert.equal(models.length,6,path);
     assert.ok(text.includes('gpt-6.1-terra'),path);
     assert.ok(text.includes('v0.6.4'),path);
-    assert.ok(text.includes('`gpt-6.1-sol`'),path);
+    for(const [i,preset] of presets.entries()){
+      const expected=fields.filter(key=>key!=='agentsEnabled').map(key=>String(preset.values[key]??'—'));
+      const cells=models[i];
+      assert.deepEqual(cells.map(cell=>cell.trim().replaceAll('`','')),expected,path);
+    }
+    assert.ok(text.includes('`gpt-6.2-sol`'),path);
+    assert.ok(text.includes('0.166.0'),path);
     assert.ok(text.includes('v0.6.1'),path);
     assert.ok(text.includes('v0.5.0'),path);
     assert.ok(text.includes('v0.4.0'),path);
@@ -246,9 +275,9 @@ test('stale archive confirmation cannot overwrite a newly loaded project draft',
   assert.equal(f.ctx.values,other);assert.equal(f.ctx.draftPresetSource,null);
   assert.ok(f.messages.includes(presetVersionText('en').changedScope));
 });
-test('current profiles stage GPT-6.1 without archive warnings or immediate file writes',async()=>{
+test('current profiles stage GPT-6.2 without archive warnings or immediate file writes',async()=>{
   const f=context();await f.run('choosePreset',{versionId:current,presetId:'balanced'});
-  assert.equal(f.ctx.values.model,'gpt-6.1-sol');assert.equal(f.confirms.length,0);assert.equal(f.writes.length,0);
+  assert.equal(f.ctx.values.model,'gpt-6.2-sol');assert.equal(f.confirms.length,0);assert.equal(f.writes.length,0);
 });
 test('reset after customizing an archived profile returns to that archive, not current defaults',()=>{
   const reference={versionId:legacy,presetId:'daily'};let chosen;
@@ -298,13 +327,13 @@ test('scope change during final confirmation cancels the write',async()=>{
   assert.equal(f.writes.length,0);assert.ok(f.messages.includes(presetVersionText('en').changedScope));
 });
 test('project-history provenance round-trips and does not reinterpret arbitrary stored sources',()=>{
-  for(const versionId of [current,gpt61,gpt6,legacy])for(const p of versionPresets(presets,versionId)){
+  for(const versionId of [current,terra,prior,gpt61,gpt6,legacy])for(const p of versionPresets(presets,versionId)){
     const ref={versionId,presetId:p.id};assert.deepEqual(parsePresetSource(presetSource(ref),presets),ref);
   }
   assert.equal(presetSource(null),'manual');
   for(const value of ['manual','history_restore','preset/unknown/daily','preset/'+legacy+'/absent','preset/a/b/c'])assert.equal(parsePresetSource(value,presets),null);
 });
-test('UI renders all four revisions, captured archive descriptions and only version-specific selection',()=>{
+test('UI renders all six revisions, captured archive descriptions and only version-specific selection',()=>{
   let versionListener;const buttons=[];
   const host={innerHTML:'',querySelector:()=>({addEventListener(_type,fn){versionListener=fn;}}),querySelectorAll:()=>buttons};
   let picked;
@@ -328,4 +357,36 @@ test('future release titles stay short and assets plus multilingual notes stay c
   assert.equal(release.split('--title "$tag"').length-1,2);assert.equal(release.split('--notes-file release-body.md').length-1,2);
   assert.ok(release.includes('gh release upload "$tag" release-files/*'));assert.ok(release.includes('--verify-tag'));
   assert.ok(nightly.includes('--title "nightly"'));assert.ok(!release.includes('--title "Codex Config Studio'));
+});
+
+test('known old CLI cannot apply any refreshed preset but can explicitly apply archived v0.6.6',async()=>{
+  for(const presetId of ['balanced','astra','max']){
+    const f=context({configHealthState:{runtime:{version:'0.165.9'}},applySnapshot(){}});
+    await f.run('choosePreset',{versionId:current,presetId});
+    await f.run('applyChanges');
+    assert.equal(f.writes.length,0); assert.equal(f.confirms.length,0);
+    assert.ok(f.messages.includes(presetVersionText('en').clientTooOld));
+    await f.run('choosePreset',{versionId:terra,presetId});
+    await f.run('applyChanges');
+    assert.equal(f.writes.length,1);
+    assert.deepEqual(f.writes[0].args.values,terraPresetSnapshot.presets.find(p=>p.id===presetId).values);
+  }
+});
+test('minimum supported CLI can apply current preset without needing the remote catalog',async()=>{
+  const f=context({configHealthState:{runtime:{version:'0.166.0'}},applySnapshot(){}});
+  await f.run('choosePreset',{versionId:current,presetId:'astra'});
+  await f.run('applyChanges');
+  assert.equal(f.writes.length,1);
+  assert.equal(f.writes[0].args.values.model,'gpt-6.2-astra');
+  assert.equal(f.writes[0].args.values.defaultSubagentModel,'gpt-6.2-sol');
+});
+test('a CLI version resolved during confirmation is checked before file write',async()=>{
+  let resolve;
+  const f=context({askConfirm:()=>new Promise(r=>resolve=r)});
+  await f.run('choosePreset',{versionId:current,presetId:'balanced'});
+  const operation=f.run('applyChanges');
+  f.ctx.configHealthState={runtime:{version:'0.166.0-beta.1'}};
+  resolve(true);await operation;
+  assert.equal(f.writes.length,0);
+  assert.ok(f.messages.includes(presetVersionText('en').clientTooOld));
 });

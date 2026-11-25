@@ -47,13 +47,15 @@ Codex 很強，但真實專案中的設定很快就會超過幾行：不同專�
 | **Token Saver** | `gpt-6-luna` | `low` | `low` | — | — | — | `Small edits` |
 | **Economy** | `gpt-6-luna` | `medium` | `medium` | — | — | — | `Routine CRUD` |
 | **Daily** | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Daily work` |
-| **Balanced** | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
-| **Astra Director** | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | `Architecture/review` |
-| **Max Quality** | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | `Hardest tasks` |
+| **Balanced** | `gpt-6.2-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
+| **Astra Director** | `gpt-6.2-astra` | `high` | `xhigh` | `gpt-6.2-sol` | `medium` | 2 | `Architecture/review` |
+| **Max Quality** | `gpt-6.2-astra` | `xhigh` | `xhigh` | `gpt-6.2-sol` | `high` | 3 | `Hardest tasks` |
 
 這些方案只是起點，不會鎖死。你可以在 UI 中繼續修改模型、Reasoning、子 Agent 與並行數。
 
-目前方案版本：**GPT-6.1 Terra · 2026-10-27**。v0.6.4, v0.6.1 的 GPT-6.1 方案、GPT-6 v0.5.0 方案與舊版 v0.4.0 方案會繼續作為唯讀歷史快照保留。
+目前方案版本：**GPT-6.2 · 2026-11-25**。v0.6.4, v0.6.1 的 GPT-6.1 方案、GPT-6 v0.5.0 方案與舊版 v0.4.0 方案會繼續作為唯讀歷史快照保留。
+
+升級後的三種方案需要 Codex CLI 0.166.0 或更新版本。舊用戶端可選擇歷史版本 **GPT-6.1 Terra（v0.6.6）**。不會遷移既有設定或任務偏好。
 
 ## Config Health & Model Integrity
 
