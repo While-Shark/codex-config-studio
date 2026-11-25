@@ -1,6 +1,6 @@
 release: patch
-Requested after PR #68 merged with successful Windows, Linux, macOS and frontend CI.
-Repair: canonicalize GitHub Release asset filenames and validate live signed updater URLs.
-Source master: ce134892ba6dd25525a0beadbd9e84ceeed8cd35
-Expected release: v0.6.6 (patch from stable v0.6.5).
-Requested 2026-10-27.
+Requested after PR #69 merged with successful Windows, Linux, macOS and frontend CI.
+GPT-6.2 role-based presets with older CLI protection and v0.6.6 archive fallback.
+Source master: 56f8e7d571e5127cec273b0368a00ad29eea5635
+Expected release: v0.6.7 (patch from stable v0.6.6).
+Requested 2026-11-25.
