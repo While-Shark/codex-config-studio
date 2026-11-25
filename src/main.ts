@@ -22,7 +22,7 @@ import './history-tab.css';
 import { renderModelPicker, bindModelPickers, validateModelPickers } from './model-picker';
 import { loadOfficialModelCatalog, mergeModelCatalogIds, readCachedOfficialModelCatalog, readOfficialModelCatalogChangeReport, reasoningLevelsForModel, reconcileReasoningLevelForModel, modelClientCompatibility, type OfficialModelCatalogEntry, type OfficialModelCatalogState, type ModelCatalogChangeReport, type ModelClientCompatibility } from './model-catalog';
 import './model-picker.css';
-import { CURRENT_PRESET_VERSION, GPT6_PRESET_VERSION, presetVersion, presetByReference, matchPresetVersion, presetSource, parsePresetSource, type PresetReference } from './preset-versions';
+import { CURRENT_PRESET_VERSION, GPT6_PRESET_VERSION, presetVersion, currentPresetClientTooOld, presetByReference, matchPresetVersion, presetSource, parsePresetSource, type PresetReference } from './preset-versions';
 import { renderPresetWorkspace, presetReferenceLabel } from './preset-version-view';
 import { presetVersionText } from './i18n/preset-versions';
 import './preset-versions.css';
@@ -98,9 +98,9 @@ const presets: Preset[] = [
   { id:'token-save', values:{model:'gpt-6-luna',modelReasoningEffort:'low',planModeReasoningEffort:'low',agentsEnabled:false,defaultSubagentModel:null,defaultSubagentReasoningEffort:null,maxConcurrentThreadsPerSession:null}},
   { id:'economy', values:{model:'gpt-6-luna',modelReasoningEffort:'medium',planModeReasoningEffort:'medium',agentsEnabled:false,defaultSubagentModel:null,defaultSubagentReasoningEffort:null,maxConcurrentThreadsPerSession:null}},
   { id:'daily', values:{model:'gpt-6.1-terra',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6.1-terra',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
-  { id:'balanced', values:{model:'gpt-6.1-sol',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6.1-terra',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
-  { id:'astra', values:{model:'gpt-6-astra',modelReasoningEffort:'high',planModeReasoningEffort:'xhigh',agentsEnabled:true,defaultSubagentModel:'gpt-6.1-sol',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
-  { id:'max', values:{model:'gpt-6-astra',modelReasoningEffort:'xhigh',planModeReasoningEffort:'xhigh',agentsEnabled:true,defaultSubagentModel:'gpt-6.1-sol',defaultSubagentReasoningEffort:'high',maxConcurrentThreadsPerSession:3}},
+  { id:'balanced', values:{model:'gpt-6.2-sol',modelReasoningEffort:'medium',planModeReasoningEffort:'high',agentsEnabled:true,defaultSubagentModel:'gpt-6.1-terra',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
+  { id:'astra', values:{model:'gpt-6.2-astra',modelReasoningEffort:'high',planModeReasoningEffort:'xhigh',agentsEnabled:true,defaultSubagentModel:'gpt-6.2-sol',defaultSubagentReasoningEffort:'medium',maxConcurrentThreadsPerSession:2}},
+  { id:'max', values:{model:'gpt-6.2-astra',modelReasoningEffort:'xhigh',planModeReasoningEffort:'xhigh',agentsEnabled:true,defaultSubagentModel:'gpt-6.2-sol',defaultSubagentReasoningEffort:'high',maxConcurrentThreadsPerSession:3}},
 ];
 
 let scope: ScopeKind = 'global';
@@ -978,6 +978,7 @@ async function applyChanges():Promise<void> {
   const pending=clone(values), originalDraft=values, target=requestScope(), snapshot=lastSnapshot;
   const archived=reference!==null && presetVersion(reference.versionId)?.archived===true;
   const copy=presetVersionText(getLocale());
+  if(currentPresetClientTooOld(reference,pending,configHealthState?.runtime?.version)){toast(copy.clientTooOld,true);return;}
   const integrityCopy=integrityText(getLocale());
   const lockKey=currentIntegrityKey();
   const lock=loadIntegrityLock(lockKey);
@@ -993,6 +994,7 @@ async function applyChanges():Promise<void> {
   });
   if(!ok||busy)return;
   if(values!==originalDraft || lastSnapshot!==snapshot || JSON.stringify(target)!==JSON.stringify(requestScope())){toast(copy.changedScope,true);return;}
+  if(currentPresetClientTooOld(reference,pending,configHealthState?.runtime?.version)){toast(copy.clientTooOld,true);return;}
   setBusy(true);
   try{
     const snap=await safeInvoke<ConfigSnapshot>('apply_config',{scope:target,values:pending,source:presetSource(reference)});

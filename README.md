@@ -47,13 +47,15 @@ Codex is powerful, but real-world setups quickly grow beyond a few config lines:
 | **Token Saver** | `gpt-6-luna` | `low` | `low` | — | — | — | `Small edits` |
 | **Economy** | `gpt-6-luna` | `medium` | `medium` | — | — | — | `Routine CRUD` |
 | **Daily** | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Daily work` |
-| **Balanced** | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
-| **Astra Director** | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | `Architecture/review` |
-| **Max Quality** | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | `Hardest tasks` |
+| **Balanced** | `gpt-6.2-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
+| **Astra Director** | `gpt-6.2-astra` | `high` | `xhigh` | `gpt-6.2-sol` | `medium` | 2 | `Architecture/review` |
+| **Max Quality** | `gpt-6.2-astra` | `xhigh` | `xhigh` | `gpt-6.2-sol` | `high` | 3 | `Hardest tasks` |
 
 Profiles are starting points, not hard-coded modes. You can change models, reasoning effort, sub-agent settings, and concurrency in the UI.
 
-Current revision: **GPT-6.1 Terra · 2026-10-27**. The v0.6.4, v0.6.1 GPT-6.1 presets, GPT-6 v0.5.0 presets, and legacy v0.4.0 presets remain available as read-only archive snapshots in the app.
+Current revision: **GPT-6.2 · 2026-11-25**. The v0.6.4, v0.6.1 GPT-6.1 presets, GPT-6 v0.5.0 presets, and legacy v0.4.0 presets remain available as read-only archive snapshots in the app.
+
+The updated profiles require Codex CLI 0.166.0 or newer. On an older client, use the archived **GPT-6.1 Terra (v0.6.6)** profiles. Existing configurations and task preferences are not migrated.
 
 ## Config Health & Model Integrity
 

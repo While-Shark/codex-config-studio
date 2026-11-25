@@ -47,13 +47,15 @@ Codex は強力ですが、実際のプロジェクトでは設定がすぐに�
 | **Token Saver** | `gpt-6-luna` | `low` | `low` | — | — | — | `Small edits` |
 | **Economy** | `gpt-6-luna` | `medium` | `medium` | — | — | — | `Routine CRUD` |
 | **Daily** | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Daily work` |
-| **Balanced** | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
-| **Astra Director** | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | `Architecture/review` |
-| **Max Quality** | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | `Hardest tasks` |
+| **Balanced** | `gpt-6.2-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
+| **Astra Director** | `gpt-6.2-astra` | `high` | `xhigh` | `gpt-6.2-sol` | `medium` | 2 | `Architecture/review` |
+| **Max Quality** | `gpt-6.2-astra` | `xhigh` | `xhigh` | `gpt-6.2-sol` | `high` | 3 | `Hardest tasks` |
 
 プロファイルは出発点であり固定ではありません。UI からモデル、Reasoning、サブ Agent、並列数を自由に変更できます。
 
-現在のプロファイル版：**GPT-6.1 Terra · 2026-10-27**。v0.6.4, v0.6.1 の GPT-6.1、GPT-6 v0.5.0、旧 v0.4.0 の各プロファイルは読み取り専用の履歴スナップショットとして残ります。
+現在のプロファイル版：**GPT-6.2 · 2026-11-25**。v0.6.4, v0.6.1 の GPT-6.1、GPT-6 v0.5.0、旧 v0.4.0 の各プロファイルは読み取り専用の履歴スナップショットとして残ります。
+
+更新された 3 プロファイルには Codex CLI 0.166.0 以降が必要です。旧クライアントでは履歴の **GPT-6.1 Terra（v0.6.6）** を選べます。既存の設定やタスクの選択は移行されません。
 
 ## Config Health & Model Integrity
 

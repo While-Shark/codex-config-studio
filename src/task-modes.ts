@@ -5,6 +5,8 @@ export type TaskPreference = { model: string; reasoning: string };
 // Latest official Codex models first; keep legacy IDs available without migrating saved preferences.
 // Live source: https://github.com/openai/codex/blob/main/codex-rs/models-manager/models.json
 export const commonTaskModels = [
+  'gpt-6.2-sol',
+  'gpt-6.2-astra',
   'gpt-6.1-sol',
   'gpt-6.1-terra',
   'gpt-6-sol',

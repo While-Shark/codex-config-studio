@@ -47,13 +47,15 @@ Codex는 강력하지만 실제 프로젝트의 설정은 금방 복잡해집니
 | **Token Saver** | `gpt-6-luna` | `low` | `low` | — | — | — | `Small edits` |
 | **Economy** | `gpt-6-luna` | `medium` | `medium` | — | — | — | `Routine CRUD` |
 | **Daily** | `gpt-6.1-terra` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Daily work` |
-| **Balanced** | `gpt-6.1-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
-| **Astra Director** | `gpt-6-astra` | `high` | `xhigh` | `gpt-6.1-sol` | `medium` | 2 | `Architecture/review` |
-| **Max Quality** | `gpt-6-astra` | `xhigh` | `xhigh` | `gpt-6.1-sol` | `high` | 3 | `Hardest tasks` |
+| **Balanced** | `gpt-6.2-sol` | `medium` | `high` | `gpt-6.1-terra` | `medium` | 2 | `Cross-file work` |
+| **Astra Director** | `gpt-6.2-astra` | `high` | `xhigh` | `gpt-6.2-sol` | `medium` | 2 | `Architecture/review` |
+| **Max Quality** | `gpt-6.2-astra` | `xhigh` | `xhigh` | `gpt-6.2-sol` | `high` | 3 | `Hardest tasks` |
 
 프로필은 시작점일 뿐 고정 모드가 아닙니다. UI에서 모델, Reasoning, 서브 Agent, 동시 실행 수를 자유롭게 바꿀 수 있습니다.
 
-현재 프로필 버전: **GPT-6.1 Terra · 2026-10-27**. v0.6.4, v0.6.1의 GPT-6.1 프로필, GPT-6 v0.5.0 프로필, 이전 v0.4.0 프로필은 읽기 전용 기록 스냅샷으로 계속 보존됩니다.
+현재 프로필 버전: **GPT-6.2 · 2026-11-25**. v0.6.4, v0.6.1의 GPT-6.1 프로필, GPT-6 v0.5.0 프로필, 이전 v0.4.0 프로필은 읽기 전용 기록 스냅샷으로 계속 보존됩니다.
+
+업데이트된 세 프로필에는 Codex CLI 0.166.0 이상이 필요합니다. 이전 클라이언트는 기록의 **GPT-6.1 Terra(v0.6.6)** 를 선택할 수 있습니다. 기존 설정과 작업 기본 설정은 변경하지 않습니다.
 
 ## Config Health & Model Integrity
 
